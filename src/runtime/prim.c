@@ -56,8 +56,8 @@ void hf_prim_branch(hf_global_t* global);
 /* 0BRANCH primitive */
 void hf_prim_0branch(hf_global_t* global);
 
-/* (LITERAL) primitive */
-void hf_prim_literal(hf_global_t* global);
+/* (LIT) primitive */
+void hf_prim_lit(hf_global_t* global);
 
 /* (DATA) primitive */
 void hf_prim_data(hf_global_t* global);
@@ -303,7 +303,7 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_0BRANCH, "0BRANCH", hf_prim_0branch,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_LITERAL, "(LITERAL)", hf_prim_literal,
+  hf_register_prim(global, HF_PRIM_LIT, "(LIT)", hf_prim_lit,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_DATA, "(DATA)", hf_prim_data,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
@@ -489,8 +489,8 @@ void hf_prim_0branch(hf_global_t* global) {
   }
 }
 
-/* (LITERAL) primitive */
-void hf_prim_literal(hf_global_t* global) {
+/* (LIT) primitive */
+void hf_prim_lit(hf_global_t* global) {
   *(--global->data_stack) = *((hf_cell_t*)global->ip)++;
 }
 

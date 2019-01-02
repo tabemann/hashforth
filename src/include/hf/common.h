@@ -127,7 +127,7 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_PRIM_EXIT (2)
 #define HF_PRIM_BRANCH (3)
 #define HF_PRIM_0BRANCH (4)
-#define HF_PRIM_LITERAL (5)
+#define HF_PRIM_LIT (5)
 #define HF_PRIM_DATA (6)
 #define HF_PRIM_NEW_COLON (7)
 #define HF_PRIM_NEW_CREATE (8)
