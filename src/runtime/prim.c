@@ -194,9 +194,6 @@ void hf_prim_load_rp(hf_global_t* global);
 /* RP! primitive */
 void hf_prim_store_rp(hf_global_t* global);
 
-/* LATESTXT primitive */
-void hf_prim_latestxt(hf_global_t* global);
-
 /* >BODY primitive */
 void hf_prim_to_body(hf_global_t* global);
 
@@ -395,8 +392,6 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_STORE_RP, "RP!", hf_prim_store_rp,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_LATESTXT, "LATESTXT", hf_prim_latestxt,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_TO_BODY, ">BODY", hf_prim_to_body,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_WORD_TO_NAME, "WORD>NAME",
@@ -507,7 +502,7 @@ void hf_prim_new_colon(hf_global_t* global) {
   hf_full_token_t token = hf_new_token(global);
   hf_new_user_space(global);
   word = hf_new_word(global, token);
-  word->flags = HF_WORD_HIDDEN;
+  word->flags = 0;
   word->name_length = 0;
   word->name = NULL;
   word->data = NULL;
@@ -515,7 +510,6 @@ void hf_prim_new_colon(hf_global_t* global) {
   word->secondary = global->user_space_current;
   word->next = global->wordlists[global->current_wordlist].first;
   global->wordlists[global->current_wordlist].first = token;
-  global->latestxt = token;
   *(--global->data_stack) = (hf_cell_t)token;
 }
 
@@ -525,7 +519,7 @@ void hf_prim_new_create(hf_global_t* global) {
   hf_full_token_t token = hf_new_token(global);
   hf_new_user_space(global);
   word = hf_new_word(global, token);
-  word->flags = HF_WORD_HIDDEN;
+  word->flags = 0;
   word->name_length = 0;
   word->name = NULL;
   word->data = global->user_space_current;
@@ -533,7 +527,6 @@ void hf_prim_new_create(hf_global_t* global) {
   word->secondary = NULL;
   word->next = global->wordlists[global->current_wordlist].first;
   global->wordlists[global->current_wordlist].first = token;
-  global->latestxt = token;
   *(--global->data_stack) = (hf_cell_t)token;
 }
 
@@ -815,11 +808,6 @@ void hf_prim_load_rp(hf_global_t* global) {
 /* RP! primitive */
 void hf_prim_store_rp(hf_global_t* global) {
   global->return_stack = (hf_token_t**)(*global->data_stack++);
-}
-
-/* LATESTXT primitive */
-void hf_prim_latestxt(hf_global_t* global) {
-  *(--global->data_stack) = global->latestxt;
 }
 
 /* >BODY primitive */

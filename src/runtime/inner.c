@@ -54,7 +54,6 @@ void hf_init(hf_global_t* global) {
   global->current_wordlist = 0;
   global->current_word = NULL;
   global->ip = NULL;
-  global->latestxt = NULL;
   if(!(data_stack_base =
        malloc(sizeof(hf_cell_t) * HF_INIT_DATA_STACK_COUNT))) {
     fprintf(stderr, "Unable to allocate data stack!\n");
