@@ -92,6 +92,17 @@ void hf_inner(hf_global_t* global) {
     if(token < global->word_count) {
       hf_word_t* word = global->words + token;
       global->current_word = word;
+#ifdef TRACE
+      if(word->name_length) {
+	char* name_copy = malloc(word->name_length);
+	memcpy(name_copy, word->name, word->name_length);
+	name_copy[word->name_length] = 0;
+	printf("executing token: %lld name: %s\n", (uint64_t)token, name_copy);
+	free(name_copy);
+      } else {
+	printf("executing token: %lld <no name>\n", (uint64_t)token);
+      }
+#endif
       word->primitive(global);
     } else {
       fprintf(stderr, "Invalid token!: %d\n", (int)token);
