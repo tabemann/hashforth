@@ -32,7 +32,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "hf/common.h"
-#incldue "hf/inner.h"
+#include "hf/inner.h"
 
 /* Forward declarations */
 
@@ -68,11 +68,11 @@ void hf_prim_new_colon(hf_global_t* global);
 /* NEW-CREATE primitive */
 void hf_prim_new_create(hf_global_t* global);
 
-/* DOES> primitive */
-void hf_prim_does(hf_global_t* global);
+/* SET-DOES> primitive */
+void hf_prim_set_does(hf_global_t* global);
 
-/* ; primitive */
-void hf_prim_semi(hf_global_t* global);
+/* FINISH primitive */
+void hf_prim_finish(hf_global_t* global);
 
 /* EXECUTE primitive */
 void hf_prim_execute(hf_global_t* global);
@@ -215,11 +215,11 @@ void hf_prim_get_current(hf_global_t* global);
 /* SET-CURRENT primitive */
 void hf_prim_set_current(hf_global_t* global);
 
-/* GET-FLAGS primitive */
-void hf_prim_get_flags(hf_global_t* global);
+/* WORD>FLAGS primitive */
+void hf_prim_word_to_flags(hf_global_t* global);
 
-/* SET-FLAGS primitive */
-void hf_prim_set_flags(hf_global_t* global);
+/* FLAGS>WORD primitive */
+void hf_prim_flags_to_word(hf_global_t* global);
 
 /* WORDLIST primitive */
 void hf_prim_wordlist(hf_global_t* global);
@@ -308,9 +308,9 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_NEW_CREATE, "NEW-CREATE", hf_prim_new_create,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_DOES, "DOES>", hf_prim_does, HF_WORD_NORMAL,
-		   HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_SEMI, ";", hf_prim_semi,
+  hf_register_prim(global, HF_PRIM_SET_DOES, "SET-DOES>", hf_prim_set_does,
+		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+  hf_register_prim(global, HF_PRIM_FINISH, "FINISH", hf_prim_finish,
 		   HF_WORD_IMMEDIATE, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_EXECUTE, "EXECUTE", hf_prim_execute,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
@@ -407,10 +407,10 @@ void hf_register_prims(hf_global_t* global) {
 		   hf_prim_get_current, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_SET_CURRENT, "SET-CURRENT",
 		   hf_prim_set_current, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_GET_FLAGS, "GET-FLAGS", hf_prim_get_flags,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_SET_FLAGS, "SET-FLAGS", hf_prim_set_flags,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+  hf_register_prim(global, HF_PRIM_WORD_TO_FLAGS, "WORD>FLAGS",
+		   hf_prim_word_to_flags, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+  hf_register_prim(global, HF_PRIM_FLAGS_TO_WORD, "FLAGS>WORD",
+		   hf_prim_flags_to_word, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_WORDLIST, "WORDLIST", hf_prim_wordlist,
 		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
   hf_register_prim(global, HF_PRIM_HALF_TOKEN_SIZE, "HALF-TOKEN-SIZE",
@@ -486,14 +486,15 @@ void hf_prim_0branch(hf_global_t* global) {
 
 /* (LIT) primitive */
 void hf_prim_lit(hf_global_t* global) {
-  *(--global->data_stack) = *((hf_cell_t*)global->ip)++;
+  *(--global->data_stack) = *(hf_cell_t*)global->ip;
+  global->ip = (hf_token_t*)((void*)global->ip + sizeof(hf_cell_t));
 }
 
 /* (DATA) primitive */
 void hf_prim_data(hf_global_t* global) {
-  hf_cell_t bytes = *((hf_cell_t*)global->ip)++;
+  hf_cell_t bytes = *(hf_cell_t*)global->ip;
   *(--global->data_stack) = (hf_cell_t)global->ip;
-  *(void**)(&global->ip) += bytes;
+  global->ip = (hf_token_t*)((void*)global->ip + sizeof(hf_cell_t) + bytes);
 }
 
 /* NEW-COLON primitive */
@@ -530,28 +531,27 @@ void hf_prim_new_create(hf_global_t* global) {
   *(--global->data_stack) = (hf_cell_t)token;
 }
 
-/* DOES> primitive */
-void hf_prim_does(hf_global_t* global) {
-  if(global->latestxt) {
-    hf_word_t* word = global->words + global->latestxt;
+/* SET-DOES> primitive */
+void hf_prim_set_does(hf_global_t* global) {
+  hf_cell_t token = *global->data_stack++;
+  if(token < global->word_count) {
+    hf_word_t* word = global->words + token;
     word->primitive = hf_prim_do_does;
     word->secondary = global->ip;
     global->ip = *global->return_stack++;
   } else {
-    fprintf(stderr, "No words created!\n");
+    fprintf(stderr, "Out of range token!\n");
     abort();
   }
 }
 
-/* ; primitive */
-void hf_prim_semi(hf_global_t* global) {
-  if(global->latestxt) {
-    *((hf_token_t*)global->user_space_current)++ = HF_PRIM_EXIT;
-    *((hf_token_t*)global->user_space_current)++ = HF_PRIM_END;
-    global->words[global->latestxt].flags &= ~HF_WORD_HIDDEN;
+/* FINISH primitive */
+void hf_prim_finish(hf_global_t* global) {
+  hf_cell_t token = *global->data_stack++;
+  if(token < global->word_count) {
+    // In a practical implementation, something will be done here.
   } else {
-    fprintf(stderr, "No words created!\n");
-    abort();
+    fprintf(stderr, "Out of range token!\n");
   }
 }
 
@@ -598,7 +598,7 @@ void hf_prim_rot(hf_global_t* global) {
 
 /* PICK primitive */
 void hf_prim_pick(hf_global_t* global) {
-  *global->data_stack = *(global + *global->data_stack + 1);
+  *global->data_stack = *(global->data_stack + *global->data_stack + 1);
 }
 
 /* ROLL primitive */
@@ -792,7 +792,7 @@ void hf_prim_store_here(hf_global_t* global) {
 /* SP@ primitive */
 void hf_prim_load_sp(hf_global_t* global) {
   hf_cell_t* data_stack = global->data_stack;
-  *(--global->data_stack) = data_stack;
+  *(--global->data_stack) = (hf_cell_t)data_stack;
 }
 
 /* SP! primitive */
@@ -802,7 +802,7 @@ void hf_prim_store_sp(hf_global_t* global) {
 
 /* RP@ primitive */
 void hf_prim_load_rp(hf_global_t* global) {
-  *(--global->data_stack) = global->return_stack;
+  *(--global->data_stack) = (hf_cell_t)global->return_stack;
 }
 
 /* RP! primitive */
@@ -827,7 +827,7 @@ void hf_prim_word_to_name(hf_global_t* global) {
   if(token < global->word_count) {
     hf_word_t* word = global->words + token;
     *global->data_stack = (hf_cell_t)word->name;
-    *(--global->data_stack) = word-name_length;
+    *(--global->data_stack) = word->name_length;
   } else {
     fprintf(stderr, "Out of range token!\n");
     abort();
@@ -838,7 +838,7 @@ void hf_prim_word_to_name(hf_global_t* global) {
 void hf_prim_name_to_word(hf_global_t* global) {
   hf_cell_t token = *global->data_stack++;
   hf_cell_t name_length = *global->data_stack++;
-  hf_byte_t* name = *global->data_stack++;
+  hf_byte_t* name = (hf_byte_t*)(*global->data_stack++);
   if(token < global->word_count) {
     hf_word_t* word = global->words + token;
     word->name_length = name_length;
@@ -864,7 +864,7 @@ void hf_prim_word_to_next(hf_global_t* global) {
 /* WORDLIST>FIRST primitive */
 void hf_prim_wordlist_to_first(hf_global_t* global) {
   hf_cell_t id = *global->data_stack;
-  if(wordlist < global->wordlist_count) {
+  if(id < global->wordlist_count) {
     hf_wordlist_t* wordlist = global->wordlists + id;
     *global->data_stack = wordlist->first;
   } else {
@@ -883,8 +883,8 @@ void hf_prim_set_current(hf_global_t* global) {
   global->current_wordlist = (hf_wordlist_id_t)(*global->data_stack++);
 }
 
-/* GET-FLAGS primitive */
-void hf_prim_get_flags(hf_global_t* global) {
+/* WORD>FLAGS primitive */
+void hf_prim_word_to_flags(hf_global_t* global) {
   hf_cell_t token = *global->data_stack;
   if(token < global->word_count) {
     hf_word_t* word = global->words + token;
@@ -895,8 +895,8 @@ void hf_prim_get_flags(hf_global_t* global) {
   }  
 }
 
-/* SET-FLAGS primitive */
-void hf_prim_set_flags(hf_global_t* global) {
+/* FLAGS>WORD primitive */
+void hf_prim_flags_to_word(hf_global_t* global) {
   hf_cell_t token = *global->data_stack++;
   hf_flags_t flags = *global->data_stack++;
   if(token < global->word_count) {
@@ -973,9 +973,9 @@ void hf_prim_store_32(hf_global_t* global) {
 
 /* TYPE primitive */
 void hf_prim_type(hf_global_t* global) {
-  af_cell_t* length = *global->data_stack++;
-  af_byte_t* buffer = *global->data_stack++;
-  fwrite(buffer, sizeof(af_byte_t), length, stdout);
+  hf_cell_t length = *global->data_stack++;
+  hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack++);
+  fwrite(buffer, sizeof(hf_byte_t), length, stdout);
 }
 
 /* KEY primitive */
@@ -990,11 +990,11 @@ void hf_prim_key(hf_global_t* global) {
 
 /* ACCEPT primitive */
 void hf_prim_accept(hf_global_t* global) {
-  af_cell_t buffer_size = *global->data_stack++;
-  af_byte_t* buffer = (af_byte_t*)(*global->data_stack);
-  af_byte_t* data_read = fgets(buffer, buffer_size, stdin);
+  hf_cell_t buffer_size = *global->data_stack++;
+  hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack);
+  hf_byte_t* data_read = fgets(buffer, buffer_size, stdin);
   if(data_read) {
-    af_cell_t data_read_length = strlen(data_read);
+    hf_cell_t data_read_length = strlen(data_read);
     if(data_read[data_read_length - 1] == '\n') {
       data_read_length--;
     }

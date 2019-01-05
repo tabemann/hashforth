@@ -50,7 +50,7 @@ void hf_init(hf_global_t* global) {
     fprintf(stderr, "Unable to allocate wordlists array!\n");
     abort();
   }
-  global->wordlists[0].first = NULL;
+  global->wordlists[0].first = 0;
   global->current_wordlist = 0;
   global->current_word = NULL;
   global->ip = NULL;
@@ -90,12 +90,26 @@ void hf_inner(hf_global_t* global) {
 #endif
 #endif
     if(token < global->word_count) {
-      af_word_t* word = global->words + token;
+      hf_word_t* word = global->words + token;
       global->current_word = word;
       word->primitive(global);
     } else {
       fprintf(stderr, "Invalid token!: %d\n", (int)token);
+      abort();
     }
+  }
+}
+
+/* Boot the Forth VM */
+void hf_boot(hf_global_t* global) {
+  if(global->word_count > 0) {
+    hf_word_t* word = global->words + global->word_count - 1;
+    global->current_word = word;
+    word->primitive(global);
+    hf_inner(global);
+  } else {
+    fprintf(stderr, "No tokens registered!\n");
+    abort();
   }
 }
 
@@ -141,7 +155,7 @@ hf_wordlist_id_t hf_new_wordlist(hf_global_t* global) {
     global->wordlist_space_count *= 2;
     if(!(global->wordlists = realloc(global->wordlists,
 				     sizeof(hf_wordlist_t) *
-				     global->wordlists_space_count))) {
+				     global->wordlist_space_count))) {
       fprintf(stderr, "Unable to allocate wordlist space!\n");
       abort();
     }

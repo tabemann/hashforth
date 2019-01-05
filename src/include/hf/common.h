@@ -87,10 +87,6 @@ typedef hf_cell_t hf_flags_t;
 
 typedef hf_cell_t hf_wordlist_id_t;
 
-typedef hf_cell_t* hf_forward_t;
-
-tyepdef hf_token_t* hf_backward_t;
-
 struct hf_word_t;
 typedef struct hf_word_t hf_word_t;
 
@@ -104,14 +100,14 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 
 /* Constants */
 
-#define HF_TRUE ((af_cell_t)(-1))
-#define HF_FALSE ((af_cell_t)0)
+#define HF_TRUE ((hf_cell_t)(-1))
+#define HF_FALSE ((hf_cell_t)0)
 
 #define HF_INIT_WORD_SPACE_COUNT (16)
 #define HF_INIT_WORDLIST_SPACE_COUNT (16)
 #define HF_INIT_DATA_STACK_COUNT (1024)
 #define HF_INIT_RETURN_STACK_COUNT (1024)
-#define HF_INIT_USER_SPACE_SIZE (65536 * sizeof(af_cell_t))
+#define HF_INIT_USER_SPACE_SIZE (65536 * sizeof(hf_cell_t))
 
 #define HF_WORD_NORMAL (0)
 #define HF_WORD_IMMEDIATE (1)
@@ -120,7 +116,7 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 
 #define HF_WORDLIST_FORTH (0)
 
-#define HF_WORD_MIN_USER_SPACE_LEFT (1024 * sizeof(af_cell_t))
+#define HF_WORD_MIN_USER_SPACE_LEFT (1024 * sizeof(hf_cell_t))
 
 #define HF_PRIM_END (0)
 #define HF_PRIM_NOP (1)
@@ -131,8 +127,8 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_PRIM_DATA (6)
 #define HF_PRIM_NEW_COLON (7)
 #define HF_PRIM_NEW_CREATE (8)
-#define HF_PRIM_DOES (9)
-#define HF_PRIM_SEMI (10)
+#define HF_PRIM_SET_DOES (9)
+#define HF_PRIM_FINISH (10)
 #define HF_PRIM_EXECUTE (11)
 #define HF_PRIM_DROP (12)
 #define HF_PRIM_DUP (13)
@@ -180,8 +176,8 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_PRIM_WORDLIST_TO_FIRST (55)
 #define HF_PRIM_GET_CURRENT (56)
 #define HF_PRIM_SET_CURRENT (57)
-#define HF_PRIM_GET_FLAGS (58)
-#define HF_PRIM_SET_FLAGS (59)
+#define HF_PRIM_WORD_TO_FLAGS (58)
+#define HF_PRIM_FLAGS_TO_WORD (59)
 #define HF_PRIM_WORDLIST (60)
 #define HF_PRIM_HALF_TOKEN_SIZE (61)
 #define HF_PRIM_FULL_TOKEN_SIZE (62)

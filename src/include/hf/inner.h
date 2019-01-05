@@ -44,6 +44,9 @@ void hf_init(hf_global_t* global);
 /* The inner interpreter */
 void hf_inner(hf_global_t* global);
 
+/* Boot the Forth VM */
+void hf_boot(hf_global_t* global);
+
 /* Allocate more user space if needed */
 void hf_new_user_space(hf_global_t* global);
 
