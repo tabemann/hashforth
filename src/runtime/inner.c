@@ -72,6 +72,9 @@ void hf_init(hf_global_t* global) {
     exit(1);
   }
   global->user_space_end = global->user_space_start + HF_INIT_USER_SPACE_SIZE;
+#ifdef TRACE
+  global->level = 0;
+#endif
 }
 
 /* The inner interpreter */
@@ -93,6 +96,9 @@ void hf_inner(hf_global_t* global) {
       hf_word_t* word = global->words + token;
       global->current_word = word;
 #ifdef TRACE
+      for(hf_cell_t i = 0; i < global->level; i++) {
+	printf("  ");
+      }
       if(word->name_length) {
 	char* name_copy = malloc(word->name_length);
 	memcpy(name_copy, word->name, word->name_length);

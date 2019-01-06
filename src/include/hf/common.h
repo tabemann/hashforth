@@ -222,7 +222,9 @@ struct hf_global_t {
   void* user_space_current;
   void* user_space_start;
   void* user_space_end;
-  
+#ifdef TRACE
+  hf_cell_t level;
+#endif
 };
 
 #endif /* HF_TYPES_H */
