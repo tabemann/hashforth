@@ -41,14 +41,14 @@ void hf_init(hf_global_t* global) {
   global->word_space_count = HF_INIT_WORD_SPACE_COUNT;
   if(!(global->words = malloc(sizeof(hf_word_t) * global->word_space_count))) {
     fprintf(stderr, "Unable to allocate words array!\n");
-    abort();
+    exit(1);
   }
   global->wordlist_count = 1;
   global->wordlist_space_count = HF_INIT_WORDLIST_SPACE_COUNT;
   if(!(global->wordlists =
        malloc(sizeof(hf_wordlist_t) * global->wordlist_space_count))) {
     fprintf(stderr, "Unable to allocate wordlists array!\n");
-    abort();
+    exit(1);
   }
   global->wordlists[0].first = 0;
   global->current_wordlist = 0;
@@ -57,19 +57,19 @@ void hf_init(hf_global_t* global) {
   if(!(data_stack_base =
        malloc(sizeof(hf_cell_t) * HF_INIT_DATA_STACK_COUNT))) {
     fprintf(stderr, "Unable to allocate data stack!\n");
-    abort();
+    exit(1);
   }
   global->data_stack = data_stack_base + HF_INIT_DATA_STACK_COUNT;
   if(!(return_stack_base =
        malloc(sizeof(hf_token_t*) * HF_INIT_RETURN_STACK_COUNT))) {
     fprintf(stderr, "Unable to allocate return stack!\n");
-    abort();
+    exit(1);
   }
   global->return_stack = return_stack_base + HF_INIT_RETURN_STACK_COUNT;
   if(!(global->user_space_start = global->user_space_current =
        malloc(HF_INIT_USER_SPACE_SIZE))) {
     fprintf(stderr, "Unable to allocate user space!\n");
-    abort();
+    exit(1);
   }
   global->user_space_end = global->user_space_start + HF_INIT_USER_SPACE_SIZE;
 }
@@ -106,7 +106,7 @@ void hf_inner(hf_global_t* global) {
       word->primitive(global);
     } else {
       fprintf(stderr, "Invalid token!: %d\n", (int)token);
-      abort();
+      exit(1);
     }
   }
 }
@@ -114,13 +114,17 @@ void hf_inner(hf_global_t* global) {
 /* Boot the Forth VM */
 void hf_boot(hf_global_t* global) {
   if(global->word_count > 0) {
-    hf_word_t* word = global->words + global->word_count - 1;
+    hf_word_t* word;
+    printf("booting token: %lld\n", (uint64_t)(global->word_count - 1));
+    word = global->words + global->word_count - 1;
+    printf("secondary: %lld\n",
+	   (uint64_t)word->secondary - (uint64_t)global->user_space_start);
     global->current_word = word;
     word->primitive(global);
     hf_inner(global);
   } else {
     fprintf(stderr, "No tokens registered!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -131,7 +135,7 @@ void hf_new_user_space(hf_global_t* global) {
     if(!(global->user_space_start = global->user_space_current =
 	 malloc(HF_INIT_USER_SPACE_SIZE))) {
       fprintf(stderr, "Unable to allocate user space!\n");
-      abort();
+      exit(1);
     }
     global->user_space_end = global->user_space_start + HF_INIT_USER_SPACE_SIZE;
   }
@@ -139,6 +143,11 @@ void hf_new_user_space(hf_global_t* global) {
 
 /* Allocate data in user space */
 void* hf_allocate(hf_global_t* global, hf_cell_t size) {
+  printf("allocate prev: %lld new: %lld size: %lld\n",
+	 (uint64_t)global->user_space_current -
+	 (uint64_t)global->user_space_start,
+	 (uint64_t)global->user_space_current + (uint64_t)size -
+	 (uint64_t)global->user_space_start, (uint64_t)size);
   void* current = global->user_space_current;
   global->user_space_current += size;
   return current;
@@ -152,7 +161,7 @@ hf_word_t* hf_new_word(hf_global_t* global, hf_full_token_t token) {
 				 sizeof(hf_word_t) *
 				 global->word_space_count))) {
       fprintf(stderr, "Unable to allocate word space!\n");
-      abort();
+      exit(1);
     }
   }
   global->word_count =
@@ -168,7 +177,7 @@ hf_wordlist_id_t hf_new_wordlist(hf_global_t* global) {
 				     sizeof(hf_wordlist_t) *
 				     global->wordlist_space_count))) {
       fprintf(stderr, "Unable to allocate wordlist space!\n");
-      abort();
+      exit(1);
     }
   }
   global->wordlists[global->wordlist_count].first = 0;
@@ -209,7 +218,7 @@ hf_full_token_t hf_new_token(hf_global_t* global) {
 #endif
   if(error) {
     fprintf(stderr, "Out of available tokens!\n");
-    abort();
+    exit(1);
   }
   return global->word_count++;
 }

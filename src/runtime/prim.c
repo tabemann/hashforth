@@ -458,7 +458,7 @@ void hf_prim_do_does(hf_global_t* global) {
 /* End primitive */
 void hf_prim_end(hf_global_t* global) {
   fprintf(stderr, "End should never be reached!\n");
-  abort();
+  exit(1);
 }
 
 /* NOP primitive */
@@ -493,7 +493,7 @@ void hf_prim_lit(hf_global_t* global) {
 /* (DATA) primitive */
 void hf_prim_data(hf_global_t* global) {
   hf_cell_t bytes = *(hf_cell_t*)global->ip;
-  *(--global->data_stack) = (hf_cell_t)global->ip;
+  *(--global->data_stack) = (hf_cell_t)global->ip + sizeof(hf_cell_t);
   global->ip = (hf_token_t*)((void*)global->ip + sizeof(hf_cell_t) + bytes);
 }
 
@@ -541,7 +541,7 @@ void hf_prim_set_does(hf_global_t* global) {
     global->ip = *global->return_stack++;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -564,7 +564,7 @@ void hf_prim_execute(hf_global_t* global) {
     word->primitive(global);
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -817,7 +817,7 @@ void hf_prim_to_body(hf_global_t* global) {
     *global->data_stack = (hf_cell_t)global->words[token].data;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -830,7 +830,7 @@ void hf_prim_word_to_name(hf_global_t* global) {
     *(--global->data_stack) = word->name_length;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -845,7 +845,7 @@ void hf_prim_name_to_word(hf_global_t* global) {
     word->name = name;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -857,7 +857,7 @@ void hf_prim_word_to_next(hf_global_t* global) {
     *global->data_stack = word->next;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -869,7 +869,7 @@ void hf_prim_wordlist_to_first(hf_global_t* global) {
     *global->data_stack = wordlist->first;
   } else {
     fprintf(stderr, "Out of range wordlist ID\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -891,7 +891,7 @@ void hf_prim_word_to_flags(hf_global_t* global) {
     *global->data_stack = word->flags;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }  
 }
 
@@ -904,7 +904,7 @@ void hf_prim_flags_to_word(hf_global_t* global) {
     word->flags = flags;
   } else {
     fprintf(stderr, "Out of range token!\n");
-    abort();
+    exit(1);
   }
 }
 
@@ -975,7 +975,7 @@ void hf_prim_store_32(hf_global_t* global) {
 void hf_prim_type(hf_global_t* global) {
   hf_cell_t length = *global->data_stack++;
   hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack++);
-  fwrite(buffer, sizeof(hf_byte_t), length, stdout);
+  fwrite(buffer, sizeof(hf_byte_t), length, stderr);
 }
 
 /* KEY primitive */
