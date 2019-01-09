@@ -15,3 +15,9 @@ Assembling the hashforth image is carried out with a different Forth implementat
 By default this will build a new hashforth image at `images/cell_64_token_16_32.image`, which will be compiled for 64-bit cells and 16/32-bit tokens. Note that the configuration of this image must match the configuration the hashforth executable is compiled for. To change the configuration of the image, on the line containing `INIT-ASM` in `src/asm/build_image.fs`, specify `CELL-16` or `CELL-32` instead of `CELL-64`, to change the cell size, or specify `TOKEN-8-16`, `TOKEN-16`, or `TOKEN-32` instead of `TOKEN-16-32`, to change the token size. After changing either of these settings, it is recommended to change the filename in the line containing `WRITE-ASM-TO-FILE` to reflect the changed configuration.
 
 To avoid needing to download and install attoforth, a pre-assembled copy of `images/cell_64_token_16_32.image` is in this git repository; however, it is not necessarily guaranteed to reflect the latest code.
+
+Executing hashforth is carried out by executing the following at a shell prompt, e.g. at the base directory of the hashforth tree:
+
+    $ ./hashforth <image>
+
+Here \<image> is the path of a hashforth image, e.g. `images/cell_64_token_16_32.image`. After hashforth loads, the user can then enter Forth code to be interpretd at the terminal.
