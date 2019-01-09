@@ -218,6 +218,9 @@ struct hf_global_t {
   hf_word_t* current_word;
   hf_token_t* ip;
   hf_cell_t* data_stack;
+#ifdef STACK_TRACE
+  hf_cell_t* data_stack_base;
+#endif
   hf_token_t** return_stack;
   void* user_space_current;
   void* user_space_start;

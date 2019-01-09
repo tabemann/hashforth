@@ -546,8 +546,11 @@ void hf_prim_set_does(hf_global_t* global) {
   if(token < global->word_count) {
     hf_word_t* word = global->words + token;
     word->primitive = hf_prim_do_does;
-    word->secondary = global->ip;
+    word->secondary = *global->return_stack++;
     global->ip = *global->return_stack++;
+#ifdef TRACE
+    global->level--;
+#endif
   } else {
     fprintf(stderr, "Out of range token!\n");
     exit(1);

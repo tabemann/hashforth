@@ -59,6 +59,9 @@ void hf_init(hf_global_t* global) {
     fprintf(stderr, "Unable to allocate data stack!\n");
     exit(1);
   }
+#ifdef STACK_TRACE
+  global->data_stack_base = data_stack_base + HF_INIT_DATA_STACK_COUNT;
+#endif
   global->data_stack = data_stack_base + HF_INIT_DATA_STACK_COUNT;
   if(!(return_stack_base =
        malloc(sizeof(hf_token_t*) * HF_INIT_RETURN_STACK_COUNT))) {
@@ -103,11 +106,23 @@ void hf_inner(hf_global_t* global) {
 	char* name_copy = malloc(word->name_length);
 	memcpy(name_copy, word->name, word->name_length);
 	name_copy[word->name_length] = 0;
-	printf("executing token: %lld name: %s\n", (uint64_t)token, name_copy);
+	printf("executing token: %lld name: %s data stack: %lld",
+	       (uint64_t)token, name_copy, (uint64_t)global->data_stack);
 	free(name_copy);
       } else {
-	printf("executing token: %lld <no name>\n", (uint64_t)token);
+	printf("executing token: %lld <no name> data stack: %lld",
+	       (uint64_t)token, (uint64_t)global->data_stack);
       }
+#ifdef STACK_TRACE
+      printf(" [");
+      hf_cell_t* stack_trace = global->data_stack;
+      while(stack_trace < global->data_stack_base) {
+	printf(" %lld", (uint64_t)(*stack_trace++));
+      }
+      printf(" ]\n");
+#else
+      printf("\n");
+#endif
 #endif
       word->primitive(global);
     } else {
