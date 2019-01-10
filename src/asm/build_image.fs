@@ -444,8 +444,7 @@ END-WORD
 
 DEFINE-WORD INPUT-QUOTE? ( -- f ) INPUT @ >IN @ + C@ CHAR " LIT = END-WORD
 
-NON-DEFINE-WORD-IMMEDIATE-COMPILE-ONLY S" ( Compile-time "ccc<quote>" -- )
-  ( Runtime: -- c-addr bytes )
+DEFINE-WORD PARSE-STRING ( "ccc<quote>" -- c-addr bytes )
   ADVANCE-TO-NAME-START
   INPUT @ >IN @ + 0 LIT +BEGIN
     INPUT-LEFT? +IF
@@ -454,7 +453,19 @@ NON-DEFINE-WORD-IMMEDIATE-COMPILE-ONLY S" ( Compile-time "ccc<quote>" -- )
       +TRUE
     +THEN
   +UNTIL
+END-WORD
+
+NON-DEFINE-WORD-IMMEDIATE-COMPILE-ONLY S" ( Compile-time "ccc<quote>" -- )
+  ( Runtime: -- c-addr bytes )
+  PARSE-STRING
   &(DATA) COMPILE, DUP , SWAP HERE 2 LIT PICK CMOVE DUP ALLOT &LIT COMPILE, ,
+END-WORD
+
+NON-DEFINE-WORD-IMMEDIATE-COMPILE-ONLY ." ( Compile-time "ccc<quote>" -- )
+  ( Runtime: -- c-addr bytes )
+  PARSE-STRING
+  &(DATA) COMPILE, DUP , SWAP HERE 2 LIT PICK CMOVE DUP ALLOT &LIT COMPILE, ,
+  &TYPE COMPILE,
 END-WORD
 
 NON-DEFINE-WORD CHAR ( -- c )
