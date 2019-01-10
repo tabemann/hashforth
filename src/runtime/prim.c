@@ -573,6 +573,32 @@ void hf_prim_execute(hf_global_t* global) {
   if(token < global->word_count) {
     hf_word_t* word = global->words + token;
     global->current_word = word;
+#ifdef TRACE
+      for(hf_cell_t i = 0; i < global->level; i++) {
+	printf("  ");
+      }
+      if(word->name_length) {
+	char* name_copy = malloc(word->name_length);
+	memcpy(name_copy, word->name, word->name_length);
+	name_copy[word->name_length] = 0;
+	printf("executing token: %lld name: %s data stack: %lld",
+	       (uint64_t)token, name_copy, (uint64_t)global->data_stack);
+	free(name_copy);
+      } else {
+	printf("executing token: %lld <no name> data stack: %lld",
+	       (uint64_t)token, (uint64_t)global->data_stack);
+      }
+#ifdef STACK_TRACE
+      printf(" [");
+      hf_cell_t* stack_trace = global->data_stack;
+      while(stack_trace < global->data_stack_base) {
+	printf(" %lld", (uint64_t)(*stack_trace++));
+      }
+      printf(" ]\n");
+#else
+      printf("\n");
+#endif
+#endif
     word->primitive(global);
   } else {
     fprintf(stderr, "Out of range token!\n");
