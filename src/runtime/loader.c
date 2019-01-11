@@ -217,8 +217,7 @@ void* hf_parse_headers(hf_global_t* global, void* current) {
     word->name_length = name_length;
     word->name = name_dest;
     memcpy(name_dest, name, name_length);
-    word->next = global->wordlists[0].first;
-    global->wordlists[0].first = token;
+    word->next = global->word_count > 1 ? global->word_count - 2 : 0;
   }
   return current + 1;
 }

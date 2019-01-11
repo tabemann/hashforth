@@ -38,8 +38,7 @@
 
 /* Register a primitive */
 void hf_register_prim(hf_global_t* global, hf_full_token_t token, char* name,
-		      hf_prim_t primitive, hf_flags_t flags,
-		      hf_wordlist_id_t wordlist);
+		      hf_prim_t primitive, hf_flags_t flags);
 
 /* End primitive */
 void hf_prim_end(hf_global_t* global);
@@ -206,23 +205,14 @@ void hf_prim_name_to_word(hf_global_t* global);
 /* WORD>NEXT primitive */
 void hf_prim_word_to_next(hf_global_t* global);
 
-/* WORDLIST>FIRST primitive */
-void hf_prim_wordlist_to_first(hf_global_t* global);
-
-/* GET-CURRENT primitive */
-void hf_prim_get_current(hf_global_t* global);
-
-/* SET-CURRENT primitive */
-void hf_prim_set_current(hf_global_t* global);
+/* NEXT>WORD primitive */
+void hf_prim_next_to_word(hf_global_t* global);
 
 /* WORD>FLAGS primitive */
 void hf_prim_word_to_flags(hf_global_t* global);
 
 /* FLAGS>WORD primitive */
 void hf_prim_flags_to_word(hf_global_t* global);
-
-/* WORDLIST primitive */
-void hf_prim_wordlist(hf_global_t* global);
 
 /* HALF-TOKEN-SIZE primitive */
 void hf_prim_half_token_size(hf_global_t* global);
@@ -248,6 +238,9 @@ void hf_prim_load_32(hf_global_t* global);
 /* W! primitive */
 void hf_prim_store_32(hf_global_t* global);
 
+/* SET-WORD-COUNT */
+void hf_prim_set_word_count(hf_global_t* global);
+
 /* TYPE primitive */
 void hf_prim_type(hf_global_t* global);
 
@@ -266,8 +259,7 @@ void hf_prim_accept(hf_global_t* global);
 
 /* Register a primitive */
 void hf_register_prim(hf_global_t* global, hf_full_token_t token, char* name,
-		      hf_prim_t primitive, hf_flags_t flags,
-		      hf_wordlist_id_t wordlist) {
+		      hf_prim_t primitive, hf_flags_t flags) {
   hf_cell_t name_length = 0;
   void* name_space = NULL;
   hf_word_t* word;
@@ -284,157 +276,149 @@ void hf_register_prim(hf_global_t* global, hf_full_token_t token, char* name,
   word->data = NULL;
   word->primitive = primitive;
   word->secondary = NULL;
-  word->next = global->wordlists[wordlist].first;
-  global->wordlists[wordlist].first = token;
+  word->next = global->word_count > 1 ? global->word_count - 2 : 0;
 }
 
 /* Register primitives */
 void hf_register_prims(hf_global_t* global) {
   hf_register_prim(global, HF_PRIM_END, "END", hf_prim_end,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_NOP, "NOP", hf_prim_nop,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_EXIT, "EXIT", hf_prim_exit,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_BRANCH, "BRANCH", hf_prim_branch,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_0BRANCH, "0BRANCH", hf_prim_0branch,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LIT, "(LIT)", hf_prim_lit,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_DATA, "(DATA)", hf_prim_data,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_NEW_COLON, "NEW-COLON", hf_prim_new_colon,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_NEW_CREATE, "NEW-CREATE", hf_prim_new_create,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_SET_DOES, "SET-DOES>", hf_prim_set_does,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_FINISH, "FINISH", hf_prim_finish,
-		   HF_WORD_IMMEDIATE, HF_WORDLIST_FORTH);
+		   HF_WORD_IMMEDIATE);
   hf_register_prim(global, HF_PRIM_EXECUTE, "EXECUTE", hf_prim_execute,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_DROP, "DROP", hf_prim_drop,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_DUP, "DUP", hf_prim_dup,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_SWAP, "SWAP", hf_prim_swap,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ROT, "ROT", hf_prim_rot,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_PICK, "PICK", hf_prim_pick,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ROLL, "ROLL", hf_prim_roll,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD, "@", hf_prim_load,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE, "!", hf_prim_store,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_8, "C@", hf_prim_load_8,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_8, "C!", hf_prim_store_8,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_EQ, "=", hf_prim_eq,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_NE, "<>", hf_prim_ne,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LT, "<", hf_prim_lt,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_GT, ">", hf_prim_gt,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ULT, "U<", hf_prim_ult,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_UGT, "U>", hf_prim_ugt,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_NOT, "NOT", hf_prim_not,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_AND, "AND", hf_prim_and,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_OR, "OR", hf_prim_or,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_XOR, "XOR", hf_prim_xor,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LSHIFT, "LSHIFT", hf_prim_lshift,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_RSHIFT, "RSHIFT", hf_prim_rshift,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ARSHIFT, "ARSHIFT", hf_prim_arshift,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ADD, "+", hf_prim_add,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_SUB, "-", hf_prim_sub,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_MUL, "*", hf_prim_mul,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_DIV, "/", hf_prim_div,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_MOD, "MOD", hf_prim_mod,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_UDIV, "U/", hf_prim_udiv,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_UMOD, "UMOD", hf_prim_umod,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_R, "R@", hf_prim_load_r,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_R, ">R", hf_prim_store_r,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_POP_R, "R>", hf_prim_pop_r,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_HERE, "HERE", hf_prim_load_here,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_HERE, "HERE!", hf_prim_store_here,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_SP, "SP@", hf_prim_load_sp,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_SP, "SP!", hf_prim_store_sp,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_RP, "RP@", hf_prim_load_rp,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_RP, "RP!", hf_prim_store_rp,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_TO_BODY, ">BODY", hf_prim_to_body,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_WORD_TO_NAME, "WORD>NAME",
-		   hf_prim_word_to_name, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_word_to_name, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_NAME_TO_WORD, "NAME>WORD",
-		   hf_prim_name_to_word, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_name_to_word, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_WORD_TO_NEXT, "WORD>NEXT",
-		   hf_prim_word_to_next, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_WORDLIST_TO_FIRST, "WORDLIST>FIRST",
-		   hf_prim_wordlist_to_first, HF_WORD_NORMAL,
-		   HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_GET_CURRENT, "GET-CURRENT",
-		   hf_prim_get_current, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_SET_CURRENT, "SET-CURRENT",
-		   hf_prim_set_current, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_word_to_next, HF_WORD_NORMAL);
+  hf_register_prim(global, HF_PRIM_NEXT_TO_WORD, "NEXT>WORD",
+		   hf_prim_next_to_word, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_WORD_TO_FLAGS, "WORD>FLAGS",
-		   hf_prim_word_to_flags, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_word_to_flags, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_FLAGS_TO_WORD, "FLAGS>WORD",
-		   hf_prim_flags_to_word, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_WORDLIST, "WORDLIST", hf_prim_wordlist,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_flags_to_word, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_HALF_TOKEN_SIZE, "HALF-TOKEN-SIZE",
-		   hf_prim_half_token_size, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_half_token_size, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_FULL_TOKEN_SIZE, "FULL-TOKEN-SIZE",
-		   hf_prim_full_token_size, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_full_token_size, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_TOKEN_FLAG_BIT, "TOKEN-FLAG-BIT",
-		   hf_prim_token_flag_bit, HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   hf_prim_token_flag_bit, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_CELL_SIZE, "CELL-SIZE", hf_prim_cell_size,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_16, "H@", hf_prim_load_16,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_16, "H!", hf_prim_store_16,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_32, "W@", hf_prim_load_32,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_32, "W!", hf_prim_store_32,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_TYPE, "TYPE", hf_prim_type, HF_WORD_NORMAL,
-		   HF_WORDLIST_FORTH);
-  hf_register_prim(global, HF_PRIM_KEY, "KEY", hf_prim_key, HF_WORD_NORMAL,
-		   HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
+  hf_register_prim(global, HF_PRIM_SET_WORD_COUNT, "SET-WORD-COUNT",
+		   hf_prim_set_word_count, HF_WORD_NORMAL);
+  hf_register_prim(global, HF_PRIM_TYPE, "TYPE", hf_prim_type, HF_WORD_NORMAL);
+  hf_register_prim(global, HF_PRIM_KEY, "KEY", hf_prim_key, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ACCEPT, "ACCEPT", hf_prim_accept,
-		   HF_WORD_NORMAL, HF_WORDLIST_FORTH);
+		   HF_WORD_NORMAL);
 }
 
 /* Enter primitive */
@@ -518,8 +502,7 @@ void hf_prim_new_colon(hf_global_t* global) {
   word->data = NULL;
   word->primitive = hf_prim_enter;
   word->secondary = global->user_space_current;
-  word->next = global->wordlists[global->current_wordlist].first;
-  global->wordlists[global->current_wordlist].first = token;
+  word->next = 0;
   *(--global->data_stack) = (hf_cell_t)token;
 }
 
@@ -535,8 +518,7 @@ void hf_prim_new_create(hf_global_t* global) {
   word->data = global->user_space_current;
   word->primitive = hf_prim_do_create;
   word->secondary = NULL;
-  word->next = global->wordlists[global->current_wordlist].first;
-  global->wordlists[global->current_wordlist].first = token;
+  word->next = 0;
   *(--global->data_stack) = (hf_cell_t)token;
 }
 
@@ -909,26 +891,17 @@ void hf_prim_word_to_next(hf_global_t* global) {
   }
 }
 
-/* WORDLIST>FIRST primitive */
-void hf_prim_wordlist_to_first(hf_global_t* global) {
-  hf_cell_t id = *global->data_stack;
-  if(id < global->wordlist_count) {
-    hf_wordlist_t* wordlist = global->wordlists + id;
-    *global->data_stack = wordlist->first;
+/* NEXT>WORD primitive */
+void hf_prim_next_to_word(hf_global_t* global) {
+  hf_cell_t token = *global->data_stack++;
+  hf_cell_t next = *global->data_stack++;
+  if(token < global->word_count) {
+    hf_word_t* word = global->words + token;
+    word->next = next;
   } else {
-    fprintf(stderr, "Out of range wordlist ID\n");
+    fprintf(stderr, "Out of range token!\n");
     exit(1);
   }
-}
-
-/* GET-CURRENT primitive */
-void hf_prim_get_current(hf_global_t* global) {
-  *(--global->data_stack) = (hf_cell_t)global->current_wordlist;
-}
-
-/* SET-CURRENT primitive */
-void hf_prim_set_current(hf_global_t* global) {
-  global->current_wordlist = (hf_wordlist_id_t)(*global->data_stack++);
 }
 
 /* WORD>FLAGS primitive */
@@ -954,11 +927,6 @@ void hf_prim_flags_to_word(hf_global_t* global) {
     fprintf(stderr, "Out of range token!\n");
     exit(1);
   }
-}
-
-/* WORDLIST primitive */
-void hf_prim_wordlist(hf_global_t* global) {
-  *(--global->data_stack) = hf_new_wordlist(global);
 }
 
 /* HALF-TOKEN-SIZE primitive */
@@ -1027,6 +995,17 @@ void hf_prim_store_32(hf_global_t* global) {
 #else
   fprintf(stderr, "32-bit values not supported!\n");
 #endif
+}
+
+/* SET-WORD-COUNT primitive */
+void hf_prim_set_word_count(hf_global_t* global) {
+  hf_cell_t new_word_count = *global->data_stack++;
+  if(new_word_count > 0 && new_word_count <= global->word_count) {
+    global->word_count = new_word_count;
+  } else {
+    fprintf(stderr, "Attempted to set out of range word count!\n");
+    exit(1);
+  }
 }
 
 /* TYPE primitive */

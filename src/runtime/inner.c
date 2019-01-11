@@ -43,15 +43,6 @@ void hf_init(hf_global_t* global) {
     fprintf(stderr, "Unable to allocate words array!\n");
     exit(1);
   }
-  global->wordlist_count = 1;
-  global->wordlist_space_count = HF_INIT_WORDLIST_SPACE_COUNT;
-  if(!(global->wordlists =
-       malloc(sizeof(hf_wordlist_t) * global->wordlist_space_count))) {
-    fprintf(stderr, "Unable to allocate wordlists array!\n");
-    exit(1);
-  }
-  global->wordlists[0].first = 0;
-  global->current_wordlist = 0;
   global->current_word = NULL;
   global->ip = NULL;
   if(!(data_stack_base =
@@ -188,21 +179,6 @@ hf_word_t* hf_new_word(hf_global_t* global, hf_full_token_t token) {
   global->word_count =
     token >= global->word_count ? token + 1 : global->word_count;
   return global->words + token;
-}
-
-/* Allocate a wordlist */
-hf_wordlist_id_t hf_new_wordlist(hf_global_t* global) {
-  if(global->wordlist_count == global->wordlist_space_count) {
-    global->wordlist_space_count *= 2;
-    if(!(global->wordlists = realloc(global->wordlists,
-				     sizeof(hf_wordlist_t) *
-				     global->wordlist_space_count))) {
-      fprintf(stderr, "Unable to allocate wordlist space!\n");
-      exit(1);
-    }
-  }
-  global->wordlists[global->wordlist_count].first = 0;
-  return global->wordlist_count++;
 }
 
 /* Allocate a token */
