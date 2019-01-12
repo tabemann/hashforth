@@ -816,7 +816,7 @@ void hf_prim_load_here(hf_global_t* global) {
 
 /* HERE! primitive */
 void hf_prim_store_here(hf_global_t* global) {
-  global->user_space_current = (void*)(*global->data_stack++);
+  hf_set_user_space(global, (void*)(*global->data_stack++));
 }
 
 /* SP@ primitive */

@@ -266,7 +266,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
       printf("relocating token: %lld name: %s offset: %lld new offset: %lld\n",
 	     (uint64_t)token, name_copy, (uint64_t)word->secondary,
 	     (uint64_t)word->secondary +
-	     (uint64_t)start_address - (uint64_t)global->user_space_start);
+	     (uint64_t)start_address - (uint64_t)global->user_space_block->start);
       free(name_copy);
       
       word->secondary =
@@ -304,7 +304,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
       printf("relocating token: %lld name: %s offset: %lld new offset: %lld\n",
 	     (uint64_t)token, name_copy, (uint64_t)word->data,
 	     (uint64_t)word->data +
-	     (uint64_t)start_address - (uint64_t)global->user_space_start);
+	     (uint64_t)start_address - (uint64_t)global->user_space_block->start);
       free(name_copy);
       word->data =
 	(hf_token_t*)((hf_cell_t)word->data + (hf_cell_t)start_address);

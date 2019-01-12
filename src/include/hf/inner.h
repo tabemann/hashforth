@@ -50,14 +50,14 @@ void hf_boot(hf_global_t* global);
 /* Allocate more user space if needed */
 void hf_new_user_space(hf_global_t* global);
 
+/* Set user space pointer */
+void hf_set_user_space(hf_global_t* global, void* user_space_new);
+
 /* Allocate data in user space */
 void* hf_allocate(hf_global_t* global, hf_cell_t size);
 
 /* Allocate a word */
 hf_word_t* hf_new_word(hf_global_t* global, hf_full_token_t token);
-
-/* Allocate a wordlist */
-hf_wordlist_id_t hf_new_wordlist(hf_global_t* global);
 
 /* Allocate a token */
 hf_full_token_t hf_new_token(hf_global_t* global);

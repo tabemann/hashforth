@@ -85,13 +85,11 @@ typedef uint32_t hf_full_token_t;
 
 typedef hf_cell_t hf_flags_t;
 
-typedef hf_cell_t hf_wordlist_id_t;
-
 struct hf_word_t;
 typedef struct hf_word_t hf_word_t;
 
-struct hf_wordlist_t;
-typedef struct hf_wordlist_t hf_wordlist_t;
+struct hf_user_space_block_t;
+typedef struct hf_user_space_block_t hf_user_space_block_t;
 
 struct hf_global_t;
 typedef struct hf_global_t hf_global_t;
@@ -112,8 +110,6 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_WORD_IMMEDIATE (1)
 #define HF_WORD_COMPILE_ONLY (2)
 #define HF_WORD_HIDDEN (4)
-
-#define HF_WORDLIST_FORTH (0)
 
 #define HF_WORD_MIN_USER_SPACE_LEFT (1024 * sizeof(hf_cell_t))
 
@@ -200,6 +196,12 @@ struct hf_word_t {
   hf_full_token_t next;
 };
 
+struct hf_user_space_block_t {
+  hf_user_space_block_t* prev;
+  void* start;
+  void* end;
+};
+
 struct hf_global_t {
   hf_word_t* words;
   hf_cell_t word_count;
@@ -211,9 +213,8 @@ struct hf_global_t {
   hf_cell_t* data_stack_base;
 #endif
   hf_token_t** return_stack;
+  hf_user_space_block_t* user_space_block;
   void* user_space_current;
-  void* user_space_start;
-  void* user_space_end;
 #ifdef TRACE
   hf_cell_t level;
 #endif
