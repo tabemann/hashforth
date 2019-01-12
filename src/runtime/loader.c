@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdint.h>
 #include "hf/common.h"
 #include "hf/inner.h"
@@ -53,6 +54,12 @@ void hf_load_code(hf_global_t* global, void* current, size_t size);
 void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 		 void* start_address);
 
+/* Load storage */
+void* hf_load_storage(hf_global_t* global, void* current, size_t size);
+
+/* Find name data */
+void* hf_find_name_data(hf_global_t* global, char* name);
+
 /* Definitions */
 
 /* Load an image from a file. */
@@ -63,6 +70,10 @@ void hf_load_image(hf_global_t* global, char* path) {
   hf_full_token_t start_token = global->word_count;
   void* start_address;
   size_t size;
+  size_t user_space_size;
+  void* storage;
+  hf_cell_t* storage_var;
+  hf_cell_t* storage_size_var;
   if(!file) {
     fprintf(stderr, "Unable to open image!\n");
     exit(1);
@@ -71,9 +82,23 @@ void hf_load_image(hf_global_t* global, char* path) {
   fclose(file);
   current = hf_verify_image_type(buffer);
   current = hf_parse_headers(global, current);
+  user_space_size = *(hf_cell_t*)current;
+  current += sizeof(hf_cell_t);
   start_address = global->user_space_current;
-  hf_load_code(global, current, (buffer + size) - current);
+  hf_load_code(global, current, user_space_size);
+  current += user_space_size;
   hf_relocate(global, start_token, start_address);
+  storage = hf_load_storage(global, current, (buffer + size) - current);
+  if((storage_var = hf_find_name_data(global, "STORAGE"))) {
+    *storage_var = (hf_cell_t)storage;
+  } else {
+    printf("no STORAGE word found\n");
+  }
+  if((storage_size_var = hf_find_name_data(global, "STORAGE#"))) {
+    *storage_size_var = (hf_cell_t)((buffer + size) - current);
+  } else {
+    printf("no STORAGE# word found\n");
+  }
 }
 
 /* Read a file into a single buffer */
@@ -291,4 +316,31 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
     }
     token++;
   }
+}
+
+/* Load storage */
+void* hf_load_storage(hf_global_t* global, void* current, size_t size) {
+  void* buffer = malloc(size);
+  if(!buffer) {
+    fprintf(stderr, "Allocation failed!\n");
+    exit(1);
+  }
+  memcpy(buffer, current, size);
+  printf("loading storage bytes: %lld\n", (uint64_t)size);
+  return buffer;
+}
+
+/* Find name data */
+void* hf_find_name_data(hf_global_t* global, char* name) {
+  size_t name_length = strlen(name);
+  hf_full_token_t token = global->word_count;
+  while(--token) {
+    hf_word_t* word = global->words + token;
+    if(name_length == word->name_length) {
+      if(!strncasecmp(name, word->name, name_length)) {
+	return word->data;
+      }
+    }
+  }
+  return NULL;
 }
