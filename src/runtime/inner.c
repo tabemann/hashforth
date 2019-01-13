@@ -61,8 +61,6 @@ void hf_init(hf_global_t* global) {
     exit(1);
   }
   global->return_stack = return_stack_base + HF_INIT_RETURN_STACK_COUNT;
-  global->user_space_block = NULL;
-  hf_new_user_space(global);
 #ifdef TRACE
   global->level = 0;
 #endif
@@ -126,8 +124,6 @@ void hf_boot(hf_global_t* global) {
     hf_word_t* word;
     printf("booting token: %lld\n", (uint64_t)(global->word_count - 1));
     word = global->words + global->word_count - 1;
-    printf("secondary: %lld\n",
-	   (uint64_t)word->secondary - (uint64_t)global->user_space_block->start);
     global->current_word = word;
     word->primitive(global);
     hf_inner(global);
@@ -135,84 +131,6 @@ void hf_boot(hf_global_t* global) {
     fprintf(stderr, "No tokens registered!\n");
     exit(1);
   }
-}
-
-/* Allocate more user space if needed */
-void hf_new_user_space(hf_global_t* global) {
-  if(!global->user_space_block ||
-     (global->user_space_block->end - global->user_space_current <
-      HF_WORD_MIN_USER_SPACE_LEFT)) {
-    hf_user_space_block_t* new_block;
-    if(!(new_block = malloc(sizeof(hf_user_space_block_t) +
-			    HF_INIT_USER_SPACE_SIZE))) {
-      fprintf(stderr, "Unable to allocate user space!\n");
-      exit(1);
-    }
-    new_block->prev = global->user_space_block;
-    new_block->start = (void*)new_block + sizeof(hf_user_space_block_t);
-    new_block->end = new_block->start + HF_INIT_USER_SPACE_SIZE;
-    global->user_space_block = new_block;
-    global->user_space_current = new_block->start;
-  }
-}
-
-/* Guarantee user space is available */
-void hf_guarantee(hf_global_t* global, size_t size) {
-  if(!global->user_space_block ||
-     (global->user_space_block->end - global->user_space_current < size)) {
-    hf_user_space_block_t* new_block;
-    size_t space_size =
-      HF_INIT_USER_SPACE_SIZE > size ? HF_INIT_USER_SPACE_SIZE : size;
-    if(!(new_block = malloc(sizeof(hf_user_space_block_t) + space_size))) {
-      fprintf(stderr, "Unable to allocate user space!\n");
-      exit(1);
-    }
-    new_block->prev = global->user_space_block;
-    new_block->start = (void*)new_block + sizeof(hf_user_space_block_t);
-    new_block->end = new_block->start + space_size;
-    global->user_space_block = new_block;
-    global->user_space_current = new_block->start;
-  }
-}
-
-/* Set user space pointer */
-void hf_set_user_space(hf_global_t* global, void* user_space_new) {
-  if(global->user_space_block->start <= user_space_new &&
-     user_space_new < global->user_space_block->end) {
-    global->user_space_current = user_space_new;
-  } else {
-    hf_user_space_block_t* selected_block = global->user_space_block->prev;
-    while(selected_block &&
-	  (global->user_space_block->start > user_space_new ||
-	   user_space_new >= global->user_space_block->end)) {
-      selected_block = selected_block->prev;
-    }
-    if(selected_block) {
-      hf_user_space_block_t* current_block = global->user_space_block;
-      while(current_block != selected_block) {
-	hf_user_space_block_t* prev_block = current_block->prev;
-	free(current_block);
-	current_block = prev_block;
-      }
-      global->user_space_block = selected_block;
-      global->user_space_current = user_space_new;
-    } else {
-      fprintf(stderr, "Out of user space!\n");
-      exit(1);
-    }
-  }
-}
-
-/* Allocate data in user space */
-void* hf_allocate(hf_global_t* global, hf_cell_t size) {
-  printf("allocate prev: %lld new: %lld size: %lld\n",
-	 (uint64_t)global->user_space_current -
-	 (uint64_t)global->user_space_block->start,
-	 (uint64_t)global->user_space_current + (uint64_t)size -
-	 (uint64_t)global->user_space_block->start, (uint64_t)size);
-  void* current = global->user_space_current;
-  global->user_space_current += size;
-  return current;
 }
 
 /* Allocate a word */

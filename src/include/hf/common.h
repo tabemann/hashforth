@@ -158,32 +158,29 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_PRIM_LOAD_R (42)
 #define HF_PRIM_STORE_R (43)
 #define HF_PRIM_POP_R (44)
-#define HF_PRIM_LOAD_HERE (45)
-#define HF_PRIM_STORE_HERE (46)
-#define HF_PRIM_LOAD_SP (47)
-#define HF_PRIM_STORE_SP (48)
-#define HF_PRIM_LOAD_RP (49)
-#define HF_PRIM_STORE_RP (50)
-#define HF_PRIM_TO_BODY (51)
-#define HF_PRIM_WORD_TO_NAME (52)
-#define HF_PRIM_NAME_TO_WORD (53)
-#define HF_PRIM_WORD_TO_NEXT (54)
-#define HF_PRIM_NEXT_TO_WORD (55)
-#define HF_PRIM_WORD_TO_FLAGS (56)
-#define HF_PRIM_FLAGS_TO_WORD (57)
-#define HF_PRIM_HALF_TOKEN_SIZE (58)
-#define HF_PRIM_FULL_TOKEN_SIZE (59)
-#define HF_PRIM_TOKEN_FLAG_BIT (60)
-#define HF_PRIM_CELL_SIZE (61)
-#define HF_PRIM_LOAD_16 (62)
-#define HF_PRIM_STORE_16 (63)
-#define HF_PRIM_LOAD_32 (64)
-#define HF_PRIM_STORE_32 (65)
-#define HF_PRIM_SET_WORD_COUNT (66)
-#define HF_PRIM_GUARANTEE (67)
-#define HF_PRIM_TYPE (68)
-#define HF_PRIM_KEY (69)
-#define HF_PRIM_ACCEPT (70)
+#define HF_PRIM_LOAD_SP (45)
+#define HF_PRIM_STORE_SP (46)
+#define HF_PRIM_LOAD_RP (47)
+#define HF_PRIM_STORE_RP (48)
+#define HF_PRIM_TO_BODY (49)
+#define HF_PRIM_WORD_TO_NAME (50)
+#define HF_PRIM_NAME_TO_WORD (51)
+#define HF_PRIM_WORD_TO_NEXT (52)
+#define HF_PRIM_NEXT_TO_WORD (53)
+#define HF_PRIM_WORD_TO_FLAGS (54)
+#define HF_PRIM_FLAGS_TO_WORD (55)
+#define HF_PRIM_HALF_TOKEN_SIZE (56)
+#define HF_PRIM_FULL_TOKEN_SIZE (57)
+#define HF_PRIM_TOKEN_FLAG_BIT (58)
+#define HF_PRIM_CELL_SIZE (59)
+#define HF_PRIM_LOAD_16 (60)
+#define HF_PRIM_STORE_16 (61)
+#define HF_PRIM_LOAD_32 (62)
+#define HF_PRIM_STORE_32 (63)
+#define HF_PRIM_SET_WORD_COUNT (64)
+#define HF_PRIM_TYPE (65)
+#define HF_PRIM_KEY (66)
+#define HF_PRIM_ACCEPT (67)
 
 /* Definitions */
 
@@ -197,12 +194,6 @@ struct hf_word_t {
   hf_full_token_t next;
 };
 
-struct hf_user_space_block_t {
-  hf_user_space_block_t* prev;
-  void* start;
-  void* end;
-};
-
 struct hf_global_t {
   hf_word_t* words;
   hf_cell_t word_count;
@@ -214,8 +205,6 @@ struct hf_global_t {
   hf_cell_t* data_stack_base;
 #endif
   hf_token_t** return_stack;
-  hf_user_space_block_t* user_space_block;
-  void* user_space_current;
 #ifdef TRACE
   hf_cell_t level;
 #endif

@@ -45,14 +45,16 @@ void* hf_read_file(FILE* file, size_t* size);
 void* hf_verify_image_type(void* current);
 
 /* Parse headers */
-void* hf_parse_headers(hf_global_t* global, void* current);
+void* hf_parse_headers(hf_global_t* global, void* current,
+		       void** user_space_current);
 
 /* Load code */
-void hf_load_code(hf_global_t* global, void* current, size_t size);
+void hf_load_code(hf_global_t* global, void* current, size_t size,
+		  void** user_space_current);
 
 /* Relocate code */
 void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
-		 void* start_address);
+		 void* start_address, void* user_space);
 
 /* Load storage */
 void* hf_load_storage(hf_global_t* global, void* current, size_t size);
@@ -71,7 +73,11 @@ void hf_load_image(hf_global_t* global, char* path) {
   void* start_address;
   size_t size;
   size_t user_space_size;
+  void* user_space;
+  void* user_space_current;
+  size_t user_image_size;
   void* storage;
+  hf_cell_t* user_space_current_var;
   hf_cell_t* storage_var;
   hf_cell_t* storage_size_var;
   if(!file) {
@@ -81,14 +87,26 @@ void hf_load_image(hf_global_t* global, char* path) {
   buffer = hf_read_file(file, &size);
   fclose(file);
   current = hf_verify_image_type(buffer);
-  current = hf_parse_headers(global, current);
   user_space_size = *(hf_cell_t*)current;
   current += sizeof(hf_cell_t);
-  start_address = global->user_space_current;
-  hf_load_code(global, current, user_space_size);
-  current += user_space_size;
-  hf_relocate(global, start_token, start_address);
+  if(!(user_space_current = user_space = malloc(user_space_size))) {
+    fprintf(stderr, "Unable to allocate user space!\n");
+    exit(1);
+  }
+  current = hf_parse_headers(global, current, &user_space_current);
+  user_image_size = *(hf_cell_t*)current;
+  current += sizeof(hf_cell_t);
+  start_address = user_space_current;
+  hf_load_code(global, current, user_image_size, &user_space_current);
+  current += user_image_size;
+  hf_relocate(global, start_token, start_address, user_space);
   storage = hf_load_storage(global, current, (buffer + size) - current);
+  if((user_space_current_var =
+      hf_find_name_data(global, "USER-SPACE-CURRENT"))) {
+    *user_space_current_var = (hf_cell_t)user_space_current;
+  } else {
+    printf("no USER-SPACE-CURRENT word found\n");
+  }
   if((storage_var = hf_find_name_data(global, "STORAGE"))) {
     *storage_var = (hf_cell_t)storage;
   } else {
@@ -191,7 +209,8 @@ void* hf_verify_image_type(void* current) {
 }
 
 /* Parse headers */
-void* hf_parse_headers(hf_global_t* global, void* current) {
+void* hf_parse_headers(hf_global_t* global, void* current,
+		       void** user_space_current) {
   hf_byte_t type;
   while((type = *(hf_byte_t*)current)) {
     hf_cell_t token;
@@ -228,7 +247,8 @@ void* hf_parse_headers(hf_global_t* global, void* current) {
       exit(1);
     }
     word = hf_new_word(global, hf_new_token(global));
-    name_dest = (hf_byte_t*)hf_allocate(global, name_length);
+    name_dest = *user_space_current;
+    *user_space_current += name_length;
     if(type == 1) {
       word->primitive = hf_prim_enter;
       word->secondary = (hf_token_t*)offset;
@@ -248,14 +268,15 @@ void* hf_parse_headers(hf_global_t* global, void* current) {
 }
 
 /* Load code */
-void hf_load_code(hf_global_t* global, void* current, size_t size) {
-  memcpy(global->user_space_current, current, size);
-  global->user_space_current += size;
+void hf_load_code(hf_global_t* global, void* current, size_t size,
+		  void** user_space_current) {
+  memcpy(*user_space_current, current, size);
+  *user_space_current += size;
 }
 
 /* Relocate code */
 void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
-		 void* start_address) {
+		 void* start_address, void* user_space) {
   hf_full_token_t token = start_token;
   while(token < global->word_count) {
     hf_word_t* word = global->words + token;
@@ -266,7 +287,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
       printf("relocating token: %lld name: %s offset: %lld new offset: %lld\n",
 	     (uint64_t)token, name_copy, (uint64_t)word->secondary,
 	     (uint64_t)word->secondary +
-	     (uint64_t)start_address - (uint64_t)global->user_space_block->start);
+	     (uint64_t)start_address - (uint64_t)user_space);
       free(name_copy);
       
       word->secondary =
@@ -304,7 +325,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
       printf("relocating token: %lld name: %s offset: %lld new offset: %lld\n",
 	     (uint64_t)token, name_copy, (uint64_t)word->data,
 	     (uint64_t)word->data +
-	     (uint64_t)start_address - (uint64_t)global->user_space_block->start);
+	     (uint64_t)start_address - (uint64_t)user_space);
       free(name_copy);
       word->data =
 	(hf_token_t*)((hf_cell_t)word->data + (hf_cell_t)start_address);

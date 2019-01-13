@@ -175,12 +175,6 @@ void hf_prim_store_r(hf_global_t* global);
 /* R> primitive */
 void hf_prim_pop_r(hf_global_t* global);
 
-/* HERE primitive */
-void hf_prim_load_here(hf_global_t* global);
-
-/* HERE! primitive */
-void hf_prim_store_here(hf_global_t* global);
-
 /* SP@ primitive */
 void hf_prim_load_sp(hf_global_t* global);
 
@@ -241,9 +235,6 @@ void hf_prim_store_32(hf_global_t* global);
 /* SET-WORD-COUNT */
 void hf_prim_set_word_count(hf_global_t* global);
 
-/* GUARANTEE */
-void hf_prim_guarantee(hf_global_t* global);
-
 /* TYPE primitive */
 void hf_prim_type(hf_global_t* global);
 
@@ -267,9 +258,11 @@ void hf_register_prim(hf_global_t* global, hf_full_token_t token, char* name,
   void* name_space = NULL;
   hf_word_t* word;
   if(name) {
-    hf_new_user_space(global);
     name_length = strlen(name);
-    name_space = hf_allocate(global, name_length);
+    if(!(name_space = malloc(name_length))) {
+      fprintf(stderr, "Unable to allocate name space!\n");
+      exit(1);
+    }
     memcpy(name_space, name, name_length);
   }
   word = hf_new_word(global, token);
@@ -374,10 +367,6 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_POP_R, "R>", hf_prim_pop_r,
 		   HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_LOAD_HERE, "HERE", hf_prim_load_here,
-		   HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_STORE_HERE, "HERE!", hf_prim_store_here,
-		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_SP, "SP@", hf_prim_load_sp,
 		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_STORE_SP, "SP!", hf_prim_store_sp,
@@ -418,8 +407,6 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_SET_WORD_COUNT, "SET-WORD-COUNT",
 		   hf_prim_set_word_count, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_GUARANTEE, "GUARANTEE",
-		   hf_prim_guarantee, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_TYPE, "TYPE", hf_prim_type, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_KEY, "KEY", hf_prim_key, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ACCEPT, "ACCEPT", hf_prim_accept,
@@ -499,14 +486,13 @@ void hf_prim_data(hf_global_t* global) {
 void hf_prim_new_colon(hf_global_t* global) {
   hf_word_t* word;
   hf_full_token_t token = hf_new_token(global);
-  hf_new_user_space(global);
   word = hf_new_word(global, token);
   word->flags = 0;
   word->name_length = 0;
   word->name = NULL;
   word->data = NULL;
   word->primitive = hf_prim_enter;
-  word->secondary = global->user_space_current;
+  word->secondary = (hf_token_t*)(*global->data_stack++);
   word->next = 0;
   *(--global->data_stack) = (hf_cell_t)token;
 }
@@ -515,12 +501,11 @@ void hf_prim_new_colon(hf_global_t* global) {
 void hf_prim_new_create(hf_global_t* global) {
   hf_word_t* word;
   hf_full_token_t token = hf_new_token(global);
-  hf_new_user_space(global);
   word = hf_new_word(global, token);
   word->flags = 0;
   word->name_length = 0;
   word->name = NULL;
-  word->data = global->user_space_current;
+  word->data = (void*)(*global->data_stack++);
   word->primitive = hf_prim_do_create;
   word->secondary = NULL;
   word->next = 0;
@@ -814,16 +799,6 @@ void hf_prim_pop_r(hf_global_t* global) {
   *(--global->data_stack) = (hf_cell_t)(*global->return_stack++);
 }
 
-/* HERE primitive */
-void hf_prim_load_here(hf_global_t* global) {
-  *(--global->data_stack) = (hf_cell_t)global->user_space_current;
-}
-
-/* HERE! primitive */
-void hf_prim_store_here(hf_global_t* global) {
-  hf_set_user_space(global, (void*)(*global->data_stack++));
-}
-
 /* SP@ primitive */
 void hf_prim_load_sp(hf_global_t* global) {
   hf_cell_t* data_stack = global->data_stack;
@@ -1011,12 +986,6 @@ void hf_prim_set_word_count(hf_global_t* global) {
     fprintf(stderr, "Attempted to set out of range word count!\n");
     exit(1);
   }
-}
-
-/* GUARANTEE primitive */
-void hf_prim_guarantee(hf_global_t* global) {
-  size_t size = *global->data_stack++;
-  hf_guarantee(global, size);
 }
 
 /* TYPE primitive */
