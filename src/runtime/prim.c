@@ -629,11 +629,6 @@ void hf_prim_load(hf_global_t* global) {
 
 /* ! primitive */
 void hf_prim_store(hf_global_t* global) {
-#ifdef TRACE
-  printf("storing offset: %lld value: %lld\n",
-	 (uint64_t)(*global->data_stack) - (uint64_t)global->user_space_start,
-	 (uint64_t)(*(global->data_stack + 1)));
-#endif
   *(hf_cell_t*)(*global->data_stack) = *(global->data_stack + 1);
   global->data_stack += 2;
 }
@@ -645,11 +640,6 @@ void hf_prim_load_8(hf_global_t* global) {
 
 /* C! primitive */
 void hf_prim_store_8(hf_global_t* global) {
-#ifdef TRACE
-  printf("storing offset: %lld value: %lld\n",
-	 (uint64_t)(*global->data_stack) - (uint64_t)global->user_space_start,
-	 (uint64_t)(*(global->data_stack + 1)));
-#endif
   *(hf_byte_t*)(*global->data_stack) = *(global->data_stack + 1) & 0xFF;
   global->data_stack += 2;
 }
@@ -944,11 +934,6 @@ void hf_prim_load_16(hf_global_t* global) {
 
 /* H! primitive */
 void hf_prim_store_16(hf_global_t* global) {
-#ifdef TRACE
-  printf("storing offset: %lld value: %lld\n",
-	 (uint64_t)(*global->data_stack) - (uint64_t)global->user_space_start,
-	 (uint64_t)(*(global->data_stack + 1)));
-#endif
   *(uint16_t*)(*global->data_stack) = *(global->data_stack + 1) & 0xFFFF;
   global->data_stack += 2;
 }
@@ -965,11 +950,6 @@ void hf_prim_load_32(hf_global_t* global) {
 /* W! primitive */
 void hf_prim_store_32(hf_global_t* global) {
 #ifndef CELL_16
-#ifdef TRACE
-  printf("storing offset: %lld value: %lld\n",
-	 (uint64_t)(*global->data_stack) - (uint64_t)global->user_space_start,
-	 (uint64_t)(*(global->data_stack + 1)));
-#endif
   *(uint32_t*)(*global->data_stack) = *(global->data_stack + 1) & 0xFFFFFFFF;
   global->data_stack += 2;
 #else
