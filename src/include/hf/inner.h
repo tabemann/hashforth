@@ -50,6 +50,9 @@ void hf_boot(hf_global_t* global);
 /* Allocate more user space if needed */
 void hf_new_user_space(hf_global_t* global);
 
+/* Guarantee user space is available */
+void hf_guarantee(hf_global_t* global, hf_cell_t size);
+
 /* Set user space pointer */
 void hf_set_user_space(hf_global_t* global, void* user_space_new);
 

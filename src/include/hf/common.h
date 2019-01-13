@@ -180,9 +180,10 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_PRIM_LOAD_32 (64)
 #define HF_PRIM_STORE_32 (65)
 #define HF_PRIM_SET_WORD_COUNT (66)
-#define HF_PRIM_TYPE (67)
-#define HF_PRIM_KEY (68)
-#define HF_PRIM_ACCEPT (69)
+#define HF_PRIM_GUARANTEE (67)
+#define HF_PRIM_TYPE (68)
+#define HF_PRIM_KEY (69)
+#define HF_PRIM_ACCEPT (70)
 
 /* Definitions */
 

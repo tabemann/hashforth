@@ -148,8 +148,28 @@ void hf_new_user_space(hf_global_t* global) {
       fprintf(stderr, "Unable to allocate user space!\n");
       exit(1);
     }
+    new_block->prev = global->user_space_block;
     new_block->start = (void*)new_block + sizeof(hf_user_space_block_t);
     new_block->end = new_block->start + HF_INIT_USER_SPACE_SIZE;
+    global->user_space_block = new_block;
+    global->user_space_current = new_block->start;
+  }
+}
+
+/* Guarantee user space is available */
+void hf_guarantee(hf_global_t* global, size_t size) {
+  if(!global->user_space_block ||
+     (global->user_space_block->end - global->user_space_current < size)) {
+    hf_user_space_block_t* new_block;
+    size_t space_size =
+      HF_INIT_USER_SPACE_SIZE > size ? HF_INIT_USER_SPACE_SIZE : size;
+    if(!(new_block = malloc(sizeof(hf_user_space_block_t) + space_size))) {
+      fprintf(stderr, "Unable to allocate user space!\n");
+      exit(1);
+    }
+    new_block->prev = global->user_space_block;
+    new_block->start = (void*)new_block + sizeof(hf_user_space_block_t);
+    new_block->end = new_block->start + space_size;
     global->user_space_block = new_block;
     global->user_space_current = new_block->start;
   }

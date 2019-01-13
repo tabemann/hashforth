@@ -241,6 +241,9 @@ void hf_prim_store_32(hf_global_t* global);
 /* SET-WORD-COUNT */
 void hf_prim_set_word_count(hf_global_t* global);
 
+/* GUARANTEE */
+void hf_prim_guarantee(hf_global_t* global);
+
 /* TYPE primitive */
 void hf_prim_type(hf_global_t* global);
 
@@ -415,6 +418,8 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_SET_WORD_COUNT, "SET-WORD-COUNT",
 		   hf_prim_set_word_count, HF_WORD_NORMAL);
+  hf_register_prim(global, HF_PRIM_GUARANTEE, "GUARANTEE",
+		   hf_prim_guarantee, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_TYPE, "TYPE", hf_prim_type, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_KEY, "KEY", hf_prim_key, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_ACCEPT, "ACCEPT", hf_prim_accept,
@@ -1006,6 +1011,12 @@ void hf_prim_set_word_count(hf_global_t* global) {
     fprintf(stderr, "Attempted to set out of range word count!\n");
     exit(1);
   }
+}
+
+/* GUARANTEE primitive */
+void hf_prim_guarantee(hf_global_t* global) {
+  size_t size = *global->data_stack++;
+  hf_guarantee(global, size);
 }
 
 /* TYPE primitive */
