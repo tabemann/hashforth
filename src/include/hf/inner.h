@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Travis Bemann
+/* Copyright (c) 2018-2019, Travis Bemann
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,9 @@ void* hf_allocate(hf_global_t* global, hf_cell_t size);
 
 /* Allocate a word */
 hf_word_t* hf_new_word(hf_global_t* global, hf_full_token_t token);
+
+/* Allocate a service */
+hf_sys_t* hf_new_service(hf_global_t* global, hf_sys_index_t index);
 
 /* Allocate a token */
 hf_full_token_t hf_new_token(hf_global_t* global);

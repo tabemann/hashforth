@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Travis Bemann
+/* Copyright (c) 2018-2019, Travis Bemann
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,25 @@ void hf_init(hf_global_t* global) {
     exit(1);
   }
   global->return_stack = return_stack_base + HF_INIT_RETURN_STACK_COUNT;
+  if(!(global->std_services = malloc(sizeof(hf_sys_t) * HF_MAX_STD_SERVICES))) {
+    fprintf(stderr, "Unable to allocate services!\n");
+    exit(1);
+  }
+  global->std_service_count = 0;
+  global->std_service_space_count = HF_MAX_STD_SERVICES;
+  for(int i = 0; i < HF_MAX_STD_SERVICES; i++) {
+    global->std_services[i].defined = HF_FALSE;
+  }
+  if(!(global->nstd_services =
+       malloc(sizeof(hf_sys_t) * HF_MAX_NSTD_SERVICES))) {
+    fprintf(stderr, "Unable to allocate services!\n");
+    exit(1);
+  }
+  global->nstd_service_count = 0;
+  global->nstd_service_space_count = HF_MAX_NSTD_SERVICES;
+  for(int i = 0; i < HF_MAX_NSTD_SERVICES; i++) {
+    global->nstd_services[i].defined = HF_FALSE;
+  }
 #ifdef TRACE
   global->level = 0;
 #endif
@@ -147,6 +166,56 @@ hf_word_t* hf_new_word(hf_global_t* global, hf_full_token_t token) {
   global->word_count =
     token >= global->word_count ? token + 1 : global->word_count;
   return global->words + token;
+}
+
+/* Allocate a service */
+hf_sys_t* hf_new_service(hf_global_t* global, hf_sys_index_t index) {
+  if(index >= 0) {
+    if(index > global->std_service_space_count) {
+      if(index < global->std_service_space_count * 2) {
+	global->std_service_space_count *= 2;
+      } else {
+	global->std_service_space_count = index * 2;
+      }
+      if(!(global->std_services = realloc(global->std_services,
+					  sizeof(hf_sys_t) *
+					  global->std_service_space_count))) {
+	fprintf(stderr, "Unable to allocate service space!\n");
+	exit(1);
+      }
+      for(int i = global->std_service_count;
+	  i < global->std_service_space_count; i++) {
+	global->std_services[i].defined = HF_FALSE;
+      }
+    }
+    global->std_service_count =
+      index >= global->std_service_count ? index + 1 :
+      global->std_service_count;
+    return global->std_services + index;
+  } else {
+    index = -index - 1;
+    if(index > global->nstd_service_space_count) {
+      if(index < global->nstd_service_space_count * 2) {
+	global->nstd_service_space_count *= 2;
+      } else {
+	global->nstd_service_space_count = index * 2;
+      }
+      if(!(global->nstd_services = realloc(global->nstd_services,
+					   sizeof(hf_sys_t) *
+					   global->nstd_service_space_count))) {
+	fprintf(stderr, "Unable to allocate service space!\n");
+	exit(1);
+      }
+      for(int i = global->nstd_service_count;
+	  i < global->nstd_service_space_count; i++) {
+	global->nstd_services[i].defined = HF_FALSE;
+      }
+    }
+    global->nstd_service_count =
+      index >= global->nstd_service_count ? index + 1 :
+      global->nstd_service_count;
+    return global->nstd_services + index;
+  }
 }
 
 /* Allocate a token */

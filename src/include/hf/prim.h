@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Travis Bemann
+/* Copyright (c) 2018-2019, Travis Bemann
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without

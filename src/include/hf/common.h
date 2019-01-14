@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Travis Bemann
+/* Copyright (c) 2018-2019, Travis Bemann
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -85,16 +85,20 @@ typedef uint32_t hf_full_token_t;
 
 typedef hf_cell_t hf_flags_t;
 
+typedef hf_sign_cell_t hf_sys_index_t;
+
 struct hf_word_t;
 typedef struct hf_word_t hf_word_t;
 
-struct hf_user_space_block_t;
-typedef struct hf_user_space_block_t hf_user_space_block_t;
+struct hf_sys_t;
+typedef struct hf_sys_t hf_sys_t;
 
 struct hf_global_t;
 typedef struct hf_global_t hf_global_t;
 
 typedef void (*hf_prim_t)(hf_global_t* global);
+
+typedef void (*hf_sys_prim_t)(hf_global_t* global);
 
 /* Constants */
 
@@ -169,18 +173,23 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 #define HF_PRIM_NEXT_TO_WORD (53)
 #define HF_PRIM_WORD_TO_FLAGS (54)
 #define HF_PRIM_FLAGS_TO_WORD (55)
-#define HF_PRIM_HALF_TOKEN_SIZE (56)
-#define HF_PRIM_FULL_TOKEN_SIZE (57)
-#define HF_PRIM_TOKEN_FLAG_BIT (58)
-#define HF_PRIM_CELL_SIZE (59)
-#define HF_PRIM_LOAD_16 (60)
-#define HF_PRIM_STORE_16 (61)
-#define HF_PRIM_LOAD_32 (62)
-#define HF_PRIM_STORE_32 (63)
-#define HF_PRIM_SET_WORD_COUNT (64)
-#define HF_PRIM_TYPE (65)
-#define HF_PRIM_KEY (66)
-#define HF_PRIM_ACCEPT (67)
+#define HF_PRIM_CONFIG (56)
+#define HF_PRIM_LOAD_16 (57)
+#define HF_PRIM_STORE_16 (58)
+#define HF_PRIM_LOAD_32 (59)
+#define HF_PRIM_STORE_32 (60)
+#define HF_PRIM_SET_WORD_COUNT (61)
+#define HF_PRIM_SYS (62)
+#define HF_PRIM_SYS_LOOKUP (63)
+
+#define HF_SYS_UNDEFINED (0)
+#define HF_SYS_TYPE (1)
+#define HF_SYS_KEY (2)
+#define HF_SYS_ACCEPT (3)
+#define HF_SYS_BYE (4)
+
+#define HF_MAX_STD_SERVICES (4)
+#define HF_MAX_NSTD_SERVICES (0)
 
 /* Definitions */
 
@@ -194,10 +203,23 @@ struct hf_word_t {
   hf_full_token_t next;
 };
 
+struct hf_sys_t {
+  hf_cell_t defined;
+  hf_sys_prim_t primitive;
+  hf_cell_t name_length;
+  hf_byte_t* name;
+};
+
 struct hf_global_t {
   hf_word_t* words;
   hf_cell_t word_count;
   hf_cell_t word_space_count;
+  hf_sys_t* std_services;
+  hf_cell_t std_service_count;
+  hf_cell_t std_service_space_count;
+  hf_sys_t* nstd_services;
+  hf_cell_t nstd_service_count;
+  hf_cell_t nstd_service_space_count;
   hf_word_t* current_word;
   hf_token_t* ip;
   hf_cell_t* data_stack;

@@ -36,10 +36,10 @@ ODIR=obj
 
 LIBS=
 
-_DEPS = hf/common.h hf/inner.h hf/prim.h hf/loader.h
+_DEPS = hf/common.h hf/inner.h hf/prim.h hf/sys.h hf/loader.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = main.o inner.o prim.o loader.o
+_OBJ = main.o inner.o prim.o sys.o loader.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 

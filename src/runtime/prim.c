@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Travis Bemann
+/* Copyright (c) 2018-2019, Travis Bemann
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdint.h>
 #include "hf/common.h"
 #include "hf/inner.h"
@@ -208,17 +209,8 @@ void hf_prim_word_to_flags(hf_global_t* global);
 /* FLAGS>WORD primitive */
 void hf_prim_flags_to_word(hf_global_t* global);
 
-/* HALF-TOKEN-SIZE primitive */
-void hf_prim_half_token_size(hf_global_t* global);
-
-/* FULL-TOKEN-SIZE primitive */
-void hf_prim_full_token_size(hf_global_t* global);
-
-/* TOKEN-FLAG-BIT primitive */
-void hf_prim_token_flag_bit(hf_global_t* global);
-
-/* CELL-SIZE primitive */
-void hf_prim_cell_size(hf_global_t* global);
+/* CONFIG primitive */
+void hf_prim_config(hf_global_t* global);
 
 /* H@ primitive */
 void hf_prim_load_16(hf_global_t* global);
@@ -235,14 +227,11 @@ void hf_prim_store_32(hf_global_t* global);
 /* SET-WORD-COUNT */
 void hf_prim_set_word_count(hf_global_t* global);
 
-/* TYPE primitive */
-void hf_prim_type(hf_global_t* global);
+/* SYS primitive */
+void hf_prim_sys(hf_global_t* global);
 
-/* KEY primitive */
-void hf_prim_key(hf_global_t* global);
-
-/* ACCEPT primitive */
-void hf_prim_accept(hf_global_t* global);
+/* SYS-LOOKUP primitive */
+void hf_prim_sys_lookup(hf_global_t* global);
 
 /* Macros */
 
@@ -389,13 +378,7 @@ void hf_register_prims(hf_global_t* global) {
 		   hf_prim_word_to_flags, HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_FLAGS_TO_WORD, "FLAGS>WORD",
 		   hf_prim_flags_to_word, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_HALF_TOKEN_SIZE, "HALF-TOKEN-SIZE",
-		   hf_prim_half_token_size, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_FULL_TOKEN_SIZE, "FULL-TOKEN-SIZE",
-		   hf_prim_full_token_size, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_TOKEN_FLAG_BIT, "TOKEN-FLAG-BIT",
-		   hf_prim_token_flag_bit, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_CELL_SIZE, "CELL-SIZE", hf_prim_cell_size,
+  hf_register_prim(global, HF_PRIM_CONFIG, "CONFIG", hf_prim_config,
 		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_LOAD_16, "H@", hf_prim_load_16,
 		   HF_WORD_NORMAL);
@@ -407,9 +390,8 @@ void hf_register_prims(hf_global_t* global) {
 		   HF_WORD_NORMAL);
   hf_register_prim(global, HF_PRIM_SET_WORD_COUNT, "SET-WORD-COUNT",
 		   hf_prim_set_word_count, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_TYPE, "TYPE", hf_prim_type, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_KEY, "KEY", hf_prim_key, HF_WORD_NORMAL);
-  hf_register_prim(global, HF_PRIM_ACCEPT, "ACCEPT", hf_prim_accept,
+  hf_register_prim(global, HF_PRIM_SYS, "SYS", hf_prim_sys, HF_WORD_NORMAL);
+  hf_register_prim(global, HF_PRIM_SYS_LOOKUP, "SYS-LOOKUP", hf_prim_sys_lookup,
 		   HF_WORD_NORMAL);
 }
 
@@ -899,32 +881,35 @@ void hf_prim_flags_to_word(hf_global_t* global) {
   }
 }
 
-/* HALF-TOKEN-SIZE primitive */
-void hf_prim_half_token_size(hf_global_t* global) {
-  *(--global->data_stack) = sizeof(hf_token_t);
-}
-
-/* FULL-TOKEN-SIZE primitive */
-void hf_prim_full_token_size(hf_global_t* global) {
-  *(--global->data_stack) = sizeof(hf_full_token_t);
-}
-
-/* TOKEN-FLAG-BIT primitive */
-void hf_prim_token_flag_bit(hf_global_t* global) {
+/* CONFIG primitive */
+void hf_prim_config(hf_global_t* global) {
+  size_t name_length = (size_t)(*global->data_stack++);
+  char* name = (char*)(*global->data_stack++);
+  char* name_copy = malloc(name_length + 1);
+  name_copy[name_length] = 0;
+  if(!strcasecmp(name_copy, "HALF-TOKEN-SIZE")) {
+    *(--global->data_stack) = sizeof(hf_token_t);
+    *(--global->data_stack) = 1;
+  } else if(!strcasecmp(name_copy, "FULL-TOKEN-SIZE")) {
+    *(--global->data_stack) = sizeof(hf_full_token_t);
+    *(--global->data_stack) = 1;
+  } else if(!strcasecmp(name_copy, "TOKEN-FLAG-BIT")) {
 #ifdef TOKEN_8_16
-  *(--global->data_stack) = HF_TRUE;
+    *(--global->data_stack) = HF_TRUE;
 #else
 #ifdef TOKEN_16_32
-  *(--global->data_stack) = HF_TRUE;
+    *(--global->data_stack) = HF_TRUE;
 #else
-  *(--global->data_stack) = HF_FALSE;
+    *(--global->data_stack) = HF_FALSE;
 #endif
 #endif
-}
-
-/* CELL-SIZE primitive */
-void hf_prim_cell_size(hf_global_t* global) {
-  *(--global->data_stack) = sizeof(hf_cell_t);
+    *(--global->data_stack) = 1;
+  } else if(!strcasecmp(name_copy, "CELL-SIZE")) {
+    *(--global->data_stack) = sizeof(hf_cell_t);
+    *(--global->data_stack) = 1;
+  } else {
+    *(--global->data_stack) = 0;
+  }
 }
 
 /* H@ primitive */
@@ -968,35 +953,51 @@ void hf_prim_set_word_count(hf_global_t* global) {
   }
 }
 
-/* TYPE primitive */
-void hf_prim_type(hf_global_t* global) {
-  hf_cell_t length = *global->data_stack++;
-  hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack++);
-  fwrite(buffer, sizeof(hf_byte_t), length, stderr);
-}
-
-/* KEY primitive */
-void hf_prim_key(hf_global_t* global) {
-  int key = fgetc(stdin);
-  if(key != EOF) {
-    *(--global->data_stack) = key;
-  } else {
-    exit(0);
-  }
-}
-
-/* ACCEPT primitive */
-void hf_prim_accept(hf_global_t* global) {
-  hf_cell_t buffer_size = *global->data_stack++;
-  hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack);
-  hf_byte_t* data_read = fgets(buffer, buffer_size, stdin);
-  if(data_read) {
-    hf_cell_t data_read_length = strlen(data_read);
-    if(data_read[data_read_length - 1] == '\n') {
-      data_read_length--;
+/* SYS primitive */
+void hf_prim_sys(hf_global_t* global) {
+  hf_sys_index_t index = (hf_sys_index_t)(*global->data_stack++);
+  if(index >= 0) {
+    if(index < global->std_service_count) {
+      if(global->std_services[index].defined) {
+	global->std_services[index].primitive(global);
+	*(--global->data_stack) = HF_TRUE;
+      } else {
+	*(--global->data_stack) = HF_FALSE;
+      }
     }
-    *global->data_stack = data_read_length;
   } else {
-    *global->data_stack = 0;
+    index = -index - 1;
+    if(index < global->nstd_service_count) {
+      if(global->nstd_services[index].defined) {
+	global->nstd_services[index].primitive(global);
+	*(--global->data_stack) = HF_TRUE;
+      } else {
+	*(--global->data_stack) = HF_FALSE;
+      }
+    }
   }
+}
+
+/* SYS-LOOKUP primitive */
+void hf_prim_sys_lookup(hf_global_t* global) {
+  hf_sign_cell_t index;
+  hf_cell_t name_length = *global->data_stack++;
+  hf_byte_t* name = (hf_byte_t*)(*global->data_stack++);
+  for(index = global->nstd_service_count - 1; index >= 0; index--) {
+    hf_sys_t* service = global->nstd_services + index;
+    if(service->defined && service->name_length == name_length &&
+       !strncasecmp(name, service->name, name_length)) {
+      *(--global->data_stack) = (hf_cell_t)(-(index + 1));
+      return;
+    }
+  }
+  for(index = global->std_service_count - 1; index > 0; index--) {
+    hf_sys_t* service = global->std_services + index;
+    if(service->defined && service->name_length == name_length &&
+       !strncasecmp(name, service->name, name_length)) {
+      *(--global->data_stack) = (hf_cell_t)index;
+      return;
+    }
+  }
+  *(--global->data_stack) = 0;
 }

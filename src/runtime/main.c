@@ -32,6 +32,7 @@
 #include "hf/common.h"
 #include "hf/inner.h"
 #include "hf/prim.h"
+#include "hf/sys.h"
 #include "hf/loader.h"
 
 /* Entry point */
@@ -40,6 +41,7 @@ int main(int argc, char** argv) {
   if(argc >= 2) {
     hf_init(&global);
     hf_register_prims(&global);
+    hf_register_services(&global);
     hf_load_image(&global, argv[1]);
     hf_boot(&global);
   } else {
