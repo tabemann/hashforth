@@ -187,9 +187,38 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_KEY (2)
 #define HF_SYS_ACCEPT (3)
 #define HF_SYS_BYE (4)
+#define HF_SYS_ALLOCATE (5)
+#define HF_SYS_RESIZE (6)
+#define HF_SYS_FREE (7)
+#define HF_SYS_OPEN (8)
+#define HF_SYS_CLOSE (9)
+#define HF_SYS_READ (10)
+#define HF_SYS_WRITE (11)
+#define HF_SYS_GET_NONBLOCKING (12)
+#define HF_SYS_SET_NONBLOCKING (13)
+#define HF_SYS_ISATTY (14)
+#define HF_SYS_POLL (15)
+#define HF_SYS_GET_MONOTONIC_TIME (16)
 
-#define HF_MAX_STD_SERVICES (4)
+#define HF_MAX_STD_SERVICES (16)
 #define HF_MAX_NSTD_SERVICES (0)
+
+#define HF_OPEN_RDONLY (1)
+#define HF_OPEN_WRONLY (2)
+#define HF_OPEN_RDWR (4)
+#define HF_OPEN_APPEND (8)
+#define HF_OPEN_CREAT (16)
+#define HF_OPEN_EXCL (32)
+#define HF_OPEN_TRUNC (64)
+
+#define HF_POLL_IN (1)
+#define HF_POLL_OUT (2)
+#define HF_POLL_PRI (4)
+#define HF_POLL_ERR (8)
+#define HF_POLL_HUP (16)
+#define HF_POLL_NVAL (32)
+
+#define HF_WOULDBLOCK (1);
 
 /* Definitions */
 
