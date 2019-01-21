@@ -38,34 +38,6 @@ WORDLIST CURRENT IO-WORDLIST
 FORTH-WORDLIST TASK-WORDLIST IO-WORDLIST 3 SET-ORDER
 IO-WORDLIST SET-CURRENT
 
-\ Standard input
-0 CONSTANT STDIN
-1 CONSTANT STDOUT
-2 CONSTANT STDERR
-
-\ Services for IO
-VARIABLE SYS-READ
-VARIABLE SYS-WRITE
-VARIABLE SYS-GET-NONBLOCKING
-VARIABLE SYS-SET-NONBLOCKING
-
-\ Read a file descriptor (a return value of -1 means success, a return value of
-\ 0 means error, and a return value of 1 means that accessing would block were
-\ it not for non-blocking).
-: READ ( c-addr bytes fd -- bytes-read -1|0|1 ) SYS-READ @ SYS ;
-
-\ Write a file descriptor (a return value of -1 means success, a return value of
-\ 0 means error, and a return value of 1 means that accessing would block were
-\ it not for non-blocking).
-: WRITE ( c-addr bytes fd -- bytes-written -1|0|1 ) SYS-WRITE @ SYS ;
-
-\ Get whether a file descriptor is non-blocking (a return value of -1 means
-\ success and a return value 0f 0 means error).
-: GET-NONBLOCKING ( fd -- non-blocking -1|0 ) SYS-GET-NONBLOCKING @ SYS ;
-
-\ Get whether a file descriptor is blocking (a return value of -1 means success
-\ and a return value of 0 means error).
-: SET-BLOCKING ( non-blocking fd -- -1|0 ) SYS-SET-NONBLOCKING @ SYS ;
 
 \ Actually wait for and read a file descriptor (returns -1 on success and 0 on
 \ error).
@@ -165,94 +137,53 @@ VARIABLE SYS-SET-NONBLOCKING
   UNTIL
   ROT DROP ROT DROP ROT DROP;
 
-\ Error writing to standard output
-: X-UNABLE-TO-WRITE-STDOUT SPACE S" unable to write to standard output" CR ;
-
 \ Implement TYPE
-: TYPE ( c-addr bytes -- )
+: (TYPE) ( c-addr bytes -- )
   IN-TASK? IF
     STDOUT WAIT-WRITE-FULL AVERTS X-UNABLE-TO-WRITE-STDOUT DROP
   ELSE
-    STDOUT GET-BLOCKING AVERTS X-UNABLE-TO-WRITE-STDOUT
-    TRUE STDOUT SET-BLOCKING AVERTS X-UNABLE-TO-WRITE-STDOUT
-    ROT ROT BEGIN DUP 0 > WHILE
-      2DUP STDOUT WRITE AVERTS X-UNABLE-TO-WRITE-STDOUT ADVANCE-BUFFER
-    REPEAT
-    2DROP STDOUT SET-BLOCKING AVERTS X-UNABLE-TO-WRITE-STDOUT
+    (TYPE)
   THEN ;
-
-\ Standard input is closed
-: X-STDIN-IS-CLOSED SPACE S" standard input is closed" CR ;
-
-\ Error reading from standard input
-: X-UNABLE-TO-READ-STDIN SPACE S" unable to read from standard input" CR ;
-
-\ Standard input is supposed to be blocking
-: X-IS-SUPPOSED-TO-BLOCK SPACE S" standard input is supposed to block" CR ;
-
-\ Currently read character
-VARIABLE READ-KEY
-
-\ Whether a key has been read
-VARIABLE READ-KEY? 0 READ-KEY? !
 
 \ Test whether a key is read.
-: KEY? ( -- flag )
-  READ-KEY? @ IF
-    TRUE
-  ELSE
-    STDIN GET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
-    TRUE STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
-    THERE 1 1 TALLOT STDIN READ DUP 0<> AVERTS X-UNABLE-TO-READ-STDIN -1 = IF
-      -1 TALLOT 1 = IF THERE C@ READ-KEY ! TRUE
-      ELSE ['] X-UNABLE-TO-READ-STDIN ?RAISE THEN
+: (KEY?) ( -- flag )
+  IN-TASK? IF
+    READ-KEY? @ IF
+      TRUE
     ELSE
-      -1 TALLOT FALSE
+      STDIN GET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
+      TRUE STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
+      THERE 1 1 TALLOT STDIN READ DUP 0<> AVERTS X-UNABLE-TO-READ-STDIN -1 = IF
+        -1 TALLOT 1 = IF THERE C@ READ-KEY ! TRUE
+        ELSE ['] X-UNABLE-TO-READ-STDIN ?RAISE THEN
+      ELSE
+        -1 TALLOT FALSE
+      THEN
+      SWAP STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
     THEN
-    SWAP STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
-  THEN ;
-
-\ Actually read a keypress from standard input.
-: (KEY) ( -- c )
-  THERE 1 1 TALLOT STDIN READ DUP AVERTS X-UNABLE-TO-READ-STDIN -1 = IF
-     -1 TALLOT 1 = IF THERE C@ ELSE ['] X-UNABLE-TO-READ-STDIN ?RAISE THEN
   ELSE
-    ['] X-IS-SUPPOSED-TO-BLOCK ?RAISE
+    (KEY?)
   THEN ;
 
 \ Read a keypress from standard input.
-: KEY ( -- c )
-  READ-KEY? @ IF
-    READ-KEY @ FALSE READ-KEY? !
-  ELSE
-    IN-TASK? IF
+: (KEY) ( -- c )
+  IN-TASK? IF
+    READ-KEY? @ IF
+      READ-KEY @ FALSE READ-KEY? !
+    ELSE
       THERE 1 1 TALLOT STDIN WAIT-READ-FULL AVERTS X-UNABLE-TO-READ-STDIN
       -1 TALLOT 1 = IF THERE C@ ELSE ['] X-UNABLE-TO-READ-STDIN ?RAISE THEN
-    ELSE
-      STDIN GET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
-      FALSE STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN (KEY)
-      SWAP STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN      
     THEN
+  ELSE
+    (KEY)
   THEN ;
-
-\ Read terminal input into a buffer
-: ACCEPT ( c-addr bytes -- bytes-read )
-  0 TIB# !
-  TIB-SIZE 0 ?DO
-    KEY DUP TIB TIB# @ + C! NEWLINE = IF LEAVE ELSE TIB# @ 1 + TIB# ! THEN
-  LOOP
-  DUP TIB# @ > IF DROP TIB# @ THEN
-  SWAP TIB 2 PICK CMOVE ;
 
 \ Initialize IO
 : INIT-IO ( -- )
-  S" READ" SYS-LOOKUP SYS-READ !
-  S" WRITE" SYS-LOOKUP SYS-WRITE !
-  S" GET-NONBLOCKING" SYS-LOOKUP SYS-GET-NONBLOCKING !
-  S" SET-NONBLOCKING" SYS-LOOKUP SYS-SET-NONBLOCKING !
-  ['] TYPE 'TYPE !
-  ['] KEY 'KEY !
-  ['] ACCEPT 'ACCEPT ! ;
+  ['] (TYPE) 'TYPE !
+  ['] (KEY?) 'KEY? !
+  ['] (KEY) 'KEY !
+  ['] (ACCEPT) 'ACCEPT ! ;
 
 INIT-IO
 

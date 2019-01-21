@@ -313,7 +313,6 @@ void hf_sys_write(hf_global_t* global) {
 /* GET-NONBLOCKING service */
 void hf_sys_get_nonblocking(hf_global_t* global) {
   int fd = *global->data_stack++;
-  hf_cell_t nonblocking = *global->data_stack++;
   int flags;
   hf_cell_t done = HF_FALSE;
   while(!done) {
@@ -397,7 +396,7 @@ void hf_sys_poll(hf_global_t* global) {
   }
   if((count = poll(fds, nfds, timeout)) != -1) {
     for(hf_cell_t i = 0; i < nfds; i++) {
-      hf_cell_t events = 0;
+      hf_cell_t revents = 0;
       fds[i].fd = *(fd_info + (i * 3));
       fds[i].events = 0;
       fds[i].revents = 0;

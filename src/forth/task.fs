@@ -122,9 +122,6 @@ END-STRUCTURE
 \ Last task deactivated exception
 : X-LAST-TASK-DEACTIVATED ( -- ) SPACE ." last task deactivated" CR ;
 
-\ No tasks active exception
-: X-NO-TASKS-ACTIVE ( -- ) SPACE ." no tasks active" CR ;
-
 \ Deactivate the last task.
 : DEACTIVATE-LAST-TASK ( task -- )
   CURRENT-TASK @ = IF
@@ -337,8 +334,6 @@ SLEEP-TASK ACTIVATE-TASK
       0 CURRENT-TASK @ TASK-ENTRY !
       EXECUTE
     THEN
-  ELSE
-    ['] X-NO-TASKS-ACTIVE ?RAISE
   THEN ;
 
 \ Initialize multitasking
