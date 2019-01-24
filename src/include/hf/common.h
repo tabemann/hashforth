@@ -199,8 +199,12 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_ISATTY (14)
 #define HF_SYS_POLL (15)
 #define HF_SYS_GET_MONOTONIC_TIME (16)
+#define HF_SYS_GET_TRACE (17)
+#define HF_SYS_SET_TRACE (18)
+#define HF_SYS_GET_SBASE (19)
+#define HF_SYS_SET_SBASE (20)
 
-#define HF_MAX_STD_SERVICES (16)
+#define HF_MAX_STD_SERVICES (20)
 #define HF_MAX_NSTD_SERVICES (0)
 
 #define HF_OPEN_RDONLY (1)
@@ -259,6 +263,7 @@ struct hf_global_t {
 #ifdef TRACE
   hf_cell_t level;
 #endif
+  hf_cell_t trace;
 };
 
 #endif /* HF_TYPES_H */

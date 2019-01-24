@@ -528,30 +528,36 @@ void hf_prim_execute(hf_global_t* global) {
     hf_word_t* word = global->words + token;
     global->current_word = word;
 #ifdef TRACE
+    if(global->trace) {
       for(hf_cell_t i = 0; i < global->level; i++) {
-	printf("  ");
+	fprintf(stderr, "  ");
       }
       if(word->name_length) {
 	char* name_copy = malloc(word->name_length);
 	memcpy(name_copy, word->name, word->name_length);
 	name_copy[word->name_length] = 0;
-	printf("executing token: %lld name: %s data stack: %lld",
+	fprintf(stderr, "executing token: %lld name: %s data stack: %lld",
 	       (uint64_t)token, name_copy, (uint64_t)global->data_stack);
 	free(name_copy);
       } else {
-	printf("executing token: %lld <no name> data stack: %lld",
+	fprintf(stderr, "executing token: %lld <no name> data stack: %lld",
 	       (uint64_t)token, (uint64_t)global->data_stack);
       }
 #ifdef STACK_TRACE
-      printf(" [");
+      fprintf(stderr, " [");
       hf_cell_t* stack_trace = global->data_stack;
-      while(stack_trace < global->data_stack_base) {
-	printf(" %lld", (uint64_t)(*stack_trace++));
+      hf_cell_t count = 10;
+      while(stack_trace < global->data_stack_base && count--) {
+	fprintf(stderr, " %lld", (uint64_t)(*stack_trace++));
       }
-      printf(" ]\n");
+      if(stack_trace < global->data_stack_base && !count) {
+	fprintf(stderr, " ...");
+      }
+      fprintf(stderr, " ]\n");
 #else
-      printf("\n");
+      fprintf(stderr, "\n");
 #endif
+    }
 #endif
     word->primitive(global);
   } else {

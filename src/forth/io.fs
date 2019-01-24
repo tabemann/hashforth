@@ -33,11 +33,10 @@ DECIMAL
 FORTH-WORDLIST 1 SET-ORDER
 FORTH-WORDLIST SET-CURRENT
 
-WORDLIST CURRENT IO-WORDLIST
+WORDLIST CONSTANT IO-WORDLIST
 
 FORTH-WORDLIST TASK-WORDLIST IO-WORDLIST 3 SET-ORDER
 IO-WORDLIST SET-CURRENT
-
 
 \ Actually wait for and read a file descriptor (returns -1 on success and 0 on
 \ error).
@@ -64,15 +63,11 @@ IO-WORDLIST SET-CURRENT
       DROP (WAIT-READ)
     ELSE
       2DROP 2DROP 0
-    THEN
+    THEN THEN
   ELSE
     DROP 2DROP 0
   THEN
   R> R> SWAP SET-NONBLOCKING ;
-
-\ Advance a pointer and size for a buffer.
-: ADVANCE-BUFFER ( c-addr bytes bytes-to-advance -- c-addr bytes )
-  ROT OVER + ROT ROT - ;
 
 \ Attempt to fully read a buffer of data from a file descriptor (returns -1 on
 \ success and 0 on error).
@@ -110,18 +105,22 @@ IO-WORDLIST SET-CURRENT
 \ Wait for and write a file descriptor (returns -1 on success and 0 on error).
 : WAIT-WRITE ( buf bytes fd -- bytes-written -1|0 )
   IN-TASK? AVERTS X-NOT-IN-TASK
-  DUP GET-NONBLOCKING >R >R R@ TRUE OVER SET-NONBLOCKING IF
-    2 PICK 2 PICK 2 PICK WRITE DUP TRUE = IF
-      DROP SWAP DROP SWAP DROP SWAP DROP TRUE
-    ELSE 1 = IF
-      DROP (WAIT-WRITE)
+  DUP GET-NONBLOCKING IF
+    >R >R R@ TRUE OVER SET-NONBLOCKING IF
+      2 PICK 2 PICK 2 PICK WRITE DUP TRUE = IF
+        DROP SWAP DROP SWAP DROP SWAP DROP TRUE
+      ELSE 1 = IF
+        DROP (WAIT-WRITE)
+      ELSE
+        2DROP 2DROP 0 0
+      THEN THEN
     ELSE
-      2DROP 2DROP 0
+      DROP 2DROP 0 0
     THEN
   ELSE
-    DROP 2DROP 0
+    DROP 2DROP 0 0
   THEN
-  R> R> SWAP SET-NONBLOCKING ;
+  R> R> SWAP SET-NONBLOCKING 0 = IF 2DROP 0 0 THEN ;
 
 \ Attempt to fully write a buffer of data from a file descriptor (returns -1 on
 \ success and 0 on error).
@@ -135,11 +134,12 @@ IO-WORDLIST SET-CURRENT
       DROP 0 TRUE
     THEN
   UNTIL
-  ROT DROP ROT DROP ROT DROP;
+  ROT DROP ROT DROP ROT DROP ;
 
 \ Implement TYPE
 : (TYPE) ( c-addr bytes -- )
-  IN-TASK? IF
+  true set-trace
+  IN-TASK? SINGLE-TASK-IO @ NOT AND IF
     STDOUT WAIT-WRITE-FULL AVERTS X-UNABLE-TO-WRITE-STDOUT DROP
   ELSE
     (TYPE)
@@ -147,7 +147,7 @@ IO-WORDLIST SET-CURRENT
 
 \ Test whether a key is read.
 : (KEY?) ( -- flag )
-  IN-TASK? IF
+  IN-TASK? SINGLE-TASK-IO @ NOT AND IF
     READ-KEY? @ IF
       TRUE
     ELSE
@@ -167,7 +167,7 @@ IO-WORDLIST SET-CURRENT
 
 \ Read a keypress from standard input.
 : (KEY) ( -- c )
-  IN-TASK? IF
+  IN-TASK? SINGLE-TASK-IO @ NOT AND IF
     READ-KEY? @ IF
       READ-KEY @ FALSE READ-KEY? !
     ELSE

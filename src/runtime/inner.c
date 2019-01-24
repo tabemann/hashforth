@@ -83,6 +83,7 @@ void hf_init(hf_global_t* global) {
 #ifdef TRACE
   global->level = 0;
 #endif
+  global->trace = HF_FALSE;
 }
 
 /* The inner interpreter */
@@ -104,30 +105,36 @@ void hf_inner(hf_global_t* global) {
       hf_word_t* word = global->words + token;
       global->current_word = word;
 #ifdef TRACE
-      for(hf_cell_t i = 0; i < global->level; i++) {
-	printf("  ");
-      }
-      if(word->name_length) {
-	char* name_copy = malloc(word->name_length);
-	memcpy(name_copy, word->name, word->name_length);
-	name_copy[word->name_length] = 0;
-	printf("executing token: %lld name: %s data stack: %lld",
-	       (uint64_t)token, name_copy, (uint64_t)global->data_stack);
-	free(name_copy);
-      } else {
-	printf("executing token: %lld <no name> data stack: %lld",
-	       (uint64_t)token, (uint64_t)global->data_stack);
-      }
+      if(global->trace) {
+	for(hf_cell_t i = 0; i < global->level; i++) {
+	  fprintf(stderr, "  ");
+	}
+	if(word->name_length) {
+	  char* name_copy = malloc(word->name_length);
+	  memcpy(name_copy, word->name, word->name_length);
+	  name_copy[word->name_length] = 0;
+	  fprintf(stderr, "executing token: %lld name: %s data stack: %lld",
+		 (uint64_t)token, name_copy, (uint64_t)global->data_stack);
+	  free(name_copy);
+	} else {
+	  fprintf(stderr, "executing token: %lld <no name> data stack: %lld",
+		 (uint64_t)token, (uint64_t)global->data_stack);
+	}
 #ifdef STACK_TRACE
-      printf(" [");
-      hf_cell_t* stack_trace = global->data_stack;
-      while(stack_trace < global->data_stack_base) {
-	printf(" %lld", (uint64_t)(*stack_trace++));
-      }
-      printf(" ]\n");
+	fprintf(stderr, " [");
+	hf_cell_t* stack_trace = global->data_stack;
+	hf_cell_t count = 10;
+	while(stack_trace < global->data_stack_base && count--) {
+	  fprintf(stderr, " %lld", (uint64_t)(*stack_trace++));
+	}
+	if(stack_trace < global->data_stack_base && !count) {
+	  fprintf(stderr, " ...");
+	}
+	fprintf(stderr, " ]\n");
 #else
-      printf("\n");
+	fprintf(stderr, "\n");
 #endif
+      }
 #endif
       word->primitive(global);
     } else {

@@ -90,6 +90,18 @@ void hf_sys_poll(hf_global_t* global);
 /* GET-MONOTONIC-TIME service */
 void hf_sys_get_monotonic_time(hf_global_t* global);
 
+/* GET-TRACE service */
+void hf_sys_get_trace(hf_global_t* global);
+
+/* SET-TRACE service */
+void hf_sys_set_trace(hf_global_t* global);
+
+/* GET-SBASE service */
+void hf_sys_get_sbase(hf_global_t* global);
+
+/* SET-SBASE service */
+void hf_sys_set_sbase(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -134,6 +146,10 @@ void hf_register_services(hf_global_t* global) {
   hf_register_service(global, HF_SYS_POLL, "POLL", hf_sys_poll);
   hf_register_service(global, HF_SYS_GET_MONOTONIC_TIME, "GET-MONOTONIC-TIME",
 		      hf_sys_get_monotonic_time);
+  hf_register_service(global, HF_SYS_GET_TRACE, "GET-TRACE", hf_sys_get_trace);
+  hf_register_service(global, HF_SYS_SET_TRACE, "SET-TRACE", hf_sys_set_trace);
+  hf_register_service(global, HF_SYS_GET_SBASE, "GET-SBASE", hf_sys_get_sbase);
+  hf_register_service(global, HF_SYS_SET_SBASE, "SET-SBASE", hf_sys_set_sbase);
 }
 
 /* /\* TYPE service *\/ */
@@ -376,7 +392,7 @@ void hf_sys_isatty(hf_global_t* global) {
 void hf_sys_poll(hf_global_t* global) {
   int timeout = *global->data_stack++;
   nfds_t nfds = *global->data_stack++;
-  hf_cell_t* fd_info = (hf_cell_t*)(global->data_stack++);
+  hf_cell_t* fd_info = (hf_cell_t*)(*global->data_stack++);
   struct pollfd* fds = malloc(sizeof(struct pollfd) * nfds);
   int count;
   for(hf_cell_t i = 0; i < nfds; i++) {
@@ -436,4 +452,30 @@ void hf_sys_get_monotonic_time(hf_global_t* global) {
   clock_gettime(CLOCK_MONOTONIC, &monotonic_time);
   *(--global->data_stack) = monotonic_time.tv_sec;
   *(--global->data_stack) = monotonic_time.tv_nsec;
+}
+
+/* GET-TRACE service */
+void hf_sys_get_trace(hf_global_t* global) {
+  *(--global->data_stack) = global->trace;
+}
+
+/* SET-TRACE service */
+void hf_sys_set_trace(hf_global_t* global) {
+  global->trace = *global->data_stack++;
+}
+
+/* GET-SBASE service */
+void hf_sys_get_sbase(hf_global_t* global) {
+#ifdef STACK_TRACE
+  *(--global->data_stack) = (hf_cell_t)global->data_stack_base;
+#else
+  *(--global->data_stack) = 0;
+#endif
+}
+
+/* SET-SBASE service */
+void hf_sys_set_sbase(hf_global_t* global) {
+#ifdef STACK_TRACE
+  global->data_stack_base = (hf_cell_t*)(*global->data_stack++);
+#endif
 }
