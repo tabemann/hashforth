@@ -53,6 +53,7 @@ void hf_init(hf_global_t* global) {
   }
 #ifdef STACK_TRACE
   global->data_stack_base = data_stack_base + HF_INIT_DATA_STACK_COUNT;
+  global->old_data_stack_base = global->data_stack_base;
 #endif
   global->data_stack = data_stack_base + HF_INIT_DATA_STACK_COUNT;
   if(!(return_stack_base =
@@ -135,6 +136,19 @@ void hf_inner(hf_global_t* global) {
 	fprintf(stderr, "\n");
 #endif
       }
+#endif
+#ifdef STACK_TRACE
+#ifdef STACK_CHECK
+      if(global->data_stack > global->data_stack_base &&
+	 global->data_stack > global->old_data_stack_base) {
+	fprintf(stderr, "Data stack underflow!\n");
+#ifdef ABORT_ON_END
+	abort();
+#else
+	exit(1);
+#endif
+      }
+#endif
 #endif
       word->primitive(global);
     } else {

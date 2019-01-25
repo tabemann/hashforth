@@ -422,7 +422,11 @@ void hf_prim_do_does(hf_global_t* global) {
 /* End primitive */
 void hf_prim_end(hf_global_t* global) {
   fprintf(stderr, "End should never be reached!\n");
+#ifndef ABORT_ON_END
   exit(1);
+#else
+  abort();
+#endif
 }
 
 /* NOP primitive */
@@ -785,7 +789,10 @@ void hf_prim_load_sp(hf_global_t* global) {
 
 /* SP! primitive */
 void hf_prim_store_sp(hf_global_t* global) {
-  global->data_stack = (hf_cell_t*)(*global->data_stack);  
+  global->data_stack = (hf_cell_t*)(*global->data_stack);
+#ifdef STACK_TRACE
+  global->old_data_stack_base = global->data_stack_base;
+#endif
 }
 
 /* RP@ primitive */

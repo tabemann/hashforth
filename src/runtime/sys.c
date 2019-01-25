@@ -476,6 +476,7 @@ void hf_sys_get_sbase(hf_global_t* global) {
 /* SET-SBASE service */
 void hf_sys_set_sbase(hf_global_t* global) {
 #ifdef STACK_TRACE
+  global->old_data_stack_base = global->data_stack_base;
   global->data_stack_base = (hf_cell_t*)(*global->data_stack++);
 #endif
 }
