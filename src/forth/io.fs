@@ -41,8 +41,8 @@ IO-WORDLIST SET-CURRENT
 \ Actually wait for and read a file descriptor (returns -1 on success and 0 on
 \ error).
 : (WAIT-READ) ( buf bytes fd -- bytes-read -1|0 )
-  DUP CURRENT-TASK @ SET-WAIT-IN BEGIN
-  PAUSE
+  DUP CURRENT-TASK @ SET-WAIT-IN BEGIN    
+    PAUSE
     2 PICK 2 PICK 2 PICK READ DUP TRUE = IF
       DROP SWAP DROP SWAP DROP SWAP DROP TRUE TRUE
     ELSE 1 = IF
