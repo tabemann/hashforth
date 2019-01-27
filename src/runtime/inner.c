@@ -66,6 +66,9 @@ void hf_init(hf_global_t* global) {
     fprintf(stderr, "Unable to allocate services!\n");
     exit(1);
   }
+#ifdef TRACE
+  global->return_stack_base = return_stack_base + HF_INIT_RETURN_STACK_COUNT;
+#endif
   global->std_service_count = 0;
   global->std_service_space_count = HF_MAX_STD_SERVICES;
   for(int i = 0; i < HF_MAX_STD_SERVICES; i++) {
@@ -81,9 +84,6 @@ void hf_init(hf_global_t* global) {
   for(int i = 0; i < HF_MAX_NSTD_SERVICES; i++) {
     global->nstd_services[i].defined = HF_FALSE;
   }
-#ifdef TRACE
-  global->level = 0;
-#endif
   global->trace = HF_FALSE;
 }
 
@@ -107,7 +107,9 @@ void hf_inner(hf_global_t* global) {
       global->current_word = word;
 #ifdef TRACE
       if(global->trace) {
-	for(hf_cell_t i = 0; i < global->level; i++) {
+	hf_sign_cell_t level = global->return_stack_base - global->return_stack;
+	/* fprintf(stderr, "[%lld] ", level); */
+	for(hf_sign_cell_t i = 0; i < level; i++) {
 	  fprintf(stderr, "  ");
 	}
 	if(word->name_length) {
@@ -162,7 +164,9 @@ void hf_inner(hf_global_t* global) {
 void hf_boot(hf_global_t* global) {
   if(global->word_count > 0) {
     hf_word_t* word;
+#ifdef DUMP_LOAD
     printf("booting token: %lld\n", (uint64_t)(global->word_count - 1));
+#endif
     word = global->words + global->word_count - 1;
     global->current_word = word;
     word->primitive(global);

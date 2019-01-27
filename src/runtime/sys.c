@@ -102,6 +102,12 @@ void hf_sys_get_sbase(hf_global_t* global);
 /* SET-SBASE service */
 void hf_sys_set_sbase(hf_global_t* global);
 
+/* GET-RBASE service */
+void hf_sys_get_rbase(hf_global_t* global);
+
+/* SET-RBASE service */
+void hf_sys_set_rbase(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -150,6 +156,8 @@ void hf_register_services(hf_global_t* global) {
   hf_register_service(global, HF_SYS_SET_TRACE, "SET-TRACE", hf_sys_set_trace);
   hf_register_service(global, HF_SYS_GET_SBASE, "GET-SBASE", hf_sys_get_sbase);
   hf_register_service(global, HF_SYS_SET_SBASE, "SET-SBASE", hf_sys_set_sbase);
+  hf_register_service(global, HF_SYS_GET_RBASE, "GET-RBASE", hf_sys_get_rbase);
+  hf_register_service(global, HF_SYS_SET_RBASE, "SET-RBASE", hf_sys_set_rbase);
 }
 
 /* /\* TYPE service *\/ */
@@ -478,5 +486,21 @@ void hf_sys_set_sbase(hf_global_t* global) {
 #ifdef STACK_TRACE
   global->old_data_stack_base = global->data_stack_base;
   global->data_stack_base = (hf_cell_t*)(*global->data_stack++);
+#endif
+}
+
+/* GET-RBASE service */
+void hf_sys_get_rbase(hf_global_t* global) {
+#ifdef TRACE
+  *(--global->data_stack) = (hf_cell_t)global->return_stack_base;
+#else
+  *(--global->data_stack) = 0;
+#endif
+}
+
+/* SET-RBASE service */
+void hf_sys_set_rbase(hf_global_t* global) {
+#ifdef TRACE
+  global->return_stack_base = (hf_token_t**)(*global->data_stack++);
 #endif
 }

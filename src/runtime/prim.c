@@ -399,9 +399,7 @@ void hf_register_prims(hf_global_t* global) {
 void hf_prim_enter(hf_global_t* global) {
   *(--global->return_stack) = global->ip;
   global->ip = global->current_word->secondary;
-#ifdef TRACE
-  global->level++;
-#endif
+
 }
 
 /* Do CREATE primitive */
@@ -414,9 +412,6 @@ void hf_prim_do_does(hf_global_t* global) {
   *(--global->data_stack) = (hf_cell_t)global->current_word->data;
   *(--global->return_stack) = global->ip;
   global->ip = global->current_word->secondary;
-#ifdef TRACE
-  global->level++;
-#endif
 }
 
 /* End primitive */
@@ -436,9 +431,6 @@ void hf_prim_nop(hf_global_t* global) {
 /* EXIT primitive */
 void hf_prim_exit(hf_global_t* global) {
   global->ip = *global->return_stack++;
-#ifdef TRACE
-  global->level--;
-#endif
 }
 
 /* BRANCH primitive */
@@ -506,9 +498,6 @@ void hf_prim_set_does(hf_global_t* global) {
     word->primitive = hf_prim_do_does;
     word->secondary = *global->return_stack++;
     global->ip = *global->return_stack++;
-#ifdef TRACE
-    global->level--;
-#endif
   } else {
     fprintf(stderr, "Out of range token!\n");
     exit(1);
@@ -533,8 +522,10 @@ void hf_prim_execute(hf_global_t* global) {
     global->current_word = word;
 #ifdef TRACE
     if(global->trace) {
-      for(hf_cell_t i = 0; i < global->level; i++) {
-	fprintf(stderr, "  ");
+      hf_sign_cell_t level = global->return_stack_base - global->return_stack;
+      /* fprintf(stderr, "[%lld] ", level); */
+      for(hf_sign_cell_t i = 0; i < level; i++) {
+      	fprintf(stderr, "  ");
       }
       if(word->name_length) {
 	char* name_copy = malloc(word->name_length);

@@ -145,7 +145,7 @@ VARIABLE USER-SPACE-SIZE 0 USER-SPACE-SIZE !
   $FFFFFFFF AND HERE W! HERE WORD-SIZE CODE-BUFFER @ APPEND-BUFFER ;
 
 : TOKEN, ( token -- )
-  cr ." compiling token: " dup .
+\  cr ." compiling token: " dup .
   TARGET-TOKEN @ CASE
     TOKEN-8-16 OF TOKEN-8-16, ENDOF
     TOKEN-16 OF TOKEN-16, ENDOF
@@ -194,11 +194,13 @@ VARIABLE CURRENT-TOKEN 64 CURRENT-TOKEN !
 2 CONSTANT CREATE-WORD
 
 : MAKE-COLON-WORD ( token name-addr name-length offset flags -- )
-  cr ." colon word " COLON-WORD HEADER-8, 4 ROLL ." token: " dup . HEADER, ." flags: " dup . HEADER, ." offset: " dup . HEADER, ." name: " 2dup type DUP HEADER,
+\   cr ." colon word " COLON-WORD HEADER-8, 4 ROLL ." token: " dup . HEADER, ." flags: " dup . HEADER, ." offset: " dup . HEADER, ." name: " 2dup type DUP HEADER,
+  COLON-WORD HEADER-8, 4 ROLL HEADER, HEADER, HEADER, DUP HEADER,
   HEADER-ARRAY, ;
 
 : MAKE-CREATE-WORD ( token name-addr name-length offset flags -- )
-   cr ." create word " CREATE-WORD HEADER-8, 4 ROLL ." token: " dup . HEADER, ." flags: " dup . HEADER, ." offset: " dup . HEADER, ." name: " 2dup type DUP HEADER,
+\   cr ." create word " CREATE-WORD HEADER-8, 4 ROLL ." token: " dup . HEADER, ." flags: " dup . HEADER, ." offset: " dup . HEADER, ." name: " 2dup type DUP HEADER,
+  CREATE-WORD HEADER-8, 4 ROLL HEADER, HEADER, HEADER, DUP HEADER,
   HEADER-ARRAY, ;
 
 : END-HEADERS ( -- )

@@ -170,3 +170,15 @@
 
 : FIELD: CREATE ALIGNED DUP , [ CELL-SIZE ] LITERAL + DOES> @ + ;
 
+\ Add two times
+: TIME+ ( s1 ns1 s2 ns2 -- s3 ns3 )
+  ROT + DUP 1000000000 >= IF
+    1000000000 - ROT ROT + 1 + SWAP
+  ELSE DUP 0 < IF
+    1000000000 + ROT ROT + 1 - SWAP
+  ELSE
+    ROT ROT + SWAP
+  THEN THEN ;
+
+\ Get a sign
+: SIGN ( n -- ) DUP 0 > IF 1 ELSE 0 < IF -1 ELSE 0 THEN THEN ;

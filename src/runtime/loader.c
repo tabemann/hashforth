@@ -232,12 +232,14 @@ void* hf_parse_headers(hf_global_t* global, void* current,
     current += sizeof(hf_cell_t);
     name = (hf_byte_t*)current;
     current += name_length;
+#ifdef DUMP_LOAD
     name_copy = malloc(name_length + 1);
     memcpy(name_copy, name, name_length);
     name_copy[name_length] = 0;
     printf("token: %lld name: %s flags: %lld offset: %lld\n",
 	   (uint64_t)token, name_copy, (uint64_t)flags, (uint64_t)offset);
     free(name_copy);
+#endif
     if(token != global->word_count) {
       fprintf(stderr, "Unexpected token value in image!\n");
       exit(1);
@@ -281,6 +283,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
   while(token < global->word_count) {
     hf_word_t* word = global->words + token;
     if(word->primitive == hf_prim_enter) {
+#ifdef DUMP_LOAD
       char* name_copy = malloc(word->name_length + 1);
       memcpy(name_copy, word->name, word->name_length);
       name_copy[word->name_length] = 0;
@@ -289,7 +292,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 	     (uint64_t)word->secondary +
 	     (uint64_t)start_address - (uint64_t)user_space);
       free(name_copy);
-      
+#endif
       word->secondary =
 	(hf_token_t*)((hf_cell_t)word->secondary + (hf_cell_t)start_address);
 
@@ -319,6 +322,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 	}
       }
     } else if (word->primitive == hf_prim_do_create) {
+#ifdef DUMP_LOAD
       char* name_copy = malloc(word->name_length + 1);
       memcpy(name_copy, word->name, word->name_length);
       name_copy[word->name_length] = 0;
@@ -327,6 +331,7 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 	     (uint64_t)word->data +
 	     (uint64_t)start_address - (uint64_t)user_space);
       free(name_copy);
+#endif
       word->data =
 	(hf_token_t*)((hf_cell_t)word->data + (hf_cell_t)start_address);
     } else if (word->primitive == hf_prim_do_does) {
@@ -347,7 +352,9 @@ void* hf_load_storage(hf_global_t* global, void* current, size_t size) {
     exit(1);
   }
   memcpy(buffer, current, size);
+#ifdef DUMP_LOAD
   printf("loading storage bytes: %lld\n", (uint64_t)size);
+#endif
   return buffer;
 }
 

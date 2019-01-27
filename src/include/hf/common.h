@@ -203,8 +203,10 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_SET_TRACE (18)
 #define HF_SYS_GET_SBASE (19)
 #define HF_SYS_SET_SBASE (20)
+#define HF_SYS_GET_RBASE (21)
+#define HF_SYS_SET_RBASE (22)
 
-#define HF_MAX_STD_SERVICES (20)
+#define HF_MAX_STD_SERVICES (22)
 #define HF_MAX_NSTD_SERVICES (0)
 
 #define HF_OPEN_RDONLY (1)
@@ -262,7 +264,7 @@ struct hf_global_t {
 #endif
   hf_token_t** return_stack;
 #ifdef TRACE
-  hf_cell_t level;
+  hf_token_t** return_stack_base;
 #endif
   hf_cell_t trace;
 };
