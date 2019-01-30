@@ -258,7 +258,7 @@ void hf_sys_open(hf_global_t* global) {
     flags_conv |= O_TRUNC;
   }
   while(!done) {
-    if((fd = open(name_copy, flags, mode)) != -1) {
+    if((fd = open(name_copy, flags_conv, mode)) != -1) {
       *(--global->data_stack) = fd;
       *(--global->data_stack) = HF_TRUE;
       done = HF_TRUE;

@@ -27,6 +27,40 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
+\ Services for memory management
+VARIABLE SYS-ALLOCATE
+VARIABLE SYS-RESIZE
+VARIABLE SYS-FREE
+
+\ Allocate memory in the heap; -1 is returned on success and 0 is returned on
+\ failure.
+: ALLOCATE ( bytes -- addr -1|0 ) SYS-ALLOCATE @ SYS ;
+
+\ Resize memory in the heap allocated with ALLOCATE or RESIZE; -1 is returned
+\ on success and 0 is returned on failure.
+: RESIZE ( addr new-bytes -- new-addr -1|0 ) SYS-RESIZE @ SYS ;
+
+\ Free memory in the heap allocated with ALLOCATE or RESIZE; -1 is returned on
+\ success and 0 is returned on failure.
+: FREE ( addr -- -1|0 ) SYS-FREE @ SYS ;
+
+\ Memory management failure exception
+: X-MEMORY-MANAGEMENT-FAILURE ( -- )
+  SPACE ." failed to allocate/free memory" CR ;
+
+\ Allocate memory in the heap, raising an exception if allocation fails.
+: ALLOCATE! ( bytes -- addr ) ALLOCATE AVERTS X-MEMORY-MANAGEMENT-FAILURE ;
+
+\ Resize memory in the heap, raising an exception if allocation fails.
+: RESIZE! ( addr new-bytes -- new-addr )
+  RESIZE AVERTS X-MEMORY-MANAGEMENT-FAILURE ;
+
+\ Free memory in the heap, raising an exception if freeing fails.
+: FREE! ( addr -- ) FREE AVERTS X-MEMORY-MANAGEMENT-FAILURE ;
+
+\ Add a value to an address
+: +! ( n addr ) DUP @ ROT + SWAP ! ;
+
 : BIN 2 BASE ! ;
 : BINARY 2 BASE ! ;
 
@@ -53,6 +87,12 @@
 : 0<= 0 <= ;
 
 : 0>= 0 >= ;
+
+: ABS DUP 0< IF NEGATE THEN ;
+
+: MIN 2DUP > IF SWAP THEN DROP ;
+
+: MAX 2DUP < IF SWAP THEN DROP ;
 
 : POSTPONE ' DUP IMMEDIATE? IF
     COMPILE,
@@ -182,3 +222,11 @@
 
 \ Get a sign
 : SIGN ( n -- ) DUP 0 > IF 1 ELSE 0 < IF -1 ELSE 0 THEN THEN ;
+
+\ Initialize memory services
+: INIT-MEM ( -- )
+  S" ALLOCATE" SYS-LOOKUP SYS-ALLOCATE !
+  S" RESIZE" SYS-LOOKUP SYS-RESIZE !
+  S" FREE" SYS-LOOKUP SYS-FREE ! ;
+
+INIT-MEM

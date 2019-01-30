@@ -30,13 +30,39 @@
 GET-ORDER GET-CURRENT BASE @
 
 DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
+FORTH-WORDLIST TASK-WORDLIST BUFFER-WORDLIST 3 SET-ORDER
 FORTH-WORDLIST SET-CURRENT
 
-WORDLIST CONSTANT IO-WORDLIST
+\ Read-only file opening flag
+1 CONSTANT OPEN-RDONLY
 
-FORTH-WORDLIST TASK-WORDLIST IO-WORDLIST 3 SET-ORDER
-IO-WORDLIST SET-CURRENT
+\ Write-only file opening flag
+2 CONSTANT OPEN-WRONLY
+
+\ Read/write file opening flag
+4 CONSTANT OPEN-RDWR
+
+\ Appending file opening flag
+8 CONSTANT OPEN-APPEND
+
+\ Creating file opening flag
+16 CONSTANT OPEN-CREAT
+
+\ Exclusive create (to be combined with OPEN-CREAT) file opening flag
+32 CONSTANT OPEN-EXCL
+
+\ Truncating file opening flag
+64 CONSTANT OPEN-TRUNC
+
+\ Services for opening and closing files.
+VARIABLE SYS-OPEN
+VARIABLE SYS-CLOSE
+
+\ Call service for opening files; returns -1 on success and 0 on failure
+: OPEN ( c-addr bytes flags mode -- fd -1|0 ) SYS-OPEN @ SYS ;
+
+\ Call service for closing files; returns -1 on success and 0 on failure
+: CLOSE ( fd -- -1|0 ) SYS-CLOSE @ SYS ;
 
 \ Actually wait for and read a file descriptor (returns -1 on success and 0 on
 \ error).
@@ -57,7 +83,8 @@ IO-WORDLIST SET-CURRENT
 : WAIT-READ ( buf bytes fd -- bytes-read -1|0 )
   IN-TASK? AVERTS X-NOT-IN-TASK
   DUP GET-NONBLOCKING DROP >R >R R@ TRUE OVER SET-NONBLOCKING IF
-    2 PICK 2 PICK 2 PICK READ DUP TRUE = IF
+    2 PICK 2 PICK 2 PICK
+    READ DUP TRUE = IF
       DROP SWAP DROP SWAP DROP SWAP DROP TRUE
     ELSE 1 = IF
       DROP (WAIT-READ)
@@ -177,8 +204,95 @@ IO-WORDLIST SET-CURRENT
     (KEY)
   THEN ;
 
+\ Buffer size for reading data into memory
+1024 CONSTANT READ-BUFFER-SIZE
+CREATE READ-BUFFER READ-BUFFER-SIZE ALLOT
+
+\ Read a whole file into memory in a buffer; returns -1 on success and 0 on
+\ failure.
+: READ-FILE-INTO-BUFFER ( c-addr bytes buffer -- -1|0 )
+  ROT ROT OPEN-RDONLY /777 OPEN IF
+    BEGIN
+      READ-BUFFER READ-BUFFER-SIZE 2 PICK WAIT-READ-FULL IF
+        DUP 0 = IF
+          DROP -1 TRUE
+        ELSE
+          READ-BUFFER SWAP 3 PICK APPEND-BUFFER FALSE
+        THEN
+      ELSE
+        DROP 0 TRUE
+      THEN
+    UNTIL
+    SWAP CLOSE DROP SWAP DROP
+  ELSE
+    DROP DROP 0
+  THEN ;
+
+\ Unable to load Forth code exception.
+: X-CODE-LOADING-FAILURE SPACE ." unable to load code" CR ;
+
+\ Default included code buffer size
+1024 CONSTANT INCLUDED-BUFFER-SIZE
+
+\ Linked list item for previously included source files
+BEGIN-STRUCTURE INCLUDED-ITEM-SIZE
+  FIELD: INCLUDED-ITEM-NEXT
+  FIELD: INCLUDED-ITEM-NAME-LEN
+END-STRUCTURE
+
+\ Included source file name
+: INCLUDED-ITEM-NAME ( addr -- ) INCLUDED-ITEM-SIZE + ;
+
+\ First included item
+VARIABLE FIRST-INCLUDED-ITEM
+ 
+\ Allocate an included item
+: INCLUDE-ITEM ( c-addr bytes -- )
+  INCLUDED-ITEM-SIZE ALLOCATE! FIRST-INCLUDED-ITEM @ OVER INCLUDED-ITEM-NEXT !
+  2DUP INCLUDED-ITEM-NAME-LEN !
+  ROT ROT 2 PICK INCLUDED-ITEM-NAME SWAP CMOVE
+  FIRST-INCLUDED-ITEM ! ;
+
+\ Get whether a file has already been included
+: INCLUDED? ( c-addr bytes -- included-flag )
+  FIRST-INCLUDED-ITEM BEGIN
+    DUP IF
+      DUP INCLUDED-ITEM-NAME OVER INCLUDED-ITEM-NAME-LEN @
+      4 PICK 4 PICK EQUAL-STRINGS? IF
+        DROP 2DROP TRUE TRUE
+      ELSE
+        INCLUDED-ITEM-NEXT @ FALSE
+      THEN
+    ELSE
+      DROP 2DROP FALSE TRUE
+    THEN
+  UNTIL ;
+
+\ Add an included item if it is not already included.
+: CHECK-INCLUDE-ITEM ( c-addr bytes -- )
+  2DUP INCLUDED? IF INCLUDE-ITEM ELSE 2DROP THEN ;
+
+\ Load Forth code from a file.
+: INCLUDED ( c-addr bytes -- )
+  2DUP CHECK-INCLUDE-ITEM
+  INCLUDED-BUFFER-SIZE NEW-BUFFER
+  ROT ROT 2 PICK READ-FILE-INTO-BUFFER AVERTS X-CODE-LOADING-FAILURE
+  DUP GET-BUFFER EVALUATE DESTROY-BUFFER ;
+
+\ Load Forth code from a file specified in interpretation mode.
+: INCLUDE ( "file" -- ) PARSE-NAME INCLUDED ; IMMEDIATE
+
+\ Load Forth code from a file if it is not already loaded.
+: REQUIRED ( c-addr bytes -- ) 2DUP INCLUDED? NOT IF INCLUDED ELSE 2DROP THEN ;
+
+\ Load Forth code from a file specified in interpretation mode if it is not
+\ already loaded.
+: REQUIRE ( "file" -- ) PARSE-NAME REQUIRED ; IMMEDIATE
+
 \ Initialize IO
 : INIT-IO ( -- )
+  S" OPEN" SYS-LOOKUP SYS-OPEN !
+  S" CLOSE" SYS-LOOKUP SYS-CLOSE !
   ['] (TYPE) 'TYPE !
   ['] (KEY?) 'KEY? !
   ['] (KEY) 'KEY !
