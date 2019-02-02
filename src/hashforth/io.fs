@@ -67,7 +67,7 @@ VARIABLE SYS-CLOSE
 \ Actually wait for and read a file descriptor (returns -1 on success and 0 on
 \ error).
 : (WAIT-READ) ( buf bytes fd -- bytes-read -1|0 )
-  DUP CURRENT-TASK @ SET-WAIT-IN BEGIN    
+  DUP CURRENT-TASK SET-WAIT-IN BEGIN    
     PAUSE
     2 PICK 2 PICK 2 PICK READ DUP TRUE = IF
       DROP SWAP DROP SWAP DROP SWAP DROP TRUE TRUE
@@ -77,7 +77,7 @@ VARIABLE SYS-CLOSE
       2DROP 2DROP 0 FALSE TRUE
     THEN THEN
   UNTIL
-  CURRENT-TASK @ UNSET-WAIT-IN ;
+  CURRENT-TASK UNSET-WAIT-IN ;
 
 \ Wait for and read a file descriptor (returns -1 on success and 0 on error).
 : WAIT-READ ( buf bytes fd -- bytes-read -1|0 )
@@ -117,7 +117,7 @@ VARIABLE SYS-CLOSE
 \ Actually wait for and write a file descriptor (returns -1 on success and 0 on
 \ error).
 : (WAIT-WRITE) ( buf bytes fd -- bytes-written -1|0 )
-  DUP CURRENT-TASK @ SET-WAIT-OUT BEGIN
+  DUP CURRENT-TASK SET-WAIT-OUT BEGIN
     PAUSE
     2 PICK 2 PICK 2 PICK WRITE DUP TRUE = IF
       DROP SWAP DROP SWAP DROP SWAP DROP TRUE TRUE
@@ -127,7 +127,7 @@ VARIABLE SYS-CLOSE
       2DROP 2DROP 0 FALSE TRUE
     THEN THEN
   UNTIL
-  CURRENT-TASK @ UNSET-WAIT-OUT ;
+  CURRENT-TASK UNSET-WAIT-OUT ;
 
 \ Wait for and write a file descriptor (returns -1 on success and 0 on error).
 : WAIT-WRITE ( buf bytes fd -- bytes-written -1|0 )
