@@ -107,27 +107,35 @@ END-STRUCTURE
 \ Allot space (or move the pointer back) in the task-local space pointer.
 : TALLOT ( offset -- ) THERE + THERE! ;
 
+\ Internal word for actually activating a task.
+: (ACTIVATE-TASK) ( task -- )
+  FIRST-TASK @ IF
+    FIRST-TASK @ OVER TASK-NEXT !
+    FIRST-TASK @ TASK-PREV @ OVER TASK-PREV !
+    DUP FIRST-TASK @ TASK-PREV @ TASK-NEXT !
+    DUP FIRST-TASK @ TASK-PREV !
+    NEXT-TASK @ FIRST-TASK @ = IF
+      DUP NEXT-TASK !
+    THEN
+  ELSE
+    DUP DUP TASK-NEXT !
+    DUP DUP TASK-PREV !
+    DUP NEXT-TASK !
+  THEN
+  DUP FIRST-TASK !
+  TASK-WAIT @ NO-WAIT = IF
+    AWAKE-TASK-COUNT @ 1+ AWAKE-TASK-COUNT !
+  THEN ;
+
 \ Activate a task for execution.
 : ACTIVATE-TASK ( task -- )
   DUP TASK-ACTIVE @ 1 + OVER TASK-ACTIVE !
-  DUP TASK-ACTIVE @ 1 = IF
-    FIRST-TASK @ IF
-      FIRST-TASK @ OVER TASK-NEXT !
-      FIRST-TASK @ TASK-PREV @ OVER TASK-PREV !
-      DUP FIRST-TASK @ TASK-PREV @ TASK-NEXT !
-      DUP FIRST-TASK @ TASK-PREV !
-      NEXT-TASK @ FIRST-TASK @ = IF
-        DUP NEXT-TASK !
-      THEN
-    ELSE
-      DUP DUP TASK-NEXT !
-      DUP DUP TASK-PREV !
-      DUP NEXT-TASK !
-    THEN
-    DUP FIRST-TASK !
-    TASK-WAIT @ NO-WAIT = IF
-      AWAKE-TASK-COUNT @ 1+ AWAKE-TASK-COUNT !
-    THEN
+  DUP TASK-ACTIVE @ 1 = IF (ACTIVATE-TASK) ELSE DROP THEN ;
+
+\ Force the activation of a task.
+: FORCE-ACTIVATE-TASK ( task -- )
+  DUP TASK-ACTIVE @ 1 < IF
+    1 OVER TASK-ACTIVE ! (ACTIVATE-TASK)
   ELSE
     DROP
   THEN ;
@@ -148,32 +156,40 @@ END-STRUCTURE
   0 AWAKE-TASK-COUNT !
   ['] X-LAST-TASK-DEACTIVATED ?RAISE ;
 
+\ Internal word for actually deactivating tasks.
+: (DEACTIVATE-TASK) ( task -- )
+  DUP TASK-NEXT @ OVER <> IF
+    DUP TASK-WAIT @ NO-WAIT = IF
+      AWAKE-TASK-COUNT @ 1- AWAKE-TASK-COUNT !
+    THEN
+    DUP NEXT-TASK @ = IF
+      DUP TASK-NEXT @ NEXT-TASK !
+    THEN
+    DUP TASK-PREV @ OVER TASK-NEXT @ TASK-PREV !
+    DUP TASK-NEXT @ OVER TASK-PREV @ TASK-NEXT !
+    DUP FIRST-TASK @ = IF
+      DUP TASK-NEXT @ FIRST-TASK !
+    THEN
+    CURRENT-TASK @ = IF
+      HANDLER CURRENT-TASK @ TASK-HANDLER !
+      SP@ CURRENT-TASK @ TASK-DATA-STACK !
+      RP@ CURRENT-TASK @ TASK-RETURN-STACK !
+      0 CURRENT-TASK !
+      PAUSE
+    THEN
+  ELSE
+    DEACTIVATE-LAST-TASK
+  THEN ;
+
 \ Deactivate a task (remove it from execution).
 : DEACTIVATE-TASK ( task -- )
   DUP TASK-ACTIVE @ 1 - OVER TASK-ACTIVE !
-  DUP TASK-ACTIVE @ 0 = IF
-    DUP TASK-NEXT @ OVER <> IF
-      DUP TASK-WAIT @ NO-WAIT = IF
-        AWAKE-TASK-COUNT @ 1- AWAKE-TASK-COUNT !
-      THEN
-      DUP NEXT-TASK @ = IF
-        DUP TASK-NEXT @ NEXT-TASK !
-      THEN
-      DUP TASK-PREV @ OVER TASK-NEXT @ TASK-PREV !
-      DUP TASK-NEXT @ OVER TASK-PREV @ TASK-NEXT !
-      DUP FIRST-TASK @ = IF
-        DUP TASK-NEXT @ FIRST-TASK !
-      THEN
-      CURRENT-TASK @ = IF
-        HANDLER CURRENT-TASK @ TASK-HANDLER !
-        SP@ CURRENT-TASK @ TASK-DATA-STACK !
-        RP@ CURRENT-TASK @ TASK-RETURN-STACK !
-        0 CURRENT-TASK !
-        PAUSE
-      THEN
-    ELSE
-      DEACTIVATE-LAST-TASK
-    THEN
+  DUP TASK-ACTIVE @ 0 = IF (DEACTIVATE-TASK) ELSE DROP THEN ;
+
+\ Force the deactivation of a task.
+: FORCE-DEACTIVATE-TASK ( task -- )
+  DUP TASK-ACTIVE @ 0 > IF
+    0 OVER TASK-ACTIVE ! (DEACTIVATE-TASK)
   ELSE
     DROP
   THEN ;
