@@ -35,6 +35,7 @@
 #include "hf/common.h"
 #include "hf/inner.h"
 #include "hf/prim.h"
+#include "hf/sys.h"
 
 /* Declarations */
 
@@ -57,7 +58,8 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 		 void* start_address, void* user_space);
 
 /* Load storage */
-void* hf_load_storage(hf_global_t* global, void* current, size_t size);
+void* hf_load_storage(hf_global_t* global, void* current, size_t size,
+		      void** user_space_current);
 
 /* Find name data */
 void* hf_find_name_data(hf_global_t* global, char* name);
@@ -72,9 +74,12 @@ void hf_load_image(hf_global_t* global, char* path) {
   hf_full_token_t start_token = global->word_count;
   void* start_address;
   size_t size;
-  size_t user_space_size;
+  size_t mem_size;
+  hf_cell_t max_word_count;
+  hf_cell_t max_return_stack_count;
   void* user_space;
-  void* user_space_current;
+  void* mem_space;
+  void* mem_current;
   size_t user_image_size;
   void* storage;
   hf_cell_t* user_space_current_var;
@@ -87,23 +92,55 @@ void hf_load_image(hf_global_t* global, char* path) {
   buffer = hf_read_file(file, &size);
   fclose(file);
   current = hf_verify_image_type(buffer);
-  user_space_size = *(hf_cell_t*)current;
+  mem_size = *(hf_cell_t*)current;
   current += sizeof(hf_cell_t);
-  if(!(user_space_current = user_space = malloc(user_space_size))) {
+  max_word_count = *(hf_cell_t*)current;
+  current += sizeof(hf_cell_t);
+  max_return_stack_count = *(hf_cell_t*)current;
+  current += sizeof(hf_cell_t);
+  if(!(mem_current = mem_space = malloc(mem_size))) {
     fprintf(stderr, "Unable to allocate user space!\n");
     exit(1);
   }
-  current = hf_parse_headers(global, current, &user_space_current);
+  global->words = (hf_word_t*)mem_current;
+  global->word_space_count = max_word_count;
+  mem_current += max_word_count * sizeof(hf_word_t);
+  global->return_stack = mem_space + mem_size;
+#ifdef TRACE
+  global->return_stack_base = global->return_stack;
+#endif
+  global->data_stack =
+    (mem_space + mem_size) - (max_return_stack_count * sizeof(hf_cell_t));
+#ifdef STACK_TRACE
+  global->data_stack_base = global->old_data_stack_base = global->data_stack;
+#endif
+  global->std_service_space_count = HF_MAX_STD_SERVICES;
+  global->std_services = (hf_sys_t*)mem_current;
+  for(int i = 0; i < HF_MAX_STD_SERVICES; i++) {
+    global->std_services[i].defined = HF_FALSE;
+  }
+  mem_current += HF_MAX_STD_SERVICES * sizeof(hf_sys_t);
+  global->nstd_service_space_count = HF_MAX_NSTD_SERVICES;
+  global->nstd_services = (hf_sys_t*)mem_current;
+  for(int i = 0; i < HF_MAX_NSTD_SERVICES; i++) {
+    global->nstd_services[i].defined = HF_FALSE;
+  }
+  mem_current += HF_MAX_NSTD_SERVICES * sizeof(hf_sys_t);
+  hf_register_prims(global, &mem_current);
+  hf_register_services(global, &mem_current);
+  user_space = mem_current;
+  current = hf_parse_headers(global, current, &mem_current);
   user_image_size = *(hf_cell_t*)current;
   current += sizeof(hf_cell_t);
-  start_address = user_space_current;
-  hf_load_code(global, current, user_image_size, &user_space_current);
+  start_address = mem_current;
+  hf_load_code(global, current, user_image_size, &mem_current);
   current += user_image_size;
   hf_relocate(global, start_token, start_address, user_space);
-  storage = hf_load_storage(global, current, (buffer + size) - current);
+  storage = mem_current;
+  hf_load_storage(global, current, (buffer + size) - current, &mem_current);
   if((user_space_current_var =
       hf_find_name_data(global, "USER-SPACE-CURRENT"))) {
-    *user_space_current_var = (hf_cell_t)user_space_current;
+    *user_space_current_var = (hf_cell_t)mem_current;
   } else {
     printf("no USER-SPACE-CURRENT word found\n");
   }
@@ -345,17 +382,13 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 }
 
 /* Load storage */
-void* hf_load_storage(hf_global_t* global, void* current, size_t size) {
-  void* buffer = malloc(size);
-  if(!buffer) {
-    fprintf(stderr, "Allocation failed!\n");
-    exit(1);
-  }
-  memcpy(buffer, current, size);
+void* hf_load_storage(hf_global_t* global, void* current, size_t size,
+		      void** user_space_current) {
+  memcpy(*user_space_current, current, size);
 #ifdef DUMP_LOAD
   printf("loading storage bytes: %lld\n", (uint64_t)size);
 #endif
-  return buffer;
+  *user_space_current += size;
 }
 
 /* Find name data */

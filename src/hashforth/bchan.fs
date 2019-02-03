@@ -146,4 +146,11 @@ END-STRUCTURE
 \ Get the number of values queued in a bounded channel.
 : COUNT-BCHAN ( chan -- u ) BCHAN-QUEUE-COUNT @ ;
 
+\ Get whether a bounded channel is empty.
+: EMPTY-BCHAN? ( chan -- empty ) BCHAN-QUEUE-COUNT @ 0 = ;
+
+\ Get whether a bounded channel is full.
+: FULL-BCHAN? ( chan -- full )
+  DUP BCHAN-QUEUE-COUNT @ SWAP BCHAN-QUEUE-SIZE @ = ;
+
 BASE ! SET-CURRENT SET-ORDER

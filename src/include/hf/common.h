@@ -105,11 +105,6 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_TRUE ((hf_cell_t)(-1))
 #define HF_FALSE ((hf_cell_t)0)
 
-#define HF_INIT_WORD_SPACE_COUNT (16)
-#define HF_INIT_DATA_STACK_COUNT (1024)
-#define HF_INIT_RETURN_STACK_COUNT (1024)
-#define HF_INIT_USER_SPACE_SIZE (65536 * sizeof(hf_cell_t))
-
 #define HF_WORD_NORMAL (0)
 #define HF_WORD_IMMEDIATE (1)
 #define HF_WORD_COMPILE_ONLY (2)
@@ -206,7 +201,7 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_GET_RBASE (21)
 #define HF_SYS_SET_RBASE (22)
 
-#define HF_MAX_STD_SERVICES (22)
+#define HF_MAX_STD_SERVICES (23)
 #define HF_MAX_NSTD_SERVICES (0)
 
 #define HF_OPEN_RDONLY (1)

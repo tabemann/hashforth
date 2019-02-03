@@ -40,8 +40,6 @@ int main(int argc, char** argv) {
   hf_global_t global;
   if(argc >= 2) {
     hf_init(&global);
-    hf_register_prims(&global);
-    hf_register_services(&global);
     hf_load_image(&global, argv[1]);
     hf_boot(&global);
   } else {

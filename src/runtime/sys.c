@@ -112,16 +112,14 @@ void hf_sys_set_rbase(hf_global_t* global);
 
 /* Register a service */
 void hf_register_service(hf_global_t* global, hf_sys_index_t index, char* name,
-			 hf_sys_prim_t primitive) {
+			 hf_sys_prim_t primitive, void** user_space_current) {
   hf_cell_t name_length = 0;
   void* name_space = NULL;
   hf_sys_t* service;
   if(name) {
     name_length = strlen(name);
-    if(!(name_space = malloc(name_length))) {
-      fprintf(stderr, "Unable to allocate name space!\n");
-      exit(1);
-    }
+    name_space = *user_space_current;
+    *user_space_current += name_length;
     memcpy(name_space, name, name_length);
   }
   service = hf_new_service(global, index);
@@ -132,32 +130,51 @@ void hf_register_service(hf_global_t* global, hf_sys_index_t index, char* name,
 }
 
 /* Register services */
-void hf_register_services(hf_global_t* global) {
-  /* hf_register_service(global, HF_SYS_TYPE, "TYPE", hf_sys_type); */
-  /* hf_register_service(global, HF_SYS_KEY, "KEY", hf_sys_key); */
-  /* hf_register_service(global, HF_SYS_ACCEPT, "ACCEPT", hf_sys_accept); */
-  hf_register_service(global, HF_SYS_BYE, "BYE", hf_sys_bye);
-  hf_register_service(global, HF_SYS_ALLOCATE, "ALLOCATE", hf_sys_allocate);
-  hf_register_service(global, HF_SYS_RESIZE, "RESIZE",  hf_sys_resize);
-  hf_register_service(global, HF_SYS_FREE, "FREE", hf_sys_free);
-  hf_register_service(global, HF_SYS_OPEN, "OPEN", hf_sys_open);
-  hf_register_service(global, HF_SYS_CLOSE, "CLOSE", hf_sys_close);
-  hf_register_service(global, HF_SYS_READ, "READ", hf_sys_read);
-  hf_register_service(global, HF_SYS_WRITE, "WRITE", hf_sys_write);
+void hf_register_services(hf_global_t* global, void** user_space_current) {
+  /* hf_register_service(global, HF_SYS_TYPE, "TYPE", hf_sys_type,
+                         user_space_current); */
+  /* hf_register_service(global, HF_SYS_KEY, "KEY", hf_sys_key,
+                         user_space_current); */
+  /* hf_register_service(global, HF_SYS_ACCEPT, "ACCEPT", hf_sys_accept,
+                         user_space_current); */
+  hf_register_service(global, HF_SYS_BYE, "BYE", hf_sys_bye,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_ALLOCATE, "ALLOCATE", hf_sys_allocate,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_RESIZE, "RESIZE",  hf_sys_resize,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_FREE, "FREE", hf_sys_free,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_OPEN, "OPEN", hf_sys_open,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_CLOSE, "CLOSE", hf_sys_close,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_READ, "READ", hf_sys_read,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_WRITE, "WRITE", hf_sys_write,
+		      user_space_current);
   hf_register_service(global, HF_SYS_GET_NONBLOCKING, "GET-NONBLOCKING",
-		      hf_sys_get_nonblocking);
+		      hf_sys_get_nonblocking, user_space_current);
   hf_register_service(global, HF_SYS_SET_NONBLOCKING, "SET-NONBLOCKING",
-		      hf_sys_set_nonblocking);
-  hf_register_service(global, HF_SYS_ISATTY, "ISATTY", hf_sys_isatty);
-  hf_register_service(global, HF_SYS_POLL, "POLL", hf_sys_poll);
+		      hf_sys_set_nonblocking, user_space_current);
+  hf_register_service(global, HF_SYS_ISATTY, "ISATTY", hf_sys_isatty,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_POLL, "POLL", hf_sys_poll,
+		      user_space_current);
   hf_register_service(global, HF_SYS_GET_MONOTONIC_TIME, "GET-MONOTONIC-TIME",
-		      hf_sys_get_monotonic_time);
-  hf_register_service(global, HF_SYS_GET_TRACE, "GET-TRACE", hf_sys_get_trace);
-  hf_register_service(global, HF_SYS_SET_TRACE, "SET-TRACE", hf_sys_set_trace);
-  hf_register_service(global, HF_SYS_GET_SBASE, "GET-SBASE", hf_sys_get_sbase);
-  hf_register_service(global, HF_SYS_SET_SBASE, "SET-SBASE", hf_sys_set_sbase);
-  hf_register_service(global, HF_SYS_GET_RBASE, "GET-RBASE", hf_sys_get_rbase);
-  hf_register_service(global, HF_SYS_SET_RBASE, "SET-RBASE", hf_sys_set_rbase);
+		      hf_sys_get_monotonic_time, user_space_current);
+  hf_register_service(global, HF_SYS_GET_TRACE, "GET-TRACE", hf_sys_get_trace,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_SET_TRACE, "SET-TRACE", hf_sys_set_trace,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_GET_SBASE, "GET-SBASE", hf_sys_get_sbase,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_SET_SBASE, "SET-SBASE", hf_sys_set_sbase,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_GET_RBASE, "GET-RBASE", hf_sys_get_rbase,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_SET_RBASE, "SET-RBASE", hf_sys_set_rbase,
+		      user_space_current);
 }
 
 /* /\* TYPE service *\/ */

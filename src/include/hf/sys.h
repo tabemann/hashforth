@@ -35,6 +35,6 @@
 /* Declarations */
 
 /* Register services */
-void hf_register_services(hf_global_t* global);
+void hf_register_services(hf_global_t* global, void** user_space_current);
 
 #endif /* HF_SYS_H */

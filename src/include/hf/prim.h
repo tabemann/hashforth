@@ -35,7 +35,7 @@
 /* Declarations */
 
 /* Register primitives */
-void hf_register_prims(hf_global_t* global);
+void hf_register_prims(hf_global_t* global, void** user_space_current);
 
 /* Enter primitive */
 void hf_prim_enter(hf_global_t* global);
