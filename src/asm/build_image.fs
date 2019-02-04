@@ -114,8 +114,7 @@ DEFINE-WORD COMPILE, ( token -- )
     DUP $80 LIT U< +IF
       C,
     +ELSE
-      DUP $7F LIT AND $80 LIT OR C, 7 LIT RSHIFT
-      $FF LIT AND C,
+      DUP $7F LIT AND $80 LIT OR C, 7 LIT RSHIFT 1 LIT - $FF LIT AND C,
     +THEN
   +ELSE
     NOT-VM TARGET-TOKEN @ TOKEN-16 = VM LIT +IF
@@ -125,8 +124,8 @@ DEFINE-WORD COMPILE, ( token -- )
         DUP $8000 LIT U< +IF
           H,
         +ELSE
-          DUP $7FFF LIT AND $8000 LIT OR H, 15 LIT RSHIFT
-          $FFFF LIT AND H,
+          DUP $7FFF LIT AND $8000 LIT OR H, 15 LIT RSHIFT 1 LIT -
+	  $FFFF LIT AND H,
 	+THEN
       +ELSE ( TARGET-TOKEN @ TOKEN-32 NOT-VM = VM )
         $FFFFFFFF LIT AND W,
