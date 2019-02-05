@@ -401,7 +401,7 @@ Look up a service number by name, as specified by a name length popped off the t
 
 #### ( -- )
 
-Exit the Forth runtiime.
+Exit the Forth runtime.
 
 ### `HF_SYS_ALLOCATE` (3)
 
