@@ -172,7 +172,7 @@ void hf_prim_umod(hf_global_t* global);
 void hf_prim_load_r(hf_global_t* global);
 
 /* >R primitive */
-void hf_prim_store_r(hf_global_t* global);
+void hf_prim_push_r(hf_global_t* global);
 
 /* R> primitive */
 void hf_prim_pop_r(hf_global_t* global);
@@ -209,9 +209,6 @@ void hf_prim_word_to_flags(hf_global_t* global);
 
 /* FLAGS>WORD primitive */
 void hf_prim_flags_to_word(hf_global_t* global);
-
-/* CONFIG primitive */
-void hf_prim_config(hf_global_t* global);
 
 /* H@ primitive */
 void hf_prim_load_16(hf_global_t* global);
@@ -352,7 +349,7 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
 		   HF_WORD_NORMAL, user_space_current);
   hf_register_prim(global, HF_PRIM_LOAD_R, "R@", hf_prim_load_r,
 		   HF_WORD_NORMAL, user_space_current);
-  hf_register_prim(global, HF_PRIM_STORE_R, ">R", hf_prim_store_r,
+  hf_register_prim(global, HF_PRIM_PUSH_R, ">R", hf_prim_push_r,
 		   HF_WORD_NORMAL, user_space_current);
   hf_register_prim(global, HF_PRIM_POP_R, "R>", hf_prim_pop_r,
 		   HF_WORD_NORMAL, user_space_current);
@@ -378,8 +375,6 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
 		   hf_prim_word_to_flags, HF_WORD_NORMAL, user_space_current);
   hf_register_prim(global, HF_PRIM_FLAGS_TO_WORD, "FLAGS>WORD",
 		   hf_prim_flags_to_word, HF_WORD_NORMAL, user_space_current);
-  hf_register_prim(global, HF_PRIM_CONFIG, "CONFIG", hf_prim_config,
-		   HF_WORD_NORMAL, user_space_current);
   hf_register_prim(global, HF_PRIM_LOAD_16, "H@", hf_prim_load_16,
 		   HF_WORD_NORMAL, user_space_current);
   hf_register_prim(global, HF_PRIM_STORE_16, "H!", hf_prim_store_16,
@@ -392,8 +387,6 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
 		   hf_prim_set_word_count, HF_WORD_NORMAL, user_space_current);
   hf_register_prim(global, HF_PRIM_SYS, "SYS", hf_prim_sys, HF_WORD_NORMAL,
 		   user_space_current);
-  hf_register_prim(global, HF_PRIM_SYS_LOOKUP, "SYS-LOOKUP", hf_prim_sys_lookup,
-		   HF_WORD_NORMAL, user_space_current);
 }
 
 /* Enter primitive */
@@ -764,7 +757,7 @@ void hf_prim_load_r(hf_global_t* global) {
 }
 
 /* >R primitive */
-void hf_prim_store_r(hf_global_t* global) {
+void hf_prim_push_r(hf_global_t* global) {
   *(--global->return_stack) = (hf_token_t*)(*global->data_stack++);
 }
 
@@ -886,37 +879,6 @@ void hf_prim_flags_to_word(hf_global_t* global) {
   }
 }
 
-/* CONFIG primitive */
-void hf_prim_config(hf_global_t* global) {
-  size_t name_length = (size_t)(*global->data_stack++);
-  char* name = (char*)(*global->data_stack++);
-  char* name_copy = malloc(name_length + 1);
-  name_copy[name_length] = 0;
-  if(!strcasecmp(name_copy, "HALF-TOKEN-SIZE")) {
-    *(--global->data_stack) = sizeof(hf_token_t);
-    *(--global->data_stack) = 1;
-  } else if(!strcasecmp(name_copy, "FULL-TOKEN-SIZE")) {
-    *(--global->data_stack) = sizeof(hf_full_token_t);
-    *(--global->data_stack) = 1;
-  } else if(!strcasecmp(name_copy, "TOKEN-FLAG-BIT")) {
-#ifdef TOKEN_8_16
-    *(--global->data_stack) = HF_TRUE;
-#else
-#ifdef TOKEN_16_32
-    *(--global->data_stack) = HF_TRUE;
-#else
-    *(--global->data_stack) = HF_FALSE;
-#endif
-#endif
-    *(--global->data_stack) = 1;
-  } else if(!strcasecmp(name_copy, "CELL-SIZE")) {
-    *(--global->data_stack) = sizeof(hf_cell_t);
-    *(--global->data_stack) = 1;
-  } else {
-    *(--global->data_stack) = 0;
-  }
-}
-
 /* H@ primitive */
 void hf_prim_load_16(hf_global_t* global) {
   *global->data_stack = *(uint16_t*)(*global->data_stack);
@@ -981,28 +943,4 @@ void hf_prim_sys(hf_global_t* global) {
       }
     }
   }
-}
-
-/* SYS-LOOKUP primitive */
-void hf_prim_sys_lookup(hf_global_t* global) {
-  hf_sign_cell_t index;
-  hf_cell_t name_length = *global->data_stack++;
-  hf_byte_t* name = (hf_byte_t*)(*global->data_stack++);
-  for(index = global->nstd_service_count - 1; index >= 0; index--) {
-    hf_sys_t* service = global->nstd_services + index;
-    if(service->defined && service->name_length == name_length &&
-       !strncasecmp(name, service->name, name_length)) {
-      *(--global->data_stack) = (hf_cell_t)(-(index + 1));
-      return;
-    }
-  }
-  for(index = global->std_service_count - 1; index > 0; index--) {
-    hf_sys_t* service = global->std_services + index;
-    if(service->defined && service->name_length == name_length &&
-       !strncasecmp(name, service->name, name_length)) {
-      *(--global->data_stack) = (hf_cell_t)index;
-      return;
-    }
-  }
-  *(--global->data_stack) = 0;
 }

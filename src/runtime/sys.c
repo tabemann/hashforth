@@ -42,14 +42,8 @@
 
 /* Forward declarations */
 
-/* /\* TYPE service *\/ */
-/* void hf_sys_type(hf_global_t* global); */
-
-/* /\* KEY service *\/ */
-/* void hf_sys_key(hf_global_t* global); */
-
-/* /\* ACCEPT service *\/ */
-/* void hf_sys_accept(hf_global_t* global); */
+/* LOOKUP service */
+void hf_sys_lookup(hf_global_t* global);
 
 /* BYE service */
 void hf_sys_bye(hf_global_t* global);
@@ -131,12 +125,8 @@ void hf_register_service(hf_global_t* global, hf_sys_index_t index, char* name,
 
 /* Register services */
 void hf_register_services(hf_global_t* global, void** user_space_current) {
-  /* hf_register_service(global, HF_SYS_TYPE, "TYPE", hf_sys_type,
-                         user_space_current); */
-  /* hf_register_service(global, HF_SYS_KEY, "KEY", hf_sys_key,
-                         user_space_current); */
-  /* hf_register_service(global, HF_SYS_ACCEPT, "ACCEPT", hf_sys_accept,
-                         user_space_current); */
+  hf_register_service(global, HF_SYS_LOOKUP, "LOOKUP", hf_sys_lookup,
+		      user_space_current);
   hf_register_service(global, HF_SYS_BYE, "BYE", hf_sys_bye,
 		      user_space_current);
   hf_register_service(global, HF_SYS_ALLOCATE, "ALLOCATE", hf_sys_allocate,
@@ -177,38 +167,29 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      user_space_current);
 }
 
-/* /\* TYPE service *\/ */
-/* void hf_sys_type(hf_global_t* global) { */
-/*   hf_cell_t length = *global->data_stack++; */
-/*   hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack++); */
-/*   fwrite(buffer, sizeof(hf_byte_t), length, stderr); */
-/* } */
-
-/* /\* KEY service *\/ */
-/* void hf_sys_key(hf_global_t* global) { */
-/*   int key = fgetc(stdin); */
-/*   if(key != EOF) { */
-/*     *(--global->data_stack) = key; */
-/*   } else { */
-/*     exit(0); */
-/*   } */
-/* } */
-
-/* /\* ACCEPT service *\/ */
-/* void hf_sys_accept(hf_global_t* global) { */
-/*   hf_cell_t buffer_size = *global->data_stack++; */
-/*   hf_byte_t* buffer = (hf_byte_t*)(*global->data_stack); */
-/*   hf_byte_t* data_read = fgets(buffer, buffer_size, stdin); */
-/*   if(data_read) { */
-/*     hf_cell_t data_read_length = strlen(data_read); */
-/*     if(data_read[data_read_length - 1] == '\n') { */
-/*       data_read_length--; */
-/*     } */
-/*     *global->data_stack = data_read_length; */
-/*   } else { */
-/*     *global->data_stack = 0; */
-/*   } */
-/* } */
+/* LOOKUP service */
+void hf_sys_lookup(hf_global_t* global) {
+  hf_sign_cell_t index;
+  hf_cell_t name_length = *global->data_stack++;
+  hf_byte_t* name = (hf_byte_t*)(*global->data_stack++);
+  for(index = global->nstd_service_count - 1; index >= 0; index--) {
+    hf_sys_t* service = global->nstd_services + index;
+    if(service->defined && service->name_length == name_length &&
+       !strncasecmp(name, service->name, name_length)) {
+      *(--global->data_stack) = (hf_cell_t)(-(index + 1));
+      return;
+    }
+  }
+  for(index = global->std_service_count - 1; index > 0; index--) {
+    hf_sys_t* service = global->std_services + index;
+    if(service->defined && service->name_length == name_length &&
+       !strncasecmp(name, service->name, name_length)) {
+      *(--global->data_stack) = (hf_cell_t)index;
+      return;
+    }
+  }
+  *(--global->data_stack) = 0;
+}
 
 /* BYE service */
 void hf_sys_bye(hf_global_t* global) {
