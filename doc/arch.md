@@ -5,6 +5,37 @@ Hashforth is a token-threaded Forth with four core variants, 64-bit, 32-bit-larg
 Tokens have two sizes for both 16/32-bit tokens and 8/16-bit tokens. In both of these cases by default tokens are the smaller size, and in that size can represent 15 and 7 bits respectively. To represent more tokens, specifically 2147516416
 tokens and 32896 tokens, the first 16 or 8 bits has its high bit set to 1 (whereas otherwise it would be set to 0), which serves as a flag to indicate the existence of more bits to follow, and it is followed by another 16 or 8 bits which together represent the higher bits of the token plus 1.
 
+## Images
+
+Images have the following basic format:
+
+ * (1 byte) Cell type (0 for 16-bit cells, 1 for 32-bit cells, and 2 for 64-bit cells)
+ * (1 byte) Token type (0 for 8/16-bit tokens, 1 for 16-bit tokens, 2 for 16/32-bit tokens, and 3 for 32-bit tokens; note that only 8/16-bit and 16/32-bit tokens are standard)
+ * (1 cell) Total memory size in bytes, aside from memory allocated with `HF_SYS_ALLOCATE`
+ * (1 cell) Maximum word count in number of words
+ * (1 cell) Return stack size in number of cells
+ * Word headers
+ * (1 cell) Size of data to copy into user space in bytes
+ * Data to copy into user space
+ * Stored data to copy anywhere in memory
+
+Word headers have the following format:
+
+ * (1 byte) Header type (0 for end of headers, 1 for colon words, 2 for `CREATE` words); if this is 0 no more data is present in the headers after this byte
+ * (1 cell) Token for word; note that tokens must be in order from lowest to highest with no gaps, including between the first token in the image and the last token for a primitive
+ * (1 cell) Word flags
+ * (1 cell) Word offset from start of image data copied into user space; for colon words this corresponds to the beginning of token-threaded code for the word and for `CREATE` words this corresponds to the data pointer of the word
+ * (1 cell) Name length
+ * (1 or more bytes) Name data consisting of name length bytes
+
+Note that when word headers are loaded, the words created each have their next word referring to the previous word in the word table, i.e. the word with a token one less than the word just created.
+
+Once data for words is loaded, the words are relocated such that token-threaded code pointers and data pointers point at the specified offset plus the address of the start of the data loaded in memory. Within each colon word loaded, each `HF_PRIM_BRANCH` and `HF_PRIM_0BRANCH` has the offset specified for it added to said address. Note that `HF_PRIM_END` is used to specify that no more tokens are present in a given word, and thus each loaded word must end in this token.
+
+The stored data is copied into an implementation-dependent location in memory, and its address is stored in the `CREATE` word named `STORAGE`, if it exists, as is its size in bytes is stored in the `CREATE` word named `STORAGE#`.
+
+After all loading is complete, the current user space pointer is stored in the `CREATE` word named `USER-SPACE-CURRENT`, if it exists.
+
 ## Primitives
 
 There exist the following primitives in hashforth; for all these primitives, if not specified otherwise, the interpreter pointer after the word's execution points to the token immediately after the token executed:
