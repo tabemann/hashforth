@@ -23,18 +23,13 @@ Word headers have the following format:
 
  * (1 byte) Header type (0 for end of headers, 1 for colon words, 2 for `CREATE` words); if this is 0 no more data is present in the headers after this byte
  * (1 cell) Token for word; note that tokens must be in order from lowest to highest with no gaps, including between the first token in the image and the last token for a primitive
- * (1 cell) Word flags
  * (1 cell) Word offset from start of image data copied into user space; for colon words this corresponds to the beginning of token-threaded code for the word and for `CREATE` words this corresponds to the data pointer of the word
- * (1 cell) Name length
- * (1 or more bytes) Name data consisting of name length bytes
-
-Note that when word headers are loaded, the words created each have their next word referring to the previous word in the word table, i.e. the word with a token one less than the word just created.
 
 Once data for words is loaded, the words are relocated such that token-threaded code pointers and data pointers point at the specified offset plus the address of the start of the data loaded in memory. Within each colon word loaded, each `HF_PRIM_BRANCH` and `HF_PRIM_0BRANCH` has the offset specified for it added to said address. Note that `HF_PRIM_END` is used to specify that no more tokens are present in a given word, and thus each loaded word must end in this token.
 
-The stored data is copied into an implementation-dependent location in memory, and its address is stored in the `CREATE` word named `STORAGE`, if it exists, as is its size in bytes is stored in the `CREATE` word named `STORAGE#`.
+The stored data is copied into an implementation-dependent location in memory.
 
-After all loading is complete, the current user space pointer is stored in the `CREATE` word named `USER-SPACE-CURRENT`, if it exists.
+After all loading is complete, the stored data address, the stored data length, and the current user space address are pushed onto the data stack and the last word loaded is executed.
 
 ## Primitives
 
@@ -340,73 +335,37 @@ This word's execution results in the return stack pointer being set to an addres
 
 This word's execution results in a token being popped off the top of the data stack and the data pointer for the word referred to by the token being subsequently pushed onto the data stack.
 
-### `HF_PRIM_WORD_TO_NAME` (50), also known as `WORD>NAME`
-
-#### ( xt -- addr u )
-
-This word's execution results in a token being popped off the top of the data stack, where then a pointer to the beginning of the name set for the word referred to by the token is pushed onto the data stack followed by the length in bytes of the name set for that word being pushed onto the data stack.
-
-### `HF_PRIM_NAME_TO_WORD` (51), also known as `NAME>WORD`
-
-#### ( addr u xt -- )
-
-This word's execution results in a token being popped off the top of the data stack followed by a name length and a pointer to the beginning of a name being popped off the top of the data stack in that order, where then the name of the word referred to by that token is set to the name pointer and name length popped off the data stack.
-
-### `HF_PRIM_WORD_TO_NEXT` (52), also known as `WORD>NEXT`
-
-#### ( xt1 -- xt2|0 )
-
-This word's execution results in a token being popped off the top of the data stack, where then the next value stored in the word referred to by the token, typically the token of another word or 0, is pushed onto the data stack.
-
-### `HF_PRIM_NEXT_TO_WORD` (53), also known as `NEXT>WORD`
-
-#### ( xt1|0 xt2 -- )
-
-This word's execution results in a token being popped off the top of the data stack followed by another token or 0 being popped off the top of the data stack, where then the next value stored in the word referred to by the top-most token is set to the second value.
-
-### `HF_PRIM_WORD_TO_FLAGS` (54), also known as `WORD>FLAGS`
-
-#### ( xt -- flags )
-
-This word's execution results in a token being popped off the top of the data stack, where then the flags value stored in the word referred to by the token is pushed onto the data stack.
-
-### `HF_PRIM_FLAGS_TO_WORD` (55), also known as `FLAGS>WORD`
-
-#### ( flags xt -- )
-
-This word's execution results in a token being popped off the top of the data stack followed by a flags value, where then the flags value stored in the word referred to by the token is set to the flags value popped off the data stack.
-
-### `HF_PRIM_LOAD_16` (56), also known as `H@`
+### `HF_PRIM_LOAD_16` (50), also known as `H@`
 
 #### ( addr -- h )
 
 This word's execution results in an address being popped off the top of the data stack, which is then dereferenced and the 16-bit value at that location is then pushed onto the data stack. Note that no sign extension takes place.
 
-### `HF_PRIM_STORE_16` (57), also known as `H!`
+### `HF_PRIM_STORE_16` (51), also known as `H!`
 
 #### ( h addr -- )
 
 This word's execution results in an address being popped off the top of the data stack, followed by a value being popped off the data stack from beneath it; afterwards, the address is dereferenced and the 16-bit value at that location is set to the lower 16 bits of the value that was popped.
 
-### `HF_PRIM_LOAD_32` (58), also known as `W@`
+### `HF_PRIM_LOAD_32` (52), also known as `W@`
 
 #### ( addr -- w )
 
 This word's execution results in an address being popped off the top of the data stack, which is then dereferenced and the 32-bit value at that location is then pushed onto the data stack. Note that no sign extension takes place.
 
-### `HF_PRIM_STORE_32` (59), also known as `W!`
+### `HF_PRIM_STORE_32` (53), also known as `W!`
 
 #### ( w addr -- )
 
 This word's execution results in an address being popped off the top of the data stack, followed by a value being popped off the data stack from beneath it; afterwards, the address is dereferenced and the 32-bit value at that location is set to the lower 32 bits of the value that was popped.
 
-### `HF_PRIM_SET_WORD_COUNT` (60), also known as `SET-WORD-COUNT`
+### `HF_PRIM_SET_WORD_COUNT` (54), also known as `SET-WORD-COUNT`
 
 #### ( u -- )
 
 This word's execution results in the number of words in the word table being set to a count popped off the top of the data stack; this count must be less than or equal to the number of words in the word table.
 
-### `HF_PRIM_SYS` (61), also known as `SYS`
+### `HF_PRIM_SYS` (55), also known as `SYS`
 
 #### ( ? n -- ? f )
 
@@ -541,3 +500,15 @@ Get the return stack base used by a debugging tracer, pushing it onto the data s
 #### ( addr -- )
 
 Set the return stack base used by a debugging tracer, popping it off the top of the data stack.
+
+### `HF_SYS_GET_NAME_TABLE` (21)
+
+#### ( -- addr )
+
+Get the name table used by a debugging tracer, pushing it onto the data stack. The name table is an array of entries consisting of two cells, the first being a pointer to the first byte of a name and the second being the length of the name in bytes, where the array index is the token which the name corresponds to
+
+### `HF_SYS_SET_NAME_TABLE` (22)
+
+#### ( addr -- )
+
+Set the name table used by a debugging tracer, popping it off the top of the data stack. The name table is an array of entries consisting of two cells, the first being a pointer to the first byte of a name and the second being the length of the name in bytes, where the array index is the token which the name corresponds to

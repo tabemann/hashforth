@@ -93,6 +93,11 @@ typedef struct hf_word_t hf_word_t;
 struct hf_sys_t;
 typedef struct hf_sys_t hf_sys_t;
 
+#ifdef TRACE
+struct hf_name_t;
+typedef struct hf_name_t hf_name_t;
+#endif
+
 struct hf_global_t;
 typedef struct hf_global_t hf_global_t;
 
@@ -162,18 +167,12 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_PRIM_LOAD_RP (47)
 #define HF_PRIM_STORE_RP (48)
 #define HF_PRIM_TO_BODY (49)
-#define HF_PRIM_WORD_TO_NAME (50)
-#define HF_PRIM_NAME_TO_WORD (51)
-#define HF_PRIM_WORD_TO_NEXT (52)
-#define HF_PRIM_NEXT_TO_WORD (53)
-#define HF_PRIM_WORD_TO_FLAGS (54)
-#define HF_PRIM_FLAGS_TO_WORD (55)
-#define HF_PRIM_LOAD_16 (56)
-#define HF_PRIM_STORE_16 (57)
-#define HF_PRIM_LOAD_32 (58)
-#define HF_PRIM_STORE_32 (59)
-#define HF_PRIM_SET_WORD_COUNT (60)
-#define HF_PRIM_SYS (61)
+#define HF_PRIM_LOAD_16 (50)
+#define HF_PRIM_STORE_16 (51)
+#define HF_PRIM_LOAD_32 (52)
+#define HF_PRIM_STORE_32 (53)
+#define HF_PRIM_SET_WORD_COUNT (54)
+#define HF_PRIM_SYS (55)
 
 #define HF_SYS_UNDEFINED (0)
 #define HF_SYS_LOOKUP (1)
@@ -196,8 +195,10 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_SET_SBASE (18)
 #define HF_SYS_GET_RBASE (19)
 #define HF_SYS_SET_RBASE (20)
+#define HF_SYS_GET_NAME_TABLE (21)
+#define HF_SYS_SET_NAME_TABLE (22)
 
-#define HF_MAX_STD_SERVICES (21)
+#define HF_MAX_STD_SERVICES (23)
 #define HF_MAX_NSTD_SERVICES (0)
 
 #define HF_OPEN_RDONLY (1)
@@ -221,12 +222,8 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 
 struct hf_word_t {
   hf_prim_t primitive;
-  hf_flags_t flags;
-  hf_cell_t name_length;
-  hf_byte_t* name;
   void* data;
   hf_token_t* secondary;
-  hf_full_token_t next;
 };
 
 struct hf_sys_t {
@@ -234,6 +231,11 @@ struct hf_sys_t {
   hf_sys_prim_t primitive;
   hf_cell_t name_length;
   hf_byte_t* name;
+};
+
+struct hf_name_t {
+  hf_byte_t* name;
+  hf_cell_t name_length;
 };
 
 struct hf_global_t {
@@ -256,6 +258,7 @@ struct hf_global_t {
   hf_token_t** return_stack;
 #ifdef TRACE
   hf_token_t** return_stack_base;
+  hf_name_t* name_table;
 #endif
   hf_cell_t trace;
 };

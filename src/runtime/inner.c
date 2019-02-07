@@ -51,6 +51,7 @@ void hf_init(hf_global_t* global) {
   global->return_stack = NULL;
 #ifdef TRACE
   global->return_stack_base = NULL;
+  global->name_table = NULL;
 #endif
   global->std_services = NULL;
   global->std_service_count = 0;
@@ -86,10 +87,11 @@ void hf_inner(hf_global_t* global) {
 	for(hf_sign_cell_t i = 0; i < level; i++) {
 	  fprintf(stderr, "  ");
 	}
-	if(word->name_length) {
-	  char* name_copy = malloc(word->name_length);
-	  memcpy(name_copy, word->name, word->name_length);
-	  name_copy[word->name_length] = 0;
+	if(global->name_table && global->name_table[token].name_length) {
+	  char* name_copy = malloc(global->name_table[token].name_length);
+	  memcpy(name_copy, global->name_table[token].name,
+		 global->name_table[token].name_length);
+	  name_copy[global->name_table[token].name_length] = 0;
 	  fprintf(stderr, "executing token: %lld name: %s data stack: %lld",
 		 (uint64_t)token, name_copy, (uint64_t)global->data_stack);
 	  free(name_copy);

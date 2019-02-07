@@ -102,6 +102,12 @@ void hf_sys_get_rbase(hf_global_t* global);
 /* SET-RBASE service */
 void hf_sys_set_rbase(hf_global_t* global);
 
+/* GET-NAME-TABLE service */
+void hf_sys_get_name_table(hf_global_t* global);
+
+/* SET-NAME-TABLE service */
+void hf_sys_set_name_table(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -165,6 +171,10 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      user_space_current);
   hf_register_service(global, HF_SYS_SET_RBASE, "SET-RBASE", hf_sys_set_rbase,
 		      user_space_current);
+  hf_register_service(global, HF_SYS_GET_NAME_TABLE, "GET-NAME-TABLE",
+		      hf_sys_get_name_table, user_space_current);
+  hf_register_service(global, HF_SYS_SET_NAME_TABLE, "SET-NAME-TABLE",
+		      hf_sys_set_name_table, user_space_current);
 }
 
 /* LOOKUP service */
@@ -500,5 +510,21 @@ void hf_sys_get_rbase(hf_global_t* global) {
 void hf_sys_set_rbase(hf_global_t* global) {
 #ifdef TRACE
   global->return_stack_base = (hf_token_t**)(*global->data_stack++);
+#endif
+}
+
+/* GET-NAME-TABLE service */
+void hf_sys_get_name_table(hf_global_t* global) {
+#ifdef TRACE
+  *(--global->data_stack) = (hf_cell_t)global->name_table;
+#else
+  *(--global->data_stack) = 0;
+#endif
+}
+
+/* SET-NAME-TABLE service */
+void hf_sys_set_name_table(hf_global_t* global) {
+#ifdef TRACE
+  global->name_table = (hf_name_t*)(*global->data_stack++);
 #endif
 }
