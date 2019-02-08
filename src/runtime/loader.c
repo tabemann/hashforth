@@ -245,6 +245,10 @@ void* hf_parse_headers(hf_global_t* global, void* current,
     current += sizeof(hf_cell_t);
     offset = *(hf_cell_t*)current;
     current += sizeof(hf_cell_t);
+#ifdef DUMP_LOAD
+    fprintf(stderr, "loading token: %lld offset: %lld\n",
+	    (uint64_t)token, (uint64_t)offset);
+#endif
     if(token != global->word_count) {
       fprintf(stderr, "Unexpected token value in image!\n");
       exit(1);
