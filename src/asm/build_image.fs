@@ -1246,4 +1246,5 @@ S" src/hashforth/task.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/io.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/cond.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bchan.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/bufbchan.fs" ADD-SOURCE-TO-STORAGE
 S" images/cell_64_token_16_32.image" WRITE-ASM-TO-FILE

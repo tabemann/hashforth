@@ -43,8 +43,6 @@ BEGIN-STRUCTURE BCHAN-SIZE
   FIELD: BCHAN-DEQUEUE-INDEX
 END-STRUCTURE
 
-8 CONSTANT BCHAN-QUEUE-DEFAULT-SIZE
-
 \ Print out the internal values of a bounded channel.
 : BCHAN. ( chan -- )
   CR ." BCHAN-RECV-COND: " DUP BCHAN-RECV-COND @ .
@@ -88,6 +86,11 @@ END-STRUCTURE
   DUP BCHAN-ENQUEUE-INDEX @ 1+ OVER BCHAN-QUEUE-SIZE @ MOD
   SWAP BCHAN-ENQUEUE-INDEX ! ;
 
+\ Internal - peek a value from a bounded channel; note that this does not have
+\ any safeties for preventing peeking a value from an empty bounded channel.
+: DO-PEEK-BCHAN ( chan -- x )
+  DUP BCHAN-QUEUE @ SWAP BCHAN-DEQUEUE-INDEX @ CELLS + @ ;
+
 \ Send a value on a bounded channel, waking up one task waiting to receive a
 \ value from the bounded channel, and waiting for a value to be read from the
 \ bounded channel if it is already full.
@@ -122,7 +125,7 @@ END-STRUCTURE
   BEGIN DUP BCHAN-QUEUE-COUNT @ 0= WHILE
     DUP BCHAN-RECV-COND @ WAIT-COND
   REPEAT
-  BCHAN-QUEUE @ @ ;
+  DO-PEEK-BCHAN ;
 
 \ Attempt to receive a value from a bounded channel, waking up one task waiting
 \ to send a value on the bounded channel, and returning FALSE if the bounded
@@ -138,7 +141,7 @@ END-STRUCTURE
 \ values, returning FALSE if the bounded channel is empty.
 : TRY-PEEK-BCHAN ( chan -- x found )
   DUP BCHAN-QUEUE-COUNT @ 0<> IF
-    BCHAN-QUEUE @ @ TRUE
+    DO-PEEK-BCHAN TRUE
   ELSE
     DROP 0 FALSE
   THEN ;
