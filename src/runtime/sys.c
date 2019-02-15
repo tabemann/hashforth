@@ -27,6 +27,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE. */
 
+#define _XOPEN_SOURCE 700
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -526,5 +528,7 @@ void hf_sys_get_name_table(hf_global_t* global) {
 void hf_sys_set_name_table(hf_global_t* global) {
 #ifdef TRACE
   global->name_table = (hf_name_t*)(*global->data_stack++);
+#else
+  global->data_stack++;
 #endif
 }
