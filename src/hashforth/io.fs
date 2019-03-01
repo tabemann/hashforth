@@ -57,6 +57,8 @@ FORTH-WORDLIST SET-CURRENT
 \ Services for opening and closing files.
 VARIABLE SYS-OPEN
 VARIABLE SYS-CLOSE
+VARIABLE SYS-PREPARE-TERMINAL
+VARIABLE SYS-CLEANUP-TERMINAL
 
 \ Call service for opening files; returns -1 on success and 0 on failure
 : OPEN ( c-addr bytes flags mode -- fd -1|0 ) SYS-OPEN @ SYS ;
@@ -64,10 +66,22 @@ VARIABLE SYS-CLOSE
 \ Call service for closing files; returns -1 on success and 0 on failure
 : CLOSE ( fd -- -1|0 ) SYS-CLOSE @ SYS ;
 
+\ Call service for preparing terminals; returns -1 on success and 0 on failure
+: PREPARE-TERMINAL ( fd -- -1|0 ) SYS-PREPARE-TERMINAL @ SYS ;
+
+\ Call service for cleaning up terminals; returns -1 on success and 0 on failure
+: CLEANUP-TERMINAL ( fd -- -1|0 ) SYS-CLEANUP-TERMINAL @ SYS ;
+
+\ Hook for preparing to read
+VARIABLE 'PREPARE-READ
+
+\ Wrapper for preparing to read
+: PREPARE-READ ( fd -- ) 'PREPARE-READ @ ?DUP IF EXECUTE ELSE DROP THEN ;
+
 \ Actually wait for and read a file descriptor (returns -1 on success and 0 on
 \ error).
 : (WAIT-READ) ( buf bytes fd -- bytes-read -1|0 )
-  DUP CURRENT-TASK SET-WAIT-IN BEGIN    
+  DUP SET-WAIT-IN BEGIN    
     PAUSE
     2 PICK 2 PICK 2 PICK READ DUP TRUE = IF
       DROP SWAP DROP SWAP DROP SWAP DROP TRUE TRUE
@@ -77,11 +91,10 @@ VARIABLE SYS-CLOSE
       2DROP 2DROP 0 FALSE TRUE
     THEN THEN
   UNTIL
-  CURRENT-TASK UNSET-WAIT-IN ;
+  UNSET-WAIT-IN ;
 
 \ Wait for and read a file descriptor (returns -1 on success and 0 on error).
 : WAIT-READ ( buf bytes fd -- bytes-read -1|0 )
-  IN-TASK? AVERTS X-NOT-IN-TASK
   DUP GET-NONBLOCKING DROP >R >R R@ TRUE OVER SET-NONBLOCKING IF
     2 PICK 2 PICK 2 PICK
     READ DUP TRUE = IF
@@ -100,6 +113,7 @@ VARIABLE SYS-CLOSE
 \ success and 0 on error).
 : WAIT-READ-FULL ( buf bytes fd -- bytes-read -1|0 )
   IN-TASK? AVERTS X-NOT-IN-TASK
+  DUP PREPARE-READ
   0 BEGIN
     3 PICK 3 PICK 3 PICK WAIT-READ IF
       DUP 0 = IF
@@ -114,10 +128,14 @@ VARIABLE SYS-CLOSE
   UNTIL
   ROT DROP ROT DROP ROT DROP ;
 
+\ Wait for and read a file descriptor (returns -1 on success and 0 on error).
+: WAIT-READ ( buf bytes fd -- bytes-read -1|0 )
+  IN-TASK? AVERTS X-NOT-IN-TASK DUP PREPARE-READ WAIT-READ ;
+
 \ Actually wait for and write a file descriptor (returns -1 on success and 0 on
 \ error).
 : (WAIT-WRITE) ( buf bytes fd -- bytes-written -1|0 )
-  DUP CURRENT-TASK SET-WAIT-OUT BEGIN
+  DUP SET-WAIT-OUT BEGIN
     PAUSE
     2 PICK 2 PICK 2 PICK WRITE DUP TRUE = IF
       DROP SWAP DROP SWAP DROP SWAP DROP TRUE TRUE
@@ -127,7 +145,7 @@ VARIABLE SYS-CLOSE
       2DROP 2DROP 0 FALSE TRUE
     THEN THEN
   UNTIL
-  CURRENT-TASK UNSET-WAIT-OUT ;
+  UNSET-WAIT-OUT ;
 
 \ Wait for and write a file descriptor (returns -1 on success and 0 on error).
 : WAIT-WRITE ( buf bytes fd -- bytes-written -1|0 )
@@ -179,11 +197,11 @@ VARIABLE SYS-CLOSE
     ELSE
       STDIN GET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
       TRUE STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
-      THERE 1 1 TALLOT STDIN READ DUP 0<> AVERTS X-UNABLE-TO-READ-STDIN -1 = IF
-        -1 TALLOT 1 = IF THERE C@ READ-KEY ! TRUE
+      HERE 1 1 ALLOT STDIN READ DUP 0<> AVERTS X-UNABLE-TO-READ-STDIN -1 = IF
+        -1 ALLOT 1 = IF HERE C@ READ-KEY ! TRUE
         ELSE ['] X-UNABLE-TO-READ-STDIN ?RAISE THEN
       ELSE
-        -1 TALLOT FALSE
+        -1 ALLOT FALSE
       THEN
       SWAP STDIN SET-NONBLOCKING AVERTS X-UNABLE-TO-READ-STDIN
     THEN
@@ -197,8 +215,8 @@ VARIABLE SYS-CLOSE
     READ-KEY? @ IF
       READ-KEY @ FALSE READ-KEY? !
     ELSE
-      THERE 1 1 TALLOT STDIN WAIT-READ-FULL AVERTS X-UNABLE-TO-READ-STDIN
-      -1 TALLOT 1 = IF THERE C@ ELSE BYE THEN
+      HERE 1 1 ALLOT STDIN WAIT-READ-FULL AVERTS X-UNABLE-TO-READ-STDIN
+      -1 ALLOT 1 = IF HERE C@ ELSE BYE THEN
     THEN
   ELSE
     (KEY)
@@ -289,10 +307,19 @@ VARIABLE FIRST-INCLUDED-ITEM
 \ already loaded.
 : REQUIRE ( "file" -- ) PARSE-NAME REQUIRED ; IMMEDIATE
 
+\ Old BYE implementation
+VARIABLE OLD-BYE 'BYE @ OLD-BYE !
+
+\ New BYE implementation
+: (BYE) ( -- ) STDIN CLEANUP-TERMINAL OLD-BYE @ EXECUTE ;
+
 \ Initialize IO
 : INIT-IO ( -- )
   S" OPEN" SYS-LOOKUP SYS-OPEN !
   S" CLOSE" SYS-LOOKUP SYS-CLOSE !
+  S" PREPARE-TERMINAL" SYS-LOOKUP SYS-PREPARE-TERMINAL !
+  S" CLEANUP-TERMINAL" SYS-LOOKUP SYS-CLEANUP-TERMINAL !
+  ['] (BYE) 'BYE !
   ['] (TYPE) 'TYPE !
   ['] (KEY?) 'KEY? !
   ['] (KEY) 'KEY !

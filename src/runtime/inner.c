@@ -59,7 +59,11 @@ void hf_init(hf_global_t* global) {
   global->nstd_services = NULL;
   global->nstd_service_count = 0;
   global->nstd_service_space_count = 0;
+#ifdef INIT_TRACE
+  global->trace = HF_TRUE;
+#else
   global->trace = HF_FALSE;
+#endif
 }
 
 /* The inner interpreter */

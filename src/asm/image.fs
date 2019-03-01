@@ -61,6 +61,10 @@ DEFINE-WORD TOKEN-FLAG-BIT ( -- flag )
   HALF-TOKEN-SIZE FULL-TOKEN-SIZE <>
 END-WORD
 
+\ The user space pointer
+DEFINE-WORD-CREATED UP
+0 SET-CELL-DATA
+
 \ The HERE pointer is stored here
 DEFINE-WORD-CREATED USER-SPACE-CURRENT
 0 SET-CELL-DATA
@@ -74,6 +78,15 @@ DEFINE-WORD HERE! ( addr -- ) USER-SPACE-CURRENT ! END-WORD
 \ Advance or, with negative values, retract the HERE pointer by a number of
 \ bytes
 DEFINE-WORD ALLOT ( u -- ) HERE + HERE! END-WORD
+
+\ The built-in user variable count
+NOT-VM VARIABLE BUILD-#USER VM
+
+\ The built-in user variable macro
+: DEFINE-WORD-USER ( "name" -- )
+  DEFINE-WORD
+  NOT-VM BUILD-#USER @ DUP 1 + BUILD-#USER ! VM LIT CELLS UP @ +
+  END-WORD ;
 
 \ Negate a value
 DEFINE-WORD NEGATE ( n -- n ) 1 LIT - NOT END-WORD
@@ -223,9 +236,8 @@ DEFINE-WORD X-IS-SUPPOSED-TO-BLOCK ( -- )
   SPACE S" standard input is supposed to block" +DATA TYPE CR
 END-WORD
 
-\ Exception handler pointer
-DEFINE-WORD-CREATED HANDLER
-0 SET-CELL-DATA
+\ The handler user variable
+DEFINE-WORD-USER HANDLER
 
 \ Execute an xt, returning either zero if no exception takes place, or an
 \ exception value if an exception has taken place
@@ -386,9 +398,8 @@ DEFINE-WORD SET-NAME-TABLE ( addr -- ) SYS-SET-NAME-TABLE @ SYS END-WORD
 DEFINE-WORD-CREATED SINGLE-TASK-IO
 0 SET-CELL-DATA
 
-\ The base for numeric formatting
-DEFINE-WORD-CREATED BASE
-10 SET-CELL-DATA
+\ The numeric base user variable
+DEFINE-WORD-USER BASE
 
 \ The size of the buffer for numeric formatting
 NOT-VM 65 CONSTANT MAX-FORMAT-DIGIT-COUNT VM
@@ -588,9 +599,9 @@ DEFINE-WORD (KEY?) ( -- flag )
     +ELSE -1 LIT = +IF
       -1 LIT ALLOT 1 LIT = +IF
         HERE C@ READ-KEY ! +TRUE
-      ELSE
-        &X-UNABLE-TO-READ-STDIN ?RAISE THEN
-      THEN
+      +ELSE
+        &X-UNABLE-TO-READ-STDIN ?RAISE
+      +THEN
     +ELSE
       -1 LIT ALLOT +FALSE
     +THEN +THEN
@@ -1449,7 +1460,7 @@ DEFINE-WORD-CREATED STORAGE#
 
 \ Execute an xt with single-tasking IO set to TRUE
 DEFINE-WORD EXECUTE-SINGLE-TASK-IO ( xt -- )
-  SINGLE-TASK-IO @ +TRUE SINGLE-TASK-IO ! SWAP TRY SINGLE-TASK-IO ! ?RAISE
+  SINGLE-TASK-IO @ >R +TRUE SINGLE-TASK-IO ! TRY R> SINGLE-TASK-IO ! ?RAISE
 END-WORD
 
 \ Execute Forth code bundled in with a VM image
@@ -1531,9 +1542,27 @@ DEFINE-WORD BOOT-PROTECTED ( -- )
   SET-HOOKS &REFILL-TERMINAL 'REFILL ! INTERPRET-STORAGE OUTER
 END-WORD
 
+\ The user variable count
+DEFINE-WORD-CREATED #USER
+NOT-VM BUILD-#USER @ SET-CELL-DATA VM
+
+\ The minimum terminal task user variable count
+NOT-VM 16 CONSTANT MIN-TERMINAL-TASK-USER-COUNT VM
+
+\ The terminal task user variable count
+DEFINE-WORD TERMINAL-TASK-USER-COUNT
+  #USER @ MIN-TERMINAL-TASK-USER-COUNT LIT > +IF
+    #USER @
+  +ELSE
+    MIN-TERMINAL-TASK-USER-COUNT LIT
+  +THEN
+END-WORD
+
 \ The initial entry point
 DEFINE-WORD BOOT ( storage storage-size here -- )
-  USER-SPACE-CURRENT ! STORAGE# ! STORAGE !
+  DUP UP ! USER-SPACE-CURRENT !
+  TERMINAL-TASK-USER-COUNT CELLS ALLOT
+  STORAGE# ! STORAGE ! 10 LIT BASE ! 0 LIT HANDLER !
   SP@ SBASE ! RP@ RBASE ! INPUT-BUFFER INPUT !
   0 LIT INPUT-BUFFER# ! 0 LIT INPUT# !
   &BOOT RELOCATE-NAME-TABLE

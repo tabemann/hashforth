@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <poll.h>
 #include <time.h>
+#include <termios.h>
 #include "hf/common.h"
 #include "hf/inner.h"
 
@@ -110,6 +111,12 @@ void hf_sys_get_name_table(hf_global_t* global);
 /* SET-NAME-TABLE service */
 void hf_sys_set_name_table(hf_global_t* global);
 
+/* Prepare a file descriptor as a terminal */
+void hf_sys_prepare_terminal(hf_global_t* global);
+
+/* Clean up a file descriptor used as a terminal */
+void hf_sys_cleanup_terminal(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -177,6 +184,10 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      hf_sys_get_name_table, user_space_current);
   hf_register_service(global, HF_SYS_SET_NAME_TABLE, "SET-NAME-TABLE",
 		      hf_sys_set_name_table, user_space_current);
+  hf_register_service(global, HF_SYS_PREPARE_TERMINAL, "PREPARE-TERMINAL",
+		      hf_sys_prepare_terminal, user_space_current);
+  hf_register_service(global, HF_SYS_CLEANUP_TERMINAL, "CLEANUP-TERMINAL",
+		      hf_sys_cleanup_terminal, user_space_current);
 }
 
 /* LOOKUP service */
@@ -531,4 +542,40 @@ void hf_sys_set_name_table(hf_global_t* global) {
 #else
   global->data_stack++;
 #endif
+}
+
+/* PREPARE-TERMINAL service */
+void hf_sys_prepare_terminal(hf_global_t* global) {
+  int fd = *global->data_stack++;
+  struct termios tp;
+  if(isatty(fd)) {
+    if(tcgetattr(fd, &tp) == -1) {
+      *(--global->data_stack) = HF_FALSE;      
+    }
+    if(tp.c_lflag & ECHO || tp.c_lflag & ICANON) {
+      tp.c_lflag &= ~ECHO & ~ICANON;
+      if(tcsetattr(fd, TCSANOW, &tp) == -1) {
+	*(--global->data_stack) = HF_FALSE;      
+      }
+    }
+  }
+  *(--global->data_stack) = HF_TRUE;
+}
+
+/* CLEANUP-TERMINAL service */
+void hf_sys_cleanup_terminal(hf_global_t* global) {
+  int fd = *global->data_stack++;
+  struct termios tp;
+  if(isatty(fd)) {
+    if(tcgetattr(fd, &tp) == -1) {
+      *(--global->data_stack) = HF_FALSE;      
+    }
+    if(!(tp.c_lflag & ECHO) || !(tp.c_lflag & ICANON)) {
+      tp.c_lflag |= ECHO | ICANON;
+      if(tcsetattr(fd, TCSANOW, &tp) == -1) {
+	*(--global->data_stack) = HF_FALSE;      
+      }
+    }
+  }
+  *(--global->data_stack) = HF_TRUE;
 }
