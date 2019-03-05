@@ -232,6 +232,9 @@ VARIABLE SYS-FREE
 \ Get a sign
 : SIGN ( n -- ) DUP 0 > IF 1 ELSE 0 < IF -1 ELSE 0 THEN THEN ;
 
+\ Turn a counted string into a normal string
+: COUNT ( c-addr1 - c-addr2 u ) DUP C@ SWAP 1 + SWAP ;
+
 \ Initialize memory services
 : INIT-MEM ( -- )
   S" ALLOCATE" SYS-LOOKUP SYS-ALLOCATE !

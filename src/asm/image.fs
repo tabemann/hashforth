@@ -1584,3 +1584,4 @@ S" src/hashforth/mutex.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bufbchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/varbchan.fs" ADD-SOURCE-TO-STORAGE
+s" src/hashforth/deque.fs" ADD-SOURCE-TO-STORAGE

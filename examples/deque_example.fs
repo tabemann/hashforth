@@ -1,0 +1,96 @@
+\ Copyright (c) 2019, Travis Bemann
+\ All rights reserved.
+\ 
+\ Redistribution and use in source and binary forms, with or without
+\ modification, are permitted provided that the following conditions are met:
+\ 
+\ 1. Redistributions of source code must retain the above copyright notice,
+\    this list of conditions and the following disclaimer.
+\ 
+\ 2. Redistributions in binary form must reproduce the above copyright notice,
+\    this list of conditions and the following disclaimer in the documentation
+\    and/or other materials provided with the distribution.
+\ 
+\ 3. Neither the name of the copyright holder nor the names of its
+\    contributors may be used to endorse or promote products derived from
+\    this software without specific prior written permission.
+\ 
+\ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+\ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+\ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+\ ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+\ LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+\ CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+\ SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+\ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+\ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+\ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+\ POSSIBILITY OF SUCH DAMAGE.
+
+FORTH-WORDLIST DEQUE-WORDLIST 2 SET-ORDER
+
+4 256 NEW-DEQUE CONSTANT MY-DEQUE
+
+TRUE CONSTANT SUCCESS
+FALSE CONSTANT FAILURE
+
+: DUMP-DEQUE ( deque -- )
+  >R ." < " 0 BEGIN DUP R@ COUNT-DEQUE < WHILE
+    [CHAR] " EMIT HERE 256 ALLOT OVER R@ GET-DEQUE DROP -256 ALLOT
+    HERE COUNT TYPE [CHAR] " EMIT SPACE 1 +
+  REPEAT
+  DROP ." > " R> DROP ;
+
+: PREPARE-BLOCK ( c-addr1 u c-addr2 -- )
+  SWAP 255 MIN SWAP 2DUP C! 1 + SWAP MOVE ;
+
+: PUSH-START-BLOCK ( success c-addr u deque -- )
+  ROT ROT 2DUP ." pushing-start " [CHAR] " EMIT TYPE [CHAR] " EMIT
+  HERE PREPARE-BLOCK HERE 256 ALLOT OVER PUSH-START-DEQUE -256 ALLOT
+  SPACE NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-DEQUE CR ;
+
+: PUSH-END-BLOCK ( success c-addr u deque -- )
+  ROT ROT 2DUP ." pushing-end " [CHAR] " EMIT TYPE [CHAR] " EMIT
+  HERE PREPARE-BLOCK HERE 256 ALLOT OVER PUSH-END-DEQUE -256 ALLOT
+  SPACE NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-DEQUE CR ;
+
+: POP-START-BLOCK ( success deque -- )
+  ." popping-start " HERE 256 ALLOT OVER POP-START-DEQUE -256 ALLOT
+  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
+  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-DEQUE CR ;
+  
+: POP-END-BLOCK ( success deque -- )
+  ." popping-end " HERE 256 ALLOT OVER POP-END-DEQUE -256 ALLOT
+  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
+  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-DEQUE CR ;
+
+: PEEK-START-BLOCK ( success deque -- )
+  ." peeking-start " HERE 256 ALLOT OVER PEEK-START-DEQUE -256 ALLOT
+  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
+  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-DEQUE CR ;
+  
+: PEEK-END-BLOCK ( success deque -- )
+  ." peeking-end " HERE 256 ALLOT OVER PEEK-END-DEQUE -256 ALLOT
+  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
+  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-DEQUE CR ;
+
+: QUEUE-TEST ( -- )
+  SUCCESS S" foo" MY-DEQUE PUSH-START-BLOCK
+  SUCCESS S" bar" MY-DEQUE PUSH-END-BLOCK
+  SUCCESS S" baz" MY-DEQUE PUSH-START-BLOCK
+  SUCCESS S" qux" MY-DEQUE PUSH-END-BLOCK
+  FAILURE S" foobar" MY-DEQUE PUSH-START-BLOCK
+  FAILURE S" foobaz" MY-DEQUE PUSH-END-BLOCK
+  SUCCESS MY-DEQUE PEEK-START-BLOCK
+  SUCCESS MY-DEQUE PEEK-END-BLOCK
+  SUCCESS MY-DEQUE POP-START-BLOCK
+  SUCCESS MY-DEQUE POP-END-BLOCK
+  SUCCESS MY-DEQUE POP-START-BLOCK
+  SUCCESS MY-DEQUE POP-END-BLOCK
+  FAILURE MY-DEQUE PEEK-START-BLOCK
+  FAILURE MY-DEQUE PEEK-END-BLOCK
+  FAILURE MY-DEQUE POP-START-BLOCK
+  FAILURE MY-DEQUE POP-END-BLOCK  
+  ;
+
+QUEUE-TEST
