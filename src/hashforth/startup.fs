@@ -72,6 +72,22 @@ VARIABLE SYS-FREE
 
 : HEX 16 BASE ! ;
 
+\ Execute an xt with a specified BASE set, restoring BASE afterwards even if
+\ an exception occurs
+: BASE-EXECUTE ( i*x xt base -- j*x ) BASE @ >R BASE ! TRY R> BASE ! ?RAISE ;
+
+\ Execute . with a specified base
+: BASE. ( n base -- ) ['] . SWAP BASE-EXECUTE ;
+
+\ Execute (.) with a specified base
+: (BASE.) ( n base -- ) ['] (.) SWAP BASE-EXECUTE ;
+
+\ Execute U. with a specified base
+: UBASE. ( u base -- ) ['] U. SWAP BASE-EXECUTE ;
+
+\ Exxecute (U.) with a specified base
+: (UBASE.) ( u base -- ) ['] (U.) SWAP BASE-EXECUTE ;
+
 : 1+ 1 + ;
 
 : 1- 1 - ;

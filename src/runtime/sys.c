@@ -40,6 +40,7 @@
 #include <poll.h>
 #include <time.h>
 #include <termios.h>
+#include <sys/ioctl.h>
 #include "hf/common.h"
 #include "hf/inner.h"
 
@@ -117,6 +118,9 @@ void hf_sys_prepare_terminal(hf_global_t* global);
 /* Clean up a file descriptor used as a terminal */
 void hf_sys_cleanup_terminal(hf_global_t* global);
 
+/* Get the terminal size */
+void hf_sys_get_terminal_size(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -188,6 +192,8 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      hf_sys_prepare_terminal, user_space_current);
   hf_register_service(global, HF_SYS_CLEANUP_TERMINAL, "CLEANUP-TERMINAL",
 		      hf_sys_cleanup_terminal, user_space_current);
+  hf_register_service(global, HF_SYS_GET_TERMINAL_SIZE, "GET-TERMINAL-SIZE",
+		      hf_sys_get_terminal_size, user_space_current);
 }
 
 /* LOOKUP service */
@@ -578,4 +584,23 @@ void hf_sys_cleanup_terminal(hf_global_t* global) {
     }
   }
   *(--global->data_stack) = HF_TRUE;
+}
+
+/* Get the terminal size */
+void hf_sys_get_terminal_size(hf_global_t* global) {
+  int fd = *global->data_stack++;
+  struct winsize terminal_size;
+  if(ioctl(fd, TIOCGWINSZ, &terminal_size) == 0) {
+    *(--global->data_stack) = terminal_size.ws_row;
+    *(--global->data_stack) = terminal_size.ws_col;
+    *(--global->data_stack) = terminal_size.ws_xpixel;
+    *(--global->data_stack) = terminal_size.ws_ypixel;
+    *(--global->data_stack) = HF_TRUE;
+  } else {
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = HF_FALSE;
+  }
 }

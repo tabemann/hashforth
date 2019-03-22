@@ -59,6 +59,7 @@ VARIABLE SYS-OPEN
 VARIABLE SYS-CLOSE
 VARIABLE SYS-PREPARE-TERMINAL
 VARIABLE SYS-CLEANUP-TERMINAL
+VARIABLE SYS-GET-TERMINAL-SIZE
 
 \ Call service for opening files; returns -1 on success and 0 on failure
 : OPEN ( c-addr bytes flags mode -- fd -1|0 ) SYS-OPEN @ SYS ;
@@ -71,6 +72,10 @@ VARIABLE SYS-CLEANUP-TERMINAL
 
 \ Call service for cleaning up terminals; returns -1 on success and 0 on failure
 : CLEANUP-TERMINAL ( fd -- -1|0 ) SYS-CLEANUP-TERMINAL @ SYS ;
+
+\ Call service to get the terminal size; returns -1 on success and 0 on failure
+: GET-TERMINAL-SIZE ( fd -- rows columns xpixels ypixels -1|0 )
+  SYS-GET-TERMINAL-SIZE @ SYS ;
 
 \ Hook for preparing to read
 VARIABLE 'PREPARE-READ
@@ -319,6 +324,7 @@ VARIABLE OLD-BYE 'BYE @ OLD-BYE !
   S" CLOSE" SYS-LOOKUP SYS-CLOSE !
   S" PREPARE-TERMINAL" SYS-LOOKUP SYS-PREPARE-TERMINAL !
   S" CLEANUP-TERMINAL" SYS-LOOKUP SYS-CLEANUP-TERMINAL !
+  S" GET-TERMINAL-SIZE" SYS-LOOKUP SYS-GET-TERMINAL-SIZE !
   ['] (BYE) 'BYE !
   ['] (TYPE) 'TYPE !
   ['] (KEY?) 'KEY? !

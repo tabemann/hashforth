@@ -109,6 +109,11 @@ END-STRUCTURE
   2 PICK DEQUE-ENTRY-SIZE @ * + ROT 2 PICK DEQUE-ENTRY-SIZE @ CMOVE
   DUP DEQUE-COUNT @ 1- SWAP DEQUE-COUNT ! ;
 
+\ Internal - drop a block from the start of a deque.
+: DROP-START-DEQUE ( deque -- )
+  DUP DEQUE-START-INDEX @ OVER WRAP-BACK OVER DEQUE-START-INDEX !
+  DUP DEQUE-COUNT @ 1- SWAP DEQUE-COUNT ! ;
+
 \ Internal - peek a block from the start a deque.
 : PEEK-START-DEQUE ( addr deque -- )
   DUP DEQUE-DATA @ OVER DEQUE-START-INDEX @ 2 PICK WRAP-BACK
@@ -125,6 +130,12 @@ END-STRUCTURE
 : POP-END-DEQUE ( addr deque -- )
   DUP DEQUE-DATA @ OVER DEQUE-END-INDEX @
   2 PICK DEQUE-ENTRY-SIZE @ * + ROT 2 PICK DEQUE-ENTRY-SIZE @ CMOVE
+  DUP DEQUE-COUNT @ 1- OVER DEQUE-COUNT !
+  DUP DEQUE-END-INDEX @ 1+ OVER DEQUE-MAX-COUNT @ MOD
+  SWAP DEQUE-END-INDEX ! ;
+
+\ Internal - drop a block from the end of a deque.
+: DROP-END-DEQUE ( deque -- )
   DUP DEQUE-COUNT @ 1- OVER DEQUE-COUNT !
   DUP DEQUE-END-INDEX @ 1+ OVER DEQUE-MAX-COUNT @ MOD
   SWAP DEQUE-END-INDEX ! ;
@@ -161,6 +172,10 @@ END-STRUCTURE
 : POP-START-DEQUE ( addr deque -- success )
   DUP EMPTY-DEQUE? NOT IF POP-START-DEQUE TRUE ELSE 2DROP FALSE THEN ;
 
+\ Drop a block from the start of a deque and return whether it was successful.
+: DROP-START-DEQUE ( deque -- success )
+  DUP EMPTY-DEQUE? NOT IF DROP-START-DEQUE TRUE ELSE DROP FALSE THEN ;
+
 \ Peek a block from the start of a deque and return whether it was successful.
 : PEEK-START-DEQUE ( addr deque -- success )
   DUP EMPTY-DEQUE? NOT IF PEEK-START-DEQUE TRUE ELSE 2DROP FALSE THEN ;
@@ -172,6 +187,10 @@ END-STRUCTURE
 \ Pop a block from the end of a deque and return whether it was successful.
 : POP-END-DEQUE ( addr deque -- success )
   DUP EMPTY-DEQUE? NOT IF POP-END-DEQUE TRUE ELSE 2DROP FALSE THEN ;
+
+\ Drop a block from the end of a deque and return whether it was successful.
+: DROP-END-DEQUE ( deque -- success )
+  DUP EMPTY-DEQUE? NOT IF DROP-END-DEQUE TRUE ELSE DROP FALSE THEN ;
 
 \ Peek a block from the end of a deque and return whether it was successful.
 : PEEK-END-DEQUE ( addr deque -- success )

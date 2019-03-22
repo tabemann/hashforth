@@ -199,6 +199,7 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_SET_NAME_TABLE (22)
 #define HF_SYS_PREPARE_TERMINAL (23)
 #define HF_SYS_CLEANUP_TERMINAL (24)
+#define HF_SYS_GET_TERMINAL_SIZE (25)
 
 #define HF_MAX_STD_SERVICES (25)
 #define HF_MAX_NSTD_SERVICES (0)

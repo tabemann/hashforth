@@ -587,6 +587,20 @@ DEFINE-WORD-CREATED READ-KEY
 DEFINE-WORD-CREATED READ-KEY?
 0 SET-CELL-DATA
 
+\ Key already waiting to be read
+DEFINE-WORD X-KEY-ALREADY-WAITING ( -- )
+  SPACE S" KEY ALREADY WAITING" +DATA TYPE CR
+END-WORD
+
+\ Set key read
+DEFINE-WORD SET-KEY ( c -- )
+  READ-KEY? @ +IF &X-KEY-ALREADY-WAITING ?RAISE +THEN
+  +TRUE READ-KEY? ! READ-KEY !
+END-WORD
+
+\ Clear key read
+DEFINE-WORD CLEAR-KEY ( -- ) 0 LIT READ-KEY ! 0 LIT READ-KEY? ! END-WORD
+
 \ Single-tasking implementation of testing whether a key is read.
 DEFINE-WORD (KEY?) ( -- flag )
   READ-KEY? @ +IF
