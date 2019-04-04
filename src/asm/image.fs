@@ -107,6 +107,9 @@ DEFINE-WORD 2DUP ( x1 x2 -- x1 x2 x1 x2 ) OVER OVER END-WORD
 \ Drop the two values on the top of the stack
 DEFINE-WORD 2DROP ( x1 x2 -- ) DROP DROP END-WORD
 
+\ Drop a value from the top of the return stack
+DEFINE-WORD RDROP ( R: x1 x2 -- x2 ) R> R> DROP R> END-WORD
+
 \ Get whether one value is smaller than (signed) or equal to another value
 DEFINE-WORD <= ( n1 n2 -- flag ) 2DUP = ROT ROT < OR END-WORD
 
