@@ -115,7 +115,7 @@ END-STRUCTURE
   DUP TASK-UP @ 3 ROLL DUP #USER @ < IF
     DROP #USER @
   THEN
-  2DUP SWAP TASK-UP @ SWAP CELLS 0 FILL \ Fill all the user variables with zeros
+  2DUP CELLS 0 FILL \ Fill all the user variables with zeros
   CELLS + ['] TASK-HERE 2 PICK ACCESS-TASK !
   TUCK ['] TASK-ENTRY SWAP ACCESS-TASK !
   ROT CELLS ALLOT HERE ['] TASK-DATA-STACK 2 PICK ACCESS-TASK !

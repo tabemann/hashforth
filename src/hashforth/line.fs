@@ -792,7 +792,7 @@ USER LINE
   DUP >R CMOVE R> ;
 
 \ Create a line editor for the main task
-STDIN NEW-LINE LINE !
+NEW-LINE LINE !
 
 \ Set accept hook
 ' (ACCEPT) 'ACCEPT !

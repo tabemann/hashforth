@@ -108,7 +108,7 @@ DEFINE-WORD 2DUP ( x1 x2 -- x1 x2 x1 x2 ) OVER OVER END-WORD
 DEFINE-WORD 2DROP ( x1 x2 -- ) DROP DROP END-WORD
 
 \ Drop a value from the top of the return stack
-DEFINE-WORD RDROP ( R: x1 x2 -- x2 ) R> R> DROP R> END-WORD
+DEFINE-WORD RDROP ( R: x1 x2 -- x2 ) R> R> R> DROP >R >R END-WORD
 
 \ Get whether one value is smaller than (signed) or equal to another value
 DEFINE-WORD <= ( n1 n2 -- flag ) 2DUP = ROT ROT < OR END-WORD
@@ -1601,4 +1601,4 @@ S" src/hashforth/mutex.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bufbchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/varbchan.fs" ADD-SOURCE-TO-STORAGE
-s" src/hashforth/deque.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/deque.fs" ADD-SOURCE-TO-STORAGE
