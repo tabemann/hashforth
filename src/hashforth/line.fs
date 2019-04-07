@@ -836,7 +836,7 @@ USER LINE
   ENDCASE ;
 
 \ Edit a line of text
-: EDIT-LINE ( -- ) RESET-LINE CONFIG-LINE BEGIN HANDLE-KEY UNTIL ;
+: EDIT-LINE ( -- ) ." test" cr RESET-LINE CONFIG-LINE BEGIN HANDLE-KEY UNTIL ;
 
 \ Read a line of text
 : (ACCEPT) ( addr bytes1 -- bytes2 )
