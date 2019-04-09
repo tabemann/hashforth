@@ -1605,3 +1605,4 @@ S" src/hashforth/bchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bufbchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/varbchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/deque.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/line.fs" ADD-SOURCE-TO-STORAGE
