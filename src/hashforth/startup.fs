@@ -251,6 +251,13 @@ VARIABLE SYS-FREE
 \ Turn a counted string into a normal string
 : COUNT ( c-addr1 - c-addr2 u ) DUP C@ SWAP 1 + SWAP ;
 
+\ Drop a given number of cells in addition to the count
+: DROPS ( x*u1 u1 -- ) CELLS SP@ + CELL+ SP! ;
+
+\ Drop a given number of cells in addition to the count except for the cell
+\ directly beneath the count
+: NIPS ( x*u1 x1 u1 -- x1 ) SWAP >R 1- DROPS R> ;
+    
 \ Initialize memory services
 : INIT-MEM ( -- )
   S" ALLOCATE" SYS-LOOKUP SYS-ALLOCATE !

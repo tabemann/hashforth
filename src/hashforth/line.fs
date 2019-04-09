@@ -94,6 +94,7 @@ BEGIN-STRUCTURE LINE-SIZE
   FIELD: LINE-SHOW-CURSOR-COUNT
   FIELD: LINE-LAST-COMMAND-TYPE
   FIELD: LINE-FIRST-LINE-ADDED
+  FIELD: LINE-COMPLETE-ENABLE
 END-STRUCTURE
 
 \ Terminal structure for the current task
@@ -125,7 +126,8 @@ USER LINE
   0 OVER LINE-TERMINAL-ROWS !
   0 OVER LINE-TERMINAL-COLUMNS !
   0 OVER LINE-SHOW-CURSOR-COUNT !
-  NORMAL-COMMAND OVER LINE-LAST-COMMAND-TYPE ! ;
+  NORMAL-COMMAND OVER LINE-LAST-COMMAND-TYPE !
+  TRUE OVER LINE-COMPLETE-ENABLE ! ;
 
 \ Set normal command type
 : SET-NORMAL-COMMAND ( -- ) NORMAL-COMMAND LINE @ LINE-LAST-COMMAND-TYPE ! ;
@@ -774,8 +776,119 @@ USER LINE
     HANDLE-YANK
   THEN ;
 
-\ Placeholder - does nothing right now
-: HANDLE-TAB ( -- ) SET-NORMAL-COMMAND UPDATE-LINE ;
+\ Test whether a word is an initial match for a string
+: WORD-PREFIX? ( c-addr u xt -- matches )
+  WORD>NAME 2 PICK SWAP <= IF
+    SWAP EQUAL-CASE-CHARS?
+  ELSE
+    DROP 2DROP FALSE
+  THEN ;
+
+\ Get whether a completion is actually unique for a wordlist
+: WORDLIST-REST-COMPLETION? ( c-addr u xt -- xt duplicate )
+  DUP WORD>NEXT BEGIN
+    DUP 0 <> IF
+      3 PICK 3 PICK 2 PICK WORD-PREFIX? IF
+        2DROP 2DROP 0 TRUE TRUE
+      ELSE
+        WORD>NEXT FALSE
+      THEN
+    ELSE
+      DROP ROT ROT 2DROP FALSE TRUE
+    THEN
+  UNTIL ;
+
+\ Get whether a completion is unique for a wordlist
+: WORDLIST-COMPLETION? ( c-addr u wid -- xt duplicate )
+  WORDLIST>FIRST BEGIN
+    DUP 0 <> IF
+      2 PICK 2 PICK 2 PICK WORD-PREFIX? IF
+        WORDLIST-REST-COMPLETION? TRUE
+      ELSE
+        WORD>NEXT FALSE
+      THEN
+    ELSE
+      DROP 2DROP 0 FALSE TRUE
+    THEN
+  UNTIL ;
+
+\ Test whether there are no more potential completions
+: REST-COMPLETION? ( x*u2 c-addr u1 u2 xt -- xt duplicate )
+  BEGIN
+    OVER 0 > IF
+      SWAP 1- SWAP 3 PICK 3 PICK 6 ROLL WORDLIST-COMPLETION? SWAP 0 <> AND IF
+        DROP 2 + DROPS 0 TRUE TRUE
+      ELSE
+	FALSE
+      THEN
+    ELSE
+      NIP NIP NIP FALSE TRUE
+    THEN
+  UNTIL ;
+
+\ Test whether a given prefix has only one possible completion
+: ONLY-COMPLETION? ( c-addr u -- xt duplicate )
+  2>R GET-ORDER 2R> ROT BEGIN
+    DUP 0 > IF
+      1 - 2 PICK 2 PICK 5 ROLL WORDLIST-COMPLETION? IF
+        DROP 2 + DROPS 0 TRUE TRUE
+      ELSE DUP 0 <> IF
+        REST-COMPLETION? TRUE
+      ELSE
+        DROP FALSE
+      THEN THEN
+    ELSE
+      DROP 2DROP 0 FALSE TRUE
+    THEN
+  UNTIL ;
+
+\ Display available completions for a single wordlist
+: DISPLAY-WORDLIST-COMPLETIONS ( c-addr u wid -- )
+  WORDLIST>FIRST BEGIN
+    DUP 0 <> IF
+      2 PICK 2 PICK 2 PICK WORD-PREFIX? IF
+        DUP WORD>NAME TYPE SPACE
+      THEN
+      WORD>NEXT FALSE
+    ELSE
+      DROP 2DROP TRUE
+    THEN
+  UNTIL ;
+
+\ Display available completions for all wordlists
+: DISPLAY-COMPLETIONS ( c-addr u -- )
+  CR
+  >R >R GET-ORDER R> R> ROT BEGIN
+    DUP 0 > IF
+      1 - 2 PICK 2 PICK 5 ROLL DISPLAY-WORDLIST-COMPLETIONS FALSE
+    ELSE
+      DROP 2DROP TRUE
+    THEN
+  UNTIL
+  CR
+  CONFIG-LINE UPDATE-LINE ;
+
+\ Insert a completion
+: INSERT-COMPLETION ( c-addr u -- )
+  LINE @ LINE-OFFSET @ FIND-PREV-LAST-PRINT DUP LINE @ LINE-OFFSET @ OVER -
+  REMOVE-TEXT 2DUP + LINE @ LINE-OFFSET ! INSERT-TEXT ;  
+
+\ Handle autocomplete
+: HANDLE-TAB ( -- )
+  SET-NORMAL-COMMAND
+  LINE @ LINE-COMPLETE-ENABLE @ IF
+    LINE @ LINE-OFFSET @ FIND-PREV-LAST-PRINT DUP LINE @ LINE-OFFSET @ < IF
+      LINE @ LINE-BUFFER @ OVER + LINE @ LINE-OFFSET @ ROT -
+      2DUP ONLY-COMPLETION? NOT IF
+        ?DUP IF WORD>NAME INSERT-COMPLETION THEN 2DROP
+      ELSE
+        DROP DISPLAY-COMPLETIONS
+      THEN
+    ELSE
+      DROP
+    THEN
+  THEN
+  UPDATE-LINE ;
 
 \ Refresh
 : HANDLE-REFRESH ( -- ) UPDATE-LINE ;
