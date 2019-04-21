@@ -313,6 +313,18 @@ VARIABLE FIRST-INCLUDED-ITEM
 \ already loaded.
 : REQUIRE ( "file" -- ) PARSE-NAME REQUIRED ; IMMEDIATE
 
+\ Execute code with a specific input file descriptor
+: WITH-INPUT-FD ( xt fd -- )
+  INPUT-FD @ >R INPUT-FD ! TRY R> INPUT-FD ! ?RAISE ;
+
+\ Execute code with a specific output file descriptor
+: WITH-OUTPUT-FD ( xt fd -- )
+  OUTPUT-FD @ >R OUTPUT-FD ! TRY R> OUTPUT-FD ! ?RAISE ;
+
+\ Execute code with a specific error file descriptor
+: WITH-ERROR-FD ( xt fd -- )
+  ERROR-FD @ >R ERROR-FD ! TRY R> ERROR-FD ! ?RAISE ;
+
 \ Old BYE implementation
 VARIABLE OLD-BYE 'BYE @ OLD-BYE !
 
