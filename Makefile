@@ -29,7 +29,7 @@
 
 IDIR =src/include
 CC=gcc
-CFLAGS=-O2
+CFLAGS=-O2 -DCELL_64 -DTOKEN_16_32
 PREFIX=/usr/local
 
 ODIR=obj
