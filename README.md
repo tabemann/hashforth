@@ -4,9 +4,13 @@ Hashforth is a #forth proof of concept implementation. It has two components, th
 
 Building the hashforth executable is carried out by executing the following at a shell prompt at the base directory of the hashforth tree:
 
+    $ make
+
+or:
+
     $ make CFLAGS="<flags>"
 
-This builds hashforth in the current directory. Note that \<flags> may contain one of `-DCELL_16`, `-DCELL_32`, or `-DCELL_64` (defaulting to `-DCELL_64`), which sets the cell size it is compiled for (note that this is architecture-specific), and one of `-DTOKEN_8_16`, `-DTOKEN_16`, `-DTOKEN_16_32`, or `-DTOKEN_32` (defaulting to `-DTOKEN_32`), which sets the token size (with `-DTOKEN_8_16` having either 8 or 16-bit tokens and `-DTOKEN_16_32` having either 16 or 32-bit tokens). There are also the flags `-DTRACE`, which compiles in tracing executed words, and `-DSTACK_TRACE` which, when combined with `-DTRACE`, outputs the contents of the data stack for each word traced. Note, however, that `-DSTACK_TRACE` is not necessarily compatible with code that manipulates the manually manipulates the data stack pointer beyond simple exception handling, such as code that involves multitasking.
+This builds hashforth in the current directory. Note that \<flags> may contain one of `-DCELL_16`, `-DCELL_32`, or `-DCELL_64` (defaulting to `-DCELL_64`), which sets the cell size it is compiled for (note that this is architecture-specific), and one of `-DTOKEN_8_16`, `-DTOKEN_16`, `-DTOKEN_16_32`, or `-DTOKEN_32` (defaulting to `-DTOKEN_32`), which sets the token size (with `-DTOKEN_8_16` having either 8 or 16-bit tokens and `-DTOKEN_16_32` having either 16 or 32-bit tokens). There are also the flags `-DTRACE`, which compiles in tracing executed words, and `-DSTACK_TRACE` which, when combined with `-DTRACE`, outputs the contents of the data stack for each word traced. Omitting `CFLAGS="<flags>"` is equivalent to specifying `CFLAGS="-O2 -DCELL_64 -DTOKEN_16_32"`.
 
 Executing hashforth is carried out by executing the following at a shell prompt, e.g. at the base directory of the hashforth tree:
 

@@ -512,3 +512,21 @@ Get the name table used by a debugging tracer, pushing it onto the data stack. T
 #### ( addr -- )
 
 Set the name table used by a debugging tracer, popping it off the top of the data stack. The name table is an array of entries consisting of two cells, the first being a pointer to the first byte of a name and the second being the length of the name in bytes, where the array index is the token which the name corresponds to
+
+### `HF_SYS_PREPARE_TERMINAL` (23)
+
+#### ( fd -- f )
+
+Prepare the specified file descriptor for non-canonical, non-echoing user input. Return -1 if successful, else return 0.
+
+### `HF_SYS_CLEANUP_TERMINAL` (24)
+
+#### ( fd -- f )
+
+Restore the specific file descriptor to a canonical, echoing state. Return -1 if successful, else return 0.
+
+### `HF_SYS_GET_TERMINAL_SIZE` (25)
+
+#### ( fd -- rows cols xpixels ypixels f )
+
+Get the size of a terminal specified by a file descriptor in rows, columns, x pixels, and y pixels. Also return -1 if successful, else return 0.
