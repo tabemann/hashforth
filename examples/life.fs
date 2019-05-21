@@ -101,6 +101,9 @@ INIT-WORLD
 \ Get a cell at a coordinate
 : CELL@ ( x y -- state ) WORLD-WIDTH * + CURRENT-WORLD @ + C@ ;
 
+\ Get a cell at a coordinate in the next world
+: CELL-NEXT@ ( x y -- state ) WORLD-WIDTH * + NEXT-WORLD @ + C@ ;
+
 \ Set a cell at a coordinate
 : CELL! ( state x y -- ) WORLD-WIDTH * + NEXT-WORLD @ + C! ;
 
@@ -219,6 +222,12 @@ INIT-WORLD
 \ Modify CLEAR-CELL so that it is relative to the center of the world
 : CLEAR-CELL ( x y -- ) CONVERT-COORD CLEAR-CELL-CURRENT ;
 
+\ Set a cell in the next world
+: CELL-NEXT! ( state x y -- ) CONVERT-COORD CELL! ;
+
+\ Get a cell in the next world
+: CELL-NEXT@ ( state x y -- ) CONVERT-COORD CELL-NEXT@ ;
+
 \ Modify CELL! so it uses SET-CELL and CLEAR-CELL
 : CELL! ( state x y -- ) ROT IF SET-CELL ELSE CLEAR-CELL THEN ;
 
@@ -236,5 +245,88 @@ INIT-WORLD
     ENDCASE
   REPEAT
   DROP 2DROP 2DROP R> DROP ;
+
+\ Flip part of a coordinate
+: FLIP-COORD-PART ( n1 n-center -- n2 ) TUCK - - ;
+
+\ Get the center of part of a coordinate
+: COORD-PART-CENTER ( n1 n-span -- ) 2 / + ;
+
+\ Copy cells from the next world back to the current world
+: COPY-NEXT-TO-CURRENT ( x y width height )
+  3 PICK BEGIN DUP 5 PICK 4 PICK + < WHILE
+    3 PICK BEGIN DUP 5 PICK 4 PICK + < WHILE
+      2DUP CELL-NEXT@ 2 PICK 2 PICK CELL! 1 +
+    REPEAT
+    DROP 1 +
+  REPEAT
+  DROP 2DROP 2DROP ;
+
+\ Actually flip a region horizontally
+: DO-FLIP-HORIZONTAL ( x y width height -- )
+  3 PICK 2 PICK COORD-PART-CENTER
+  4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
+    4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
+      2DUP CELL@ 2 PICK 4 PICK FLIP-COORD-PART 2 PICK CELL-NEXT! 1 +
+    REPEAT
+    DROP 1 +
+  REPEAT
+  2DROP 2DROP 2DROP ;
+
+\ Actually flip a region vertically
+: DO-FLIP-VERTICAL ( x y width height -- )
+  2 PICK OVER COORD-PART-CENTER
+  4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
+    4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
+      2DUP CELL@ 2 PICK 2 PICK 5 PICK FLIP-COORD-PART CELL-NEXT! 1 +
+    REPEAT
+    DROP 1 +
+  REPEAT
+  2DROP 2DROP 2DROP ;
+
+\ Flip a region horizontally
+: FLIP-HORIZONTAL ( x y width height -- )
+  3 PICK 3 PICK 3 PICK 3 PICK DO-FLIP-HORIZONTAL COPY-NEXT-TO-CURRENT ;
+
+\ Flip a region vertically
+: FLIP-VERTICAL ( x y width height -- )
+  3 PICK 3 PICK 3 PICK 3 PICK DO-FLIP-VERTICAL COPY-NEXT-TO-CURRENT ;
+
+\ Motion directions
+0 CONSTANT NE
+1 CONSTANT SE
+2 CONSTANT SW
+3 CONSTANT NW
+
+\ Flip a region in two dimensions
+: FLIP-2D ( x y width height dir -- )
+  CASE
+    SE OF 2DROP 2DROP ENDOF
+    SW OF FLIP-HORIZONTAL ENDOF
+    NW OF 2OVER 2OVER FLIP-HORIZONTAL FLIP-VERTICAL ENDOF
+    NE OF FLIP-VERTICAL ENDOF
+  ENDCASE ;
+
+\ Add a block to the world
+: BLOCK ( x y -- ) S" ** / **" 2SWAP SET-MULTIPLE ;
+
+\ Add a blinker to the world (2 phases)
+: BLINKER ( phase x y -- )
+  ROT CASE 0 OF S" _*_ / _*_ / _*_" ENDOF 1 OF S" ___ / *** / ___" ENDOF ENDCASE
+  2SWAP SET-MULTIPLE ;
+
+\ Add a glider to the world (4 phases)
+: GLIDER ( motion phase x y -- )
+  ROT CASE
+    0 OF S" _*_ / __* / ***" ENDOF
+    1 OF S" *_* / _** / _*_" ENDOF
+    2 OF S" __* / *_* / _**" ENDOF
+    3 OF S" *__ / _** / **_" ENDOF
+  ENDCASE
+  2OVER SET-MULTIPLE ROT 3 3 ROT FLIP-2D ;
+
+\ Add an R-pentomino to the world
+: R-PENTOMINO ( dir x y -- )
+  S" _** / **_ / _*_" 2OVER SET-MULTIPLE ROT 3 3 ROT FLIP-2D ;
 
 BASE ! SET-CURRENT SET-ORDER
