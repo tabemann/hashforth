@@ -86,6 +86,9 @@ void hf_prim_dup(hf_global_t* global);
 /* SWAP primitive */
 void hf_prim_swap(hf_global_t* global);
 
+/* OVER primitive */
+void hf_prim_over(hf_global_t* global);
+
 /* ROT primitive */
 void hf_prim_rot(hf_global_t* global);
 
@@ -166,6 +169,12 @@ void hf_prim_udiv(hf_global_t* global);
 
 /* UMOD primitive */
 void hf_prim_umod(hf_global_t* global);
+
+/* MUX primitive */
+void hf_prim_mux(hf_global_t* global);
+
+/* /MUX primitive */
+void hf_prim_rmux(hf_global_t* global);
 
 /* R@ primitive */
 void hf_prim_load_r(hf_global_t* global);
@@ -261,6 +270,8 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_SWAP, hf_prim_swap,
 		   user_space_current);
+  hf_register_prim(global, HF_PRIM_OVER, hf_prim_over,
+		   user_space_current);
   hf_register_prim(global, HF_PRIM_ROT, hf_prim_rot,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_PICK, hf_prim_pick,
@@ -314,6 +325,10 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
   hf_register_prim(global, HF_PRIM_UDIV, hf_prim_udiv,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_UMOD, hf_prim_umod,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_MUX, hf_prim_mux,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_RMUX, hf_prim_rmux,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_LOAD_R, hf_prim_load_r,
 		   user_space_current);
@@ -521,6 +536,12 @@ void hf_prim_swap(hf_global_t* global) {
   *(global->data_stack + 1) = value;
 }
 
+/* OVER primitive */
+void hf_prim_over(hf_global_t* global) {
+  hf_cell_t value = *(global->data_stack + 1);
+  *(--global->data_stack) = value;
+}
+
 /* ROT primitive */
 void hf_prim_rot(hf_global_t* global) {
   hf_cell_t value0 = *global->data_stack;
@@ -697,6 +718,24 @@ void hf_prim_udiv(hf_global_t* global) {
 void hf_prim_umod(hf_global_t* global) {
   hf_cell_t value = *(global->data_stack + 1) % *global->data_stack;
   *(++global->data_stack) = value;
+}
+
+/* MUX primitive */
+void hf_prim_mux(hf_global_t* global) {
+  hf_cell_t value0 = *(global->data_stack + 2);
+  hf_cell_t value1 = *(global->data_stack + 1);
+  hf_cell_t mux_value = *global->data_stack;
+  global->data_stack += 2;
+  *global->data_stack = (value0 & mux_value) | (value1 & ~mux_value);
+}
+
+/* /MUX primitive */
+void hf_prim_rmux(hf_global_t* global) {
+  hf_cell_t mux_value = *(global->data_stack + 2);
+  hf_cell_t value0 = *(global->data_stack + 1);
+  hf_cell_t value1 = *global->data_stack;
+  global->data_stack += 2;
+  *global->data_stack = (value0 & mux_value) | (value1 & ~mux_value);
 }
 
 /* R@ primitive */

@@ -92,7 +92,7 @@ NOT-VM VARIABLE BUILD-#USER VM
 DEFINE-WORD NEGATE ( n -- n ) 1 LIT - NOT END-WORD
 
 \ Duplicate the value under the top of the stack
-DEFINE-WORD OVER ( x1 x2 -- x1 x2 x1 ) 1 LIT PICK END-WORD
+\ DEFINE-WORD OVER ( x1 x2 -- x1 x2 x1 ) 1 LIT PICK END-WORD
 
 \ Drop the value under the top of the stack
 DEFINE-WORD NIP ( x1 x2 -- x2 ) SWAP DROP END-WORD
@@ -1539,11 +1539,15 @@ DEFINE-WORD ABORT &ABORT-EXCEPTION ?RAISE END-WORD
 \ Raise a quit exception
 DEFINE-WORD QUIT &QUIT-EXCEPTION ?RAISE END-WORD
 
+\ The user variable count
+DEFINE-WORD-CREATED #USER
+NOT-VM BUILD-#USER @ SET-CELL-DATA VM
+
 \ Parse a name and create a marker named by it, which when executed will erase
 \ everything defined after and including itself, including restoring wordlists
 \ to the state where they were when the marker was defined
 DEFINE-WORD MARKER ( "name" -- )
-  LATESTXT HERE CREATE , , WORDLIST-COUNT @ ,
+  LATESTXT HERE CREATE , , #USER @ , WORDLIST-COUNT @ ,
   WORDLIST-ARRAY WORDLIST-COUNT @ +BEGIN DUP 0 LIT > +WHILE
     SWAP DUP @ DUP LATESTXT = +IF WORD>NEXT +THEN , CELL+ SWAP 1 LIT -
   +REPEAT
@@ -1554,7 +1558,7 @@ DEFINE-WORD MARKER ( "name" -- )
   2DROP GET-CURRENT ,
   DOES>
   DUP @ HERE! CELL+ DUP @ DUP LATESTXT-VALUE ! 1 LIT + SET-WORD-COUNT CELL+
-  DUP @ DUP WORDLIST-COUNT !
+  DUP @ #USER ! DUP @ DUP WORDLIST-COUNT !
   SWAP CELL+ SWAP WORDLIST-ARRAY SWAP +BEGIN DUP 0 LIT > +WHILE
     SWAP ROT DUP @ ROT TUCK ! CELL+ SWAP CELL+ SWAP ROT 1 LIT -
   +REPEAT
@@ -1578,10 +1582,6 @@ DEFINE-WORD BOOT-PROTECTED ( -- )
   LOOKUP-SYS NAME-TABLE SET-NAME-TABLE
   SET-HOOKS &REFILL-TERMINAL 'REFILL ! INTERPRET-STORAGE OUTER
 END-WORD
-
-\ The user variable count
-DEFINE-WORD-CREATED #USER
-NOT-VM BUILD-#USER @ SET-CELL-DATA VM
 
 \ The minimum terminal task user variable count
 NOT-VM 32 CONSTANT MIN-TERMINAL-TASK-USER-COUNT VM
