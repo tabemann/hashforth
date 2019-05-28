@@ -99,7 +99,12 @@ $1B CONSTANT ESCAPE
 INIT-WORLD
 
 \ Get a cell at a coordinate
-: CELL@ ( x y -- state ) WORLD-WIDTH * + CURRENT-WORLD @ + C@ ;
+: CELL@ ( x y -- state ) [ WORLD-WIDTH ] LITERAL * + CURRENT-WORLD @ + C@ ;
+
+\ Get a cell at a coordinate, optimized for compilation
+: CCELL@ ( runtime: x y -- state )
+  & (LIT) WORLD-WIDTH , & * & + & (LIT) CURRENT-WORLD , & @ & + & C@
+; IMMEDIATE COMPILE-ONLY
 
 \ Get a cell at a coordinate in the next world
 : CELL-NEXT@ ( x y -- state ) WORLD-WIDTH * + NEXT-WORLD @ + C@ ;
@@ -139,52 +144,68 @@ INIT-WORLD
   DROP ;
 
 \ Get the N neighbor of a cell
-: N-NEIGHBOR@ ( x y -- c )
-  1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX CELL@ ;
+: N-NEIGHBOR ( x y -- c )
+  1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX ;
 
 \ Get the NE neighbor of a cell
-: NE-NEIGHBOR@ ( x y -- c )
+: NE-NEIGHBOR ( x y -- c )
   1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX
-  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP CELL@ ;
+  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP ;
 
 \ Get the E neighbor of a cell
-: E-NEIGHBOR@ ( x y -- c )
-  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP CELL@ ;
+: E-NEIGHBOR ( x y -- c )
+  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP ;
 
 \ Get the SE neighbor of a cell
-: SE-NEIGHBOR@ ( x y -- c )
+: SE-NEIGHBOR ( x y -- c )
   1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX
-  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP CELL@ ;
+  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP ;
 
 \ Get the S neighbor of a cell
-: S-NEIGHBOR@ ( x y -- c )
-  1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX CELL@ ;
+: S-NEIGHBOR ( x y -- c )
+  1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX ;
 
 \ Get the SW neighbor of a cell
-: SW-NEIGHBOR@ ( x y -- c )
+: SW-NEIGHBOR ( x y -- c )
   1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX
-  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP CELL@ ;
+  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP ;
 
 \ Get the W neighbor of a cell
-: W-NEIGHBOR@ ( x y -- c )
-  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP CELL@ ;
+: W-NEIGHBOR ( x y -- c )
+  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP ;
 
 \ Get the NW neighbor of a cell
-: NW-NEIGHBOR@ ( x y -- c )
+: NW-NEIGHBOR ( x y -- c )
   1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX
-  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP CELL@ ;
+  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP ;
 
 \ Execute one cycle for a cell
 : CYCLE-CELL ( x y -- )
-  1 PICK 1 PICK N-NEIGHBOR@
-  2 PICK 2 PICK NE-NEIGHBOR@ +
-  2 PICK 2 PICK E-NEIGHBOR@ +
-  2 PICK 2 PICK SE-NEIGHBOR@ +
-  2 PICK 2 PICK S-NEIGHBOR@ +
-  2 PICK 2 PICK SW-NEIGHBOR@ +
-  2 PICK 2 PICK W-NEIGHBOR@ +
-  2 PICK 2 PICK NW-NEIGHBOR@ +
-  2 PICK 2 PICK CELL@ IF
+  OVER OVER 1 - SWAP 1 - SWAP CCELL@
+  2 PICK 2 PICK 1 - CCELL@ +
+  2 PICK 2 PICK 1 - SWAP 1 + SWAP CCELL@ +
+  2 PICK 2 PICK SWAP 1 + SWAP CCELL@ +
+  2 PICK 2 PICK 1 + SWAP 1 + SWAP CCELL@ +
+  2 PICK 2 PICK 1 + CCELL@ +
+  2 PICK 2 PICK 1 + SWAP 1 - SWAP CCELL@ +
+  2 PICK 2 PICK SWAP 1 - SWAP CCELL@ +
+  2 PICK 2 PICK CCELL@ IF
+    DUP 2 = SWAP 3 = OR IF SET-CELL ELSE CLEAR-CELL THEN
+  ELSE
+    3 = IF SET-CELL ELSE CLEAR-CELL THEN
+  THEN ;
+
+\ Execute one cycle for an edge cell
+: CYCLE-EDGE-CELL ( x y -- )
+  OVER OVER NW-NEIGHBOR CCELL@
+  2 PICK 2 PICK N-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK NE-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK E-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK SE-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK S-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK SW-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK W-NEIGHBOR CCELL@ +
+  2 PICK 2 PICK CCELL@ IF
     DUP 2 = SWAP 3 = OR IF SET-CELL ELSE CLEAR-CELL THEN
   ELSE
     3 = IF SET-CELL ELSE CLEAR-CELL THEN
@@ -193,13 +214,25 @@ INIT-WORLD
 \ Execute one cycle in the world
 : CYCLE-WORLD ( -- )
   [ CANVAS ] LITERAL CLEAR-PIXELS
-  0 BEGIN DUP [ WORLD-WIDTH ] LITERAL < WHILE
-    0 BEGIN DUP [ WORLD-HEIGHT ] LITERAL < WHILE
+  1 BEGIN DUP [ WORLD-WIDTH 1 - ] LITERAL < WHILE
+    1 BEGIN DUP [ WORLD-HEIGHT 1 - ] LITERAL < WHILE
       2DUP CYCLE-CELL 1 +
     REPEAT
     DROP 1 +
   REPEAT
   DROP
+  1 BEGIN DUP [ WORLD-WIDTH 1 - ] LITERAL < WHILE
+    DUP 0 CYCLE-EDGE-CELL DUP [ WORLD-HEIGHT 1 - ] LITERAL CYCLE-EDGE-CELL 1 +
+  REPEAT
+  DROP
+  1 BEGIN DUP [ WORLD-HEIGHT 1 - ] LITERAL < WHILE
+    0 OVER CYCLE-EDGE-CELL [ WORLD-WIDTH 1 - ] LITERAL OVER CYCLE-EDGE-CELL 1 +
+  REPEAT
+  DROP
+  0 0 CYCLE-EDGE-CELL
+  [ WORLD-WIDTH 1 - ] LITERAL 0 CYCLE-EDGE-CELL
+  [ WORLD-WIDTH 1 - ] LITERAL [ WORLD-HEIGHT 1 - ] LITERAL CYCLE-EDGE-CELL
+  0 [ WORLD-HEIGHT 1 - ] LITERAL CYCLE-EDGE-CELL
   NEXT-WORLD @ CURRENT-WORLD @ NEXT-WORLD ! CURRENT-WORLD ! ;
 
 \ Display execution of cycles until key is pressed
