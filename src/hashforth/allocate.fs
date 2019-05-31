@@ -34,7 +34,7 @@ FORTH-WORDLIST 1 SET-ORDER
 FORTH-WORDLIST SET-CURRENT
 
 WORDLIST CONSTANT ALLOCATE-WORDLIST
-FORTH-WORDLIST ALLOCATE-WORDLIST 2 SET-ORDER
+FORTH-WORDLIST LAMBDA-WORDLIST ALLOCATE-WORDLIST 3 SET-ORDER
 ALLOCATE-WORDLIST SET-CURRENT
 
 \ The block header structure
@@ -70,6 +70,10 @@ BEGIN-STRUCTURE ALLOCATOR-SIZE
   FIELD: SIZED-BLOCKS
 END-STRUCTURE
 
+\ Debugging code for block size
+: BLOCK-SIZE ( addr -- addr )
+  ( [: ." block-size: " dup block-size w@ . ;] as-non-task-io ) block-size ;
+
 \ Block is in use flag
 1 CONSTANT IN-USE
 
@@ -101,7 +105,7 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
     NIP HIGH-BLOCK-SIZE-LOG2 @
   ELSE
     DROP LOG2-CEILING
-  THEN ;
+  THEN ( [: ." >index: " dup . ;] as-non-task-io ) ;
 
 \ Get the index into the array of sized free lists for a block size
 : >INDEX-FILL ( 32-bytes allocator -- index )
@@ -109,7 +113,7 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
     NIP HIGH-BLOCK-SIZE-LOG2 @
   ELSE
     DROP LOG2
-  THEN ;
+  THEN ( [: ." >index-fill: " dup . ;] as-non-task-io ) ;
 
 \ Get the header of a block
 : BLOCK-HEADER ( addr -- block ) BLOCK-HEADER-SIZE - ;
@@ -119,18 +123,23 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
 
 \ Get the previous block
 : PREV-BLOCK ( block -- block )
-  DUP PREV-BLOCK-SIZE @ 0 > IF
-    DUP PREV-BLOCK-SIZE @ SIZE> - BLOCK-HEADER-SIZE -
+  DUP PREV-BLOCK-SIZE W@ 0 > IF
+    DUP PREV-BLOCK-SIZE W@ SIZE> - BLOCK-HEADER-SIZE -
   ELSE
-    0
+    DROP 0
   THEN ;
 
 \ Get the next block
 : NEXT-BLOCK ( block -- block )
-  DUP DUP BLOCK-SIZE @ SIZE> + BLOCK-HEADER-SIZE + ;
+  DUP BLOCK-SIZE W@ SIZE> + BLOCK-HEADER-SIZE + ;
 
 \ Remove a block from its sized block list
 : UNLINK-BLOCK ( block allocator -- )
+  ( [:
+    cr ." unlinking block: " over .
+    over prev-sized-block @ .
+    over next-sized-block @ .
+  ;] as-non-task-io )
   SWAP DUP NEXT-SIZED-BLOCK @ IF
     DUP PREV-SIZED-BLOCK @ OVER NEXT-SIZED-BLOCK @ PREV-SIZED-BLOCK !
   THEN
@@ -143,6 +152,7 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
 
 \ Add a block to its sized block list
 : LINK-BLOCK ( block allocator -- )
+  ( [: cr ." linking block: " over . ;] as-non-task-io )
   OVER 0 SWAP PREV-SIZED-BLOCK !
   OVER BLOCK-SIZE W@ OVER >INDEX-FILL CELLS SWAP SIZED-BLOCKS @ +
   DUP @ IF
@@ -151,6 +161,7 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
   ELSE
     OVER 0 SWAP NEXT-SIZED-BLOCK !
   THEN
+  ( [: over . ;] as-non-task-io )
   ! ;
 
 \ Update the succeeding block previous block size
@@ -161,19 +172,21 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
 : MERGE-PREV-BLOCK ( block allocator -- block )
   SWAP DUP PREV-BLOCK ?DUP IF
     BLOCK-FLAGS @ IN-USE AND 0 = IF
+      ( [: cr ." merging prev block: " over . ;] as-non-task-io )
       DUP PREV-BLOCK ROT UNLINK-BLOCK
       DUP BLOCK-SIZE W@ BLOCK-HEADER-SIZE-32 + OVER PREV-BLOCK BLOCK-SIZE W!
       PREV-BLOCK DUP UPDATE-PREV-BLOCK-SIZE
     ELSE
-      2DROP
+      NIP
     THEN
   ELSE
-    2DROP
+    NIP
   THEN ;
 
 \ Merge with a succeeding block
 : MERGE-NEXT-BLOCK ( block allocator -- )
   SWAP DUP NEXT-BLOCK BLOCK-FLAGS @ IN-USE AND 0 = IF
+    ( [: cr ." merging next block: " dup . ;] as-non-task-io )
     DUP NEXT-BLOCK ROT UNLINK-BLOCK
     DUP DUP NEXT-BLOCK BLOCK-SIZE W@ BLOCK-HEADER-SIZE-32 +
     SWAP BLOCK-SIZE W!
@@ -198,9 +211,12 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
 
 \ Split a block
 : SPLIT-BLOCK ( 32-bytes block allocator -- )
+  ( [: cr ." split block: " 2 pick . over . ;] as-non-task-io )
+  2DUP UNLINK-BLOCK
   OVER BLOCK-DATA 3 PICK SIZE> +
-  3 PICK OVER PREV-BLOCK-SIZE W!
+  3 PICK OVER PREV-BLOCK-SIZE W! ( [: dup prev-block-size w@ . ;] as-non-task-io )
   2 PICK BLOCK-SIZE W@ 4 PICK BLOCK-HEADER-SIZE-32 + - OVER BLOCK-SIZE W!
+  ( [: dup block-size w@ . ;] as-non-task-io )
   0 OVER BLOCK-FLAGS !
   SWAP LINK-BLOCK
   BLOCK-SIZE W! ;
@@ -209,19 +225,24 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
 : ALLOCATE-BLOCK ( allocate-size allocator -- block )
   SWAP >SIZE DUP 2 PICK FIND-INDEX DUP -1 <> IF
     CELLS 2 PICK SIZED-BLOCKS @ + @
+    ( [: cr ." allocating block: " over . dup . ;] as-non-task-io )
     DUP BLOCK-SIZE W@ ( allocator allocate-size block block-size )
+    ( [: .s ;] as-non-task-io )
     2 PICK BLOCK-HEADER-SIZE-32 2 * + >= IF
       2DUP 4 PICK SPLIT-BLOCK
+    ELSE
+      DUP 3 PICK UNLINK-BLOCK
     THEN
     DUP BLOCK-FLAGS @ IN-USE OR OVER BLOCK-FLAGS !
-    NIP TUCK SWAP UNLINK-BLOCK
+    NIP NIP
   ELSE
     2DROP DROP 0
   THEN ;
 
 \ Free a block
 : FREE-BLOCK ( block allocator -- )
-  true set-trace TUCK MERGE-PREV-BLOCK 2DUP SWAP MERGE-NEXT-BLOCK SWAP LINK-BLOCK false set-trace ;
+  ( [: cr ." freeing a block: " over . ;] as-non-task-io )
+  TUCK MERGE-PREV-BLOCK 2DUP SWAP MERGE-NEXT-BLOCK SWAP LINK-BLOCK ;
 
 \ Resize a block by allocating a new block, copying data to it, and then freeing
 \ the original block
@@ -280,7 +301,7 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
   ALIGN HERE ALLOCATOR-SIZE ALLOT
   SWAP >SIZE CEILING2 OVER HIGH-BLOCK-SIZE !
   DUP HIGH-BLOCK-SIZE @ LOG2 OVER HIGH-BLOCK-SIZE-LOG2 !
-  ALIGN HERE OVER HIGH-BLOCK-SIZE-LOG2 @ CELLS ALLOT
+  ALIGN HERE OVER HIGH-BLOCK-SIZE-LOG2 @ 1 + CELLS ALLOT
   OVER SIZED-BLOCKS !
   DUP SIZED-BLOCKS @ OVER HIGH-BLOCK-SIZE-LOG2 @ CELLS 0 FILL
   OVER INIT-BLOCK
