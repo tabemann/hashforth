@@ -226,20 +226,33 @@ BLOCK-HEADER-SIZE >SIZE CONSTANT BLOCK-HEADER-SIZE-32
   SWAP LINK-BLOCK
   BLOCK-SIZE W! ;
 
+\ Search for a block that fits, or return 0 if none fit
+: SEARCH-BLOCKS ( 32-bytes block -- block )
+  BEGIN
+    DUP 0 <> IF
+      2DUP BLOCK-SIZE W@ <= IF NIP TRUE ELSE NEXT-SIZED-BLOCK @ FALSE THEN
+    ELSE
+      NIP TRUE
+    THEN
+  UNTIL ;
+
 \ Allocate a block
 : ALLOCATE-BLOCK ( allocate-size heap -- block )
   SWAP >SIZE DUP 2 PICK FIND-INDEX DUP -1 <> IF
-    CELLS 2 PICK SIZED-BLOCKS @ + @
-    ( [: ." allocating block: " over . dup . ;] as-non-task-io )
-    DUP BLOCK-SIZE W@ ( heap allocate-size block block-size )
-    ( [: .s ;] as-non-task-io )
-    2 PICK BLOCK-HEADER-SIZE-32 2 * + >= IF
-      2DUP 4 PICK SPLIT-BLOCK
+    CELLS 2 PICK SIZED-BLOCKS @ + @ OVER SWAP SEARCH-BLOCKS ?DUP IF
+      ( [: ." allocating block: " over . dup . ;] as-non-task-io )
+      DUP BLOCK-SIZE W@ ( heap allocate-size block block-size )
+      ( [: .s ;] as-non-task-io )
+      2 PICK BLOCK-HEADER-SIZE-32 2 * + >= IF
+	2DUP 4 PICK SPLIT-BLOCK
+      ELSE
+	DUP 3 PICK UNLINK-BLOCK
+      THEN
+      DUP BLOCK-FLAGS @ IN-USE OR OVER BLOCK-FLAGS !
+      NIP NIP
     ELSE
-      DUP 3 PICK UNLINK-BLOCK
+      2DROP 0
     THEN
-    DUP BLOCK-FLAGS @ IN-USE OR OVER BLOCK-FLAGS !
-    NIP NIP
   ELSE
     2DROP DROP 0
   THEN ( [: ." prev-block-size: " dup prev-block-size w@ . ;] as-non-task-io ) ;
