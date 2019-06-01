@@ -1615,9 +1615,10 @@ END-WORD
 
 \ Forth files to bundle in with the assembled VM
 S" src/hashforth/startup.fs" ADD-SOURCE-TO-STORAGE
-S" src/hashforth/buffer.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/lambda.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/task.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/allocate.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/buffer.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/io.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/cond.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/mutex.fs" ADD-SOURCE-TO-STORAGE
