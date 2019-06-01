@@ -177,6 +177,36 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_PRIM_SET_WORD_COUNT (57)
 #define HF_PRIM_SYS (58)
 
+#ifndef WITH_SYS_ALLOCATE
+
+#define HF_SYS_UNDEFINED (0)
+#define HF_SYS_LOOKUP (1)
+#define HF_SYS_BYE (2)
+#define HF_SYS_OPEN (3)
+#define HF_SYS_CLOSE (4)
+#define HF_SYS_READ (5)
+#define HF_SYS_WRITE (6)
+#define HF_SYS_GET_NONBLOCKING (7)
+#define HF_SYS_SET_NONBLOCKING (8)
+#define HF_SYS_ISATTY (9)
+#define HF_SYS_POLL (10)
+#define HF_SYS_GET_MONOTONIC_TIME (11)
+#define HF_SYS_GET_TRACE (12)
+#define HF_SYS_SET_TRACE (13)
+#define HF_SYS_GET_SBASE (14)
+#define HF_SYS_SET_SBASE (15)
+#define HF_SYS_GET_RBASE (16)
+#define HF_SYS_SET_RBASE (17)
+#define HF_SYS_GET_NAME_TABLE (18)
+#define HF_SYS_SET_NAME_TABLE (19)
+#define HF_SYS_PREPARE_TERMINAL (20)
+#define HF_SYS_CLEANUP_TERMINAL (21)
+#define HF_SYS_GET_TERMINAL_SIZE (22)
+
+#define HF_MAX_STD_SERVICES (23)
+
+#else /* WITH_SYS_ALLOCATE */
+
 #define HF_SYS_UNDEFINED (0)
 #define HF_SYS_LOOKUP (1)
 #define HF_SYS_BYE (2)
@@ -205,6 +235,9 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_GET_TERMINAL_SIZE (25)
 
 #define HF_MAX_STD_SERVICES (26)
+
+#endif /* WITH_SYS_ALLOCATE */
+
 #define HF_MAX_NSTD_SERVICES (0)
 
 #define HF_OPEN_RDONLY (1)

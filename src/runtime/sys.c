@@ -52,6 +52,8 @@ void hf_sys_lookup(hf_global_t* global);
 /* BYE service */
 void hf_sys_bye(hf_global_t* global);
 
+#ifdef WITH_SYS_ALLOCATE
+
 /* ALLOCATE service */
 void hf_sys_allocate(hf_global_t* global);
 
@@ -60,6 +62,8 @@ void hf_sys_resize(hf_global_t* global);
 
 /* FREE service */
 void hf_sys_free(hf_global_t* global);
+
+#endif /* WITH_SYS_ALLOCATE */
 
 /* OPEN service */
 void hf_sys_open(hf_global_t* global);
@@ -148,12 +152,14 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      user_space_current);
   hf_register_service(global, HF_SYS_BYE, "BYE", hf_sys_bye,
 		      user_space_current);
+#ifdef WITH_SYS_ALLOCATE
   hf_register_service(global, HF_SYS_ALLOCATE, "ALLOCATE", hf_sys_allocate,
 		      user_space_current);
   hf_register_service(global, HF_SYS_RESIZE, "RESIZE",  hf_sys_resize,
 		      user_space_current);
   hf_register_service(global, HF_SYS_FREE, "FREE", hf_sys_free,
 		      user_space_current);
+#endif /* WITH_SYS_ALLOCATE */
   hf_register_service(global, HF_SYS_OPEN, "OPEN", hf_sys_open,
 		      user_space_current);
   hf_register_service(global, HF_SYS_CLOSE, "CLOSE", hf_sys_close,
@@ -225,6 +231,8 @@ void hf_sys_bye(hf_global_t* global) {
   exit(0);
 }
 
+#ifdef WITH_SYS_ALLOCATE
+
 /* ALLOCATE service */
 void hf_sys_allocate(hf_global_t* global) {
   size_t size = *global->data_stack++;
@@ -246,6 +254,8 @@ void hf_sys_free(hf_global_t* global) {
   free(buffer);
   *(--global->data_stack) = HF_TRUE;
 }
+
+#endif /* WITH_SYS_ALLOCATE */
 
 /* OPEN service */
 void hf_sys_open(hf_global_t* global) {

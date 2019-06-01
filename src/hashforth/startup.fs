@@ -27,23 +27,6 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-\ \ Services for memory management
-\ VARIABLE SYS-ALLOCATE
-\ VARIABLE SYS-RESIZE
-\ VARIABLE SYS-FREE
-
-\ \ Allocate memory in the heap; -1 is returned on success and 0 is returned on
-\ \ failure.
-\ : ALLOCATE ( bytes -- addr -1|0 ) SYS-ALLOCATE @ SYS ;
-
-\ \ Resize memory in the heap allocated with ALLOCATE or RESIZE; -1 is returned
-\ \ on success and 0 is returned on failure.
-\ : RESIZE ( addr new-bytes -- new-addr -1|0 ) SYS-RESIZE @ SYS ;
-
-\ \ Free memory in the heap allocated with ALLOCATE or RESIZE; -1 is returned on
-\ \ success and 0 is returned on failure.
-\ : FREE ( addr -- -1|0 ) SYS-FREE @ SYS ;
-
 \ Add a value to an address
 : +! ( n addr ) DUP @ ROT + SWAP ! ;
 
@@ -253,11 +236,3 @@
 \ Drop a given number of cells in addition to the count except for the cell
 \ directly beneath the count
 : NIPS ( x*u1 x1 u1 -- x1 ) SWAP >R 1- DROPS R> ;
-    
-\ \ Initialize memory services
-\ : INIT-MEM ( -- )
-\   S" ALLOCATE" SYS-LOOKUP SYS-ALLOCATE !
-\   S" RESIZE" SYS-LOOKUP SYS-RESIZE !
-\   S" FREE" SYS-LOOKUP SYS-FREE ! ;
-
-\ INIT-MEM
