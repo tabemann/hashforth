@@ -317,7 +317,7 @@ This word's execution results in the top-most value on the return stack being pu
 
 This word's execution results in a value being popped off the top of the data stack and being pushed onto the return stack.
 
-### `HF_PRIM_POP_4` (47), also known as `R>`
+### `HF_PRIM_POP_R` (47), also known as `R>`
 
 #### ( R: x -- ) ( -- x )
 
