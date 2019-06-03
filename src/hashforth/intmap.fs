@@ -182,6 +182,10 @@ INTMAP-WORDLIST SET-CURRENT
   OVER INTMAP-ENTRIES !
   DUP INTMAP-ENTRIES @ ROT 2 PICK INTMAP-ENTRY-SIZE * 0 FILL ;
 
+\ Clear an intmap
+: CLEAR-INTMAP ( intmap -- )
+  DUP INTMAP-ENTRIES @ OVER INTMAP-COUNT @ ROT INTMAP-ENTRY-SIZE * 0 FILL ;
+
 \ Intmap is not allocated exception
 : X-INTMAP-NOT-ALLOCATED ( -- ) SPACE ." intmap is not allocated" CR ;
 

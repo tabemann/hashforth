@@ -195,8 +195,18 @@ DATAMAP-WORDLIST SET-CURRENT
   OVER DATAMAP-ENTRIES !
   DUP DATAMAP-ENTRIES @ ROT CELLS 0 FILL ;
 
+\ Clear a datamap
+: CLEAR-DATAMAP ( datamap -- )
+  DUP DATAMAP-COUNT @ 0 ?DO
+    I OVER IS-FOUND-INDEX IF
+      I OVER GET-ENTRY DUP @ DUP 3 PICK DO-FINALIZE FREE! 0 SWAP !
+    THEN
+  LOOP
+  DROP ;
+
 \ Destroy a datamap
-: DESTROY-DATAMAP ( datamap -- ) DUP DATAMAP-ENTRIES @ FREE! FREE! ;
+: DESTROY-DATAMAP ( datamap -- )
+  DUP CLEAR-DATAMAP DUP DATAMAP-ENTRIES @ FREE! FREE! ;
 
 \ Get a value from a datamap
 : GET-DATAMAP ( key-addr key-bytes datamap -- value-addr value-bytes found )
