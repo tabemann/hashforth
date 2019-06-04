@@ -64,6 +64,9 @@ BEGIN-STRUCTURE DATAMAP-SIZE
 
   \ The finalizer word
   FIELD: DATAMAP-FINALIZER
+
+  \ The extra finalizer argument
+  FIELD: DATAMAP-FINALIZER-ARG
 END-STRUCTURE
 
 \ Get the datamap entry size
@@ -123,10 +126,11 @@ END-STRUCTURE
 
 \ Carry out finalizing of an entry if there is a finalizer xt
 : DO-FINALIZE ( entry datamap -- )
-  DUP DATAMAP-FINALIZER @ IF
-    SWAP ENTRY-VALUE ROT DATAMAP-FINALIZER @ EXECUTE
+  DUP >R DATAMAP-FINALIZER @ IF
+    DUP ENTRY-KEY ROT ENTRY-VALUE R@ DATAMAP-FINALIZER-ARG @
+    R> DATAMAP-FINALIZER @ EXECUTE
   ELSE
-    2DROP
+    DROP R> DROP
   THEN ;
 
 \ Actually set a value in a datamap
@@ -185,15 +189,20 @@ DATAMAP-WORDLIST SET-CURRENT
 : X-ZERO-DATAMAP-SIZE ( -- ) SPACE ." zero not valid datamap size" CR ;
 
 \ Allocate a datamap
-: ALLOCATE-DATAMAP ( finalizer initial-entry-count -- datamap )
+: ALLOCATE-DATAMAP ( initial-entry-count -- datamap )
   DUP 0 = IF 2DROP ['] X-ZERO-DATAMAP-SIZE ?RAISE THEN
   DATAMAP-SIZE ALLOCATE!
   2DUP DATAMAP-COUNT !
   0 OVER DATAMAP-ENTRY-COUNT !
-  ROT OVER DATAMAP-FINALIZER !
+  0 OVER DATAMAP-FINALIZER-ARG !
+  0 OVER DATAMAP-FINALIZER !
   OVER CELLS ALLOCATE!
   OVER DATAMAP-ENTRIES !
   DUP DATAMAP-ENTRIES @ ROT CELLS 0 FILL ;
+
+\ Set a finalizer
+: SET-DATAMAP-FINALIZER ( finalizer finalizer-arg datamap )
+  TUCK DATAMAP-FINALIZER-ARG ! DATAMAP-FINALIZER ! ;
 
 \ Clear a datamap
 : CLEAR-DATAMAP ( datamap -- )
