@@ -224,6 +224,21 @@ INTMAP-WORDLIST SET-CURRENT
   THEN
   DUP CLEAR-INTMAP DUP INTMAP-ENTRIES @ FREE! FREE! ;
 
+\ Evaluate an xt for each member of an intmap
+: ITER-INTMAP ( xt intmap -- )
+  0 BEGIN
+    2DUP SWAP INTMAP-COUNT @ < IF
+      2DUP SWAP IS-FOUND-INDEX IF
+	2DUP SWAP GET-ENTRY SWAP >R SWAP >R SWAP >R
+	DUP @ SWAP INTMAP-HEADER-SIZE + R@ EXECUTE
+	R> R> R>
+      THEN
+      1 + FALSE
+    ELSE
+      DROP 2DROP TRUE
+    THEN
+  UNTIL ;
+
 \ Get a value from an intmap
 : GET-INTMAP ( addr key intmap -- found )
   TUCK GET-INDEX DUP -1 <> IF

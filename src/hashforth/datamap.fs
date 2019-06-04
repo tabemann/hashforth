@@ -217,6 +217,22 @@ DATAMAP-WORDLIST SET-CURRENT
 : DESTROY-DATAMAP ( datamap -- )
   DUP CLEAR-DATAMAP DUP DATAMAP-ENTRIES @ FREE! FREE! ;
 
+\ Evaluate an xt for each member of a datamap; note that the internal state
+\ is hidden from the xt, so the xt can transparently access the outside stack
+: ITER-DATAMAP ( xt datamap -- )
+  0 BEGIN
+    2DUP SWAP DATAMAP-COUNT @ < IF
+      2DUP SWAP IS-FOUND-INDEX IF
+	2DUP SWAP GET-ENTRY @ SWAP >R SWAP >R SWAP >R
+	DUP ENTRY-KEY ROT ENTRY-VALUE R@ EXECUTE
+	R> R> R>
+      THEN
+      1 + FALSE
+    ELSE
+      DROP 2DROP TRUE
+    THEN
+  UNTIL ;
+
 \ Get a value from a datamap
 : GET-DATAMAP ( key-addr key-bytes datamap -- value-addr value-bytes found )
   DUP >R GET-INDEX DUP -1 <> IF
