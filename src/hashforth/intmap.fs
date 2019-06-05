@@ -108,7 +108,7 @@ END-STRUCTURE
 \ Carry out finalizing of an entry if there is a finalizer xt
 : DO-FINALIZE ( entry intmap -- )
   DUP >R INTMAP-FINALIZER @ IF
-    DUP INTMAP-ENTRY-KEY @ SWAP INTMAP-HEADER-SIZE +
+    DUP INTMAP-HEADER-SIZE + SWAP INTMAP-ENTRY-KEY @
     R@ INTMAP-FINALIZER-ARG @ R> INTMAP-FINALIZER @ EXECUTE
   ELSE
     DROP R> DROP
@@ -224,13 +224,14 @@ INTMAP-WORDLIST SET-CURRENT
   THEN
   DUP CLEAR-INTMAP DUP INTMAP-ENTRIES @ FREE! FREE! ;
 
-\ Evaluate an xt for each member of an intmap
+\ Evaluate an xt for each member of an intmap; note that the internal state
+\ is hidden from the xt, so the xt can transparently access the outside stack
 : ITER-INTMAP ( xt intmap -- )
   0 BEGIN
     2DUP SWAP INTMAP-COUNT @ < IF
       2DUP SWAP IS-FOUND-INDEX IF
 	2DUP SWAP GET-ENTRY SWAP >R SWAP >R SWAP >R
-	DUP @ SWAP INTMAP-HEADER-SIZE + R@ EXECUTE
+	DUP INTMAP-HEADER-SIZE + SWAP @ 1 - R@ EXECUTE
 	R> R> R>
       THEN
       1 + FALSE
@@ -296,5 +297,18 @@ INTMAP-WORDLIST SET-CURRENT
 \ Set a cell in an intmap
 : SET-INTMAP-CELL ( value key intmap -- success )
   ROT HERE TUCK ! 1 CELLS ALLOT ROT ROT SET-INTMAP -1 CELLS ALLOT ;
+
+\ Intmaps do not share a value size
+: X-VALUE-SIZES-NOT-MATCHING ( -- )
+  SPACE ." intmap value sizes do not match" CR ;
+
+\ Unable to copy intmap
+: X-UNABLE-TO-COPY-INTMAP ( -- ) SPACE ." unable to copy intmap" CR ;
+
+\ Copy one intmap into another intmap
+: COPY-INTMAP ( source-intmap dest-intmap -- )
+  OVER INTMAP-VALUE-SIZE @ OVER INTMAP-VALUE-SIZE @ =
+  AVERTS X-VALUE-SIZES-NOT-MATCHING
+  [: 2 PICK SET-INTMAP AVERTS X-UNABLE-TO-COPY-INTMAP ;] ROT ITER-INTMAP DROP ;
 
 BASE ! SET-CURRENT SET-ORDER
