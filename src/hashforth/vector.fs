@@ -63,10 +63,34 @@ BEGIN-STRUCTURE VECTOR-SIZE
 
   \ The current end index in the circular buffer
   FIELD: VECTOR-END-INDEX
+
+  \ The finalizer word
+  FIELD: VECTOR-FINALIZER
+
+  \ THe extra finalizer argument
+  FIELD: VECTOR-FINALIZER-ARG
 END-STRUCTURE
 
 \ The vector-is-allocated flag
 1 CONSTANT ALLOCATED-VECTOR
+
+\ Internal - get address of a block at an index in a vector.
+: GET-VECTOR-ENTRY ( index vector -- addr )
+  2DUP VECTOR-START-INDEX @ SWAP <= IF
+    DUP VECTOR-START-INDEX @ ROT 1 + - OVER VECTOR-MAX-COUNT @ +
+  ELSE
+    DUP VECTOR-START-INDEX @ ROT 1 + -
+  THEN
+  OVER VECTOR-ENTRY-SIZE @ * SWAP VECTOR-DATA @ + ;
+
+\ Carry out finalizing of an entry if there is a finalizer xt
+: DO-FINALIZE ( index vector -- )
+  DUP VECTOR-FINALIZER @ IF
+    TUCK GET-VECTOR-ENTRY OVER VECTOR-FINALIZER-ARG @ ROT
+    VECTOR-FINALIZER @ EXECUTE
+  ELSE
+    2DROP
+  THEN ;
 
 \ Internal - wrap an index backward
 : WRAP-BACK ( index vector -- index )
@@ -172,6 +196,8 @@ END-STRUCTURE
   OVER VECTOR-ENTRY-SIZE @ OVER VECTOR-ENTRY-SIZE !
   0 OVER VECTOR-START-INDEX !
   0 OVER VECTOR-END-INDEX !
+  0 OVER VECTOR-FINALIZER !
+  0 OVER VECTOR-FINALIZER-ARG !
   DUP VECTOR-MAX-COUNT @ OVER VECTOR-ENTRY-SIZE @ * ALLOCATE IF
     OVER VECTOR-DATA !
     2DUP APPEND-VECTOR
@@ -195,6 +221,8 @@ END-STRUCTURE
       OVER VECTOR-ENTRY-SIZE @ OVER VECTOR-ENTRY-SIZE !
       0 OVER VECTOR-START-INDEX !
       0 OVER VECTOR-END-INDEX !
+      0 OVER VECTOR-FINALIZER !
+      0 OVER VECTOR-FINALIZER-ARG !
       DUP VECTOR-MAX-COUNT @ OVER VECTOR-ENTRY-SIZE @ * ALLOCATE IF
 	OVER VECTOR-DATA !
 	2DUP APPEND-VECTOR
@@ -223,7 +251,9 @@ VECTOR-WORDLIST SET-CURRENT
   CR ." VECTOR-MAX-COUNT: " DUP VECTOR-MAX-COUNT @ .
   CR ." VECTOR-ENTRY-SIZE: " DUP VECTOR-ENTRY-SIZE @ .
   CR ." VECTOR-START-INDEX: " DUP VECTOR-START-INDEX @ .
-  CR ." VECTOR-END-INDEX: " VECTOR-END-INDEX @ . CR ;
+  CR ." VECTOR-END-INDEX: " VECTOR-END-INDEX @ .
+  CR ." VECTOR-FINALIZER: " VECTOR-FINALIZER @ .
+  CR ." VECTOR-FINALIZER-ARG: " VECTOR-FINALIZER-ARG @ . CR ;
 
 \ Vector is not allocated exception
 : X-VECTOR-NOT-ALLOCATED ( -- ) SPACE ." vector is not allocated" CR ;
@@ -236,6 +266,8 @@ VECTOR-WORDLIST SET-CURRENT
   0 OVER VECTOR-COUNT !
   0 OVER VECTOR-START-INDEX !
   0 OVER VECTOR-END-INDEX !
+  0 OVER VECTOR-FINALIZER !
+  0 OVER VECTOR-FINALIZER-ARG !
   HERE 3 ROLL 3 PICK * ALLOT OVER VECTOR-DATA !
   TUCK VECTOR-ENTRY-SIZE ! ;
 
@@ -247,8 +279,14 @@ VECTOR-WORDLIST SET-CURRENT
   0 OVER VECTOR-COUNT !
   0 OVER VECTOR-START-INDEX !
   0 OVER VECTOR-END-INDEX !
+  0 OVER VECTOR-FINALIZER !
+  0 OVER VECTOR-FINALIZER-ARG !
   ROT 2 PICK * ALLOCATE! OVER VECTOR-DATA !
   TUCK VECTOR-ENTRY-SIZE ! ;
+
+\ Set a finalizer
+: SET-VECTOR-FINALIZER ( finalizer finalizer-arg map -- )
+  TUCK VECTOR-FINALIZER-ARG ! VECTOR-FINALIZER ! ;
 
 \ Destroy an allocated vector.
 : DESTROY-VECTOR ( vector -- )
@@ -302,7 +340,11 @@ VECTOR-WORDLIST SET-CURRENT
 
 \ Set a block at an index in a vector and return whether it was successful.
 : SET-VECTOR ( addr index vector -- success )
-  2DUP COUNT-VECTOR < IF SET-VECTOR TRUE ELSE 2DROP DROP FALSE THEN ;
+  2DUP COUNT-VECTOR < IF
+    2DUP DO-FINALIZE SET-VECTOR TRUE
+  ELSE
+    2DROP DROP FALSE
+  THEN ;
 
 \ Set a cell at an index in a vector and return whether it was successful.
 : SET-VECTOR-CELL ( value index vector -- success )
@@ -367,7 +409,11 @@ VECTOR-WORDLIST SET-CURRENT
 
 \ Drop a block from the start of a vector and return whether it was successful.
 : DROP-START-VECTOR ( vector -- success )
-  DUP EMPTY-VECTOR? NOT IF DROP-START-VECTOR TRUE ELSE DROP FALSE THEN ;
+  DUP EMPTY-VECTOR? NOT IF
+    0 OVER DO-FINALIZE DROP-START-VECTOR TRUE
+  ELSE
+    DROP FALSE
+  THEN ;
 
 \ Peek a block from the start of a vector and return whether it was successful.
 : PEEK-START-VECTOR ( addr vector -- success )
@@ -442,7 +488,11 @@ VECTOR-WORDLIST SET-CURRENT
 
 \ Drop a block from the end of a vector and return whether it was successful.
 : DROP-END-VECTOR ( vector -- success )
-  DUP EMPTY-VECTOR? NOT IF DROP-END-VECTOR TRUE ELSE DROP FALSE THEN ;
+  DUP EMPTY-VECTOR? NOT IF
+    DUP COUNT-VECTOR 1 - OVER DO-FINALIZE DROP-END-VECTOR TRUE
+  ELSE
+    DROP FALSE
+  THEN ;
 
 \ Peek a block from the end of a vector and return whether it was successful.
 : PEEK-END-VECTOR ( addr vector -- success )

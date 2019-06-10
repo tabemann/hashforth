@@ -1626,5 +1626,7 @@ S" src/hashforth/bchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/bufbchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/varbchan.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/vector.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/intmap.fs" ADD-SOURCE-TO-STORAGE
+S" src/hashforth/map.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/line.fs" ADD-SOURCE-TO-STORAGE
 S" src/hashforth/ready.fs" ADD-SOURCE-TO-STORAGE
