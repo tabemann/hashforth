@@ -345,28 +345,28 @@ VECTOR-WORDLIST SET-CURRENT
 \ transparently access the outstack
 : ITER-LEFT-VECTOR-CELL ( xt vector -- )
   DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR ;
+  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR DROP ;
 
 \ Evaluate an xt for the cell of each member of a vector from right to left;
 \ note that the internal state is hidden from the xt, so the xt can
 \ transparently access the outstack
 : ITER-RIGHT-VECTOR-CELL ( xt vector -- )
   DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR ;
+  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR DROP ;
 
 \ Evaluate an xt for the double cell of each member of a vector from left to
 \ right; note that the internal state is hidden from the xt, so the xt can
 \ transparently access the outstack
 : ITER-LEFT-VECTOR-2CELL ( xt vector -- )
   DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR ;
+  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR DROP ;
 
 \ Evaluate an xt for the double cell of each member of a vector from right to
 \ left; note that the internal state is hidden from the xt, so the xt can
 \ transparently access the outstack
 : ITER-RIGHT-VECTOR-2CELL ( xt vector -- )
   DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR ;
+  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR DROP ;
 
 \ Get a block at an index in a vector and return whether it was successful.
 : GET-VECTOR ( addr index vector -- success )
