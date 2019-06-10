@@ -38,7 +38,8 @@ FORTH-WORDLIST VECTOR-WORDLIST 2 SET-ORDER
 VECTOR-WORDLIST SET-CURRENT
 
 WORDLIST CONSTANT VECTOR-PRIVATE-WORDLIST
-FORTH-WORDLIST VECTOR-PRIVATE-WORDLIST VECTOR-WORDLIST 3 SET-ORDER
+FORTH-WORDLIST VECTOR-PRIVATE-WORDLIST VECTOR-WORDLIST
+LAMBDA-WORDLIST 4 SET-ORDER
 VECTOR-PRIVATE-WORDLIST SET-CURRENT
 
 \ The vector structure
@@ -312,6 +313,60 @@ VECTOR-WORDLIST SET-CURRENT
 
 \ Vector is not composed of double cells exception
 : X-NON-2CELL-VECTOR ( -- ) SPACE ." non-double cell vector" CR ;
+
+\ Evaluate an xt for the address of each member of a vector from left to right;
+\ note that the internal state is hidden from the xt, so the xt can
+\ transparently access the outside stack
+: ITER-LEFT-VECTOR ( xt vector -- )
+  0 BEGIN
+    DUP 2 PICK COUNT-VECTOR < IF
+      2DUP SWAP GET-VECTOR-ENTRY SWAP >R SWAP >R SWAP >R R@ EXECUTE R> R> R> 1 +
+      FALSE
+    ELSE
+      DROP 2DROP TRUE
+    THEN
+  UNTIL ;
+
+\ Evaluate an xt for the address of each member of a vector from right to left;
+\ note that the internal state is hidden from the xt, so the xt can
+\ transparently access the outside stack
+: ITER-RIGHT-VECTOR ( xt vector -- )
+  DUP COUNT-VECTOR 1 - BEGIN
+    DUP 0 >= IF
+      2DUP SWAP GET-VECTOR-ENTRY SWAP >R SWAP >R SWAP >R R@ EXECUTE R> R> R> 1 -
+      FALSE
+    ELSE
+      DROP 2DROP TRUE
+    THEN
+  UNTIL ;
+
+\ Evaluate an xt for the cell of each member of a vector from left to right;
+\ note that the internal state is hidden from the xt, so the xt can
+\ transparently access the outstack
+: ITER-LEFT-VECTOR-CELL ( xt vector -- )
+  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
+  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR ;
+
+\ Evaluate an xt for the cell of each member of a vector from right to left;
+\ note that the internal state is hidden from the xt, so the xt can
+\ transparently access the outstack
+: ITER-RIGHT-VECTOR-CELL ( xt vector -- )
+  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
+  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR ;
+
+\ Evaluate an xt for the double cell of each member of a vector from left to
+\ right; note that the internal state is hidden from the xt, so the xt can
+\ transparently access the outstack
+: ITER-LEFT-VECTOR-2CELL ( xt vector -- )
+  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
+  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR ;
+
+\ Evaluate an xt for the double cell of each member of a vector from right to
+\ left; note that the internal state is hidden from the xt, so the xt can
+\ transparently access the outstack
+: ITER-RIGHT-VECTOR-2CELL ( xt vector -- )
+  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
+  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR ;
 
 \ Get a block at an index in a vector and return whether it was successful.
 : GET-VECTOR ( addr index vector -- success )
