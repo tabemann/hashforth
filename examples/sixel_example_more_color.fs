@@ -27,91 +27,91 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-MARKER REVERT
+marker revert
 
-INCLUDE src/hashforth/sixel.fs
+include src/hashforth/sixel.fs
 
-FORTH-WORDLIST TASK-WORDLIST SIXEL-WORDLIST 3 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+forth-wordlist task-wordlist sixel-wordlist 3 set-order
+forth-wordlist set-current
 
-512 CONSTANT CANVAS-WIDTH
-512 CONSTANT CANVAS-HEIGHT
-4 CONSTANT RED-COLOR-COUNT
-4 CONSTANT GREEN-COLOR-COUNT
-4 CONSTANT BLUE-COLOR-COUNT
-RED-COLOR-COUNT GREEN-COLOR-COUNT * BLUE-COLOR-COUNT * CONSTANT COLOR-COUNT
+512 constant canvas-width
+512 constant canvas-height
+4 constant red-color-count
+4 constant green-color-count
+4 constant blue-color-count
+red-color-count green-color-count * blue-color-count * constant color-count
 
-CANVAS-WIDTH CANVAS-HEIGHT COLOR-COUNT NEW-SIXEL-FB CONSTANT CANVAS
+canvas-width canvas-height color-count new-sixel-fb constant canvas
 
-$1B CONSTANT ESCAPE
+$1b constant escape
 
-: (DEC.) ( n -- ) 10 (BASE.) ;
+: (dec.) ( n -- ) 10 (base.) ;
 
-: CSI ( -- ) ESCAPE EMIT [CHAR] [ EMIT ;
+: csi ( -- ) escape emit [char] [ emit ;
 
-: SHOW-CURSOR ( -- ) CSI [CHAR] ? EMIT 25 (DEC.) [CHAR] h EMIT ;
+: show-cursor ( -- ) csi [char] ? emit 25 (dec.) [char] h emit ;
 
-: HIDE-CURSOR ( -- ) CSI [CHAR] ? EMIT 25 (DEC.) [CHAR] l EMIT ;
+: hide-cursor ( -- ) csi [char] ? emit 25 (dec.) [char] l emit ;
 
-: SAVE-CURSOR ( -- ) CSI [CHAR] s EMIT ;
+: save-cursor ( -- ) csi [char] s emit ;
 
-: RESTORE-CURSOR ( -- )  CSI [CHAR] u EMIT ;
+: restore-cursor ( -- )  csi [char] u emit ;
 
-: ERASE-END-OF-LINE ( -- ) CSI [CHAR] K EMIT ;
+: erase-end-of-line ( -- ) csi [char] K emit ;
 
-: ERASE-DOWN ( -- ) CSI [CHAR] J EMIT ;
+: erase-down ( -- ) csi [char] J emit ;
 
-: GO-TO-COORD ( row column -- )
-  SWAP CSI 1 + (DEC.) [CHAR] ; EMIT 1 + (DEC.) [CHAR] f EMIT ;
+: go-to-coord ( row column -- )
+  swap csi 1 + (dec.) [char] ; emit 1 + (dec.) [char] f emit ;
 
-: SET-COLORS ( -- )
-  0 BEGIN DUP RED-COLOR-COUNT < WHILE
-    0 BEGIN DUP GREEN-COLOR-COUNT < WHILE
-      0 BEGIN DUP BLUE-COLOR-COUNT < WHILE
-        2 PICK 255 * RED-COLOR-COUNT 1 - /
-	2 PICK 255 * GREEN-COLOR-COUNT 1 - /
-	2 PICK 255 * BLUE-COLOR-COUNT 1 - /
-	5 PICK 4 LSHIFT 5 PICK 2 LSHIFT OR 4 PICK OR
-	CANVAS SET-COLOR 1 +
-      REPEAT
-      DROP 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP ;
+: set-colors ( -- )
+  0 begin dup red-color-count < while
+    0 begin dup green-color-count < while
+      0 begin dup blue-color-count < while
+        2 pick 255 * red-color-count 1 - /
+	2 pick 255 * green-color-count 1 - /
+	2 pick 255 * blue-color-count 1 - /
+	5 pick 4 lshift 5 pick 2 lshift or 4 pick or
+	canvas set-color 1 +
+      repeat
+      drop 1 +
+    repeat
+    drop 1 +
+  repeat
+  drop ;
 
 \ : FILL-CANVAS ( b -- ) CANVAS FILL-PIXELS ;
 
-: FILL-CANVAS ( b -- )
-  >R CANVAS CLEAR-PIXELS
-  0 BEGIN DUP CANVAS-WIDTH < WHILE
-    0 BEGIN DUP CANVAS-HEIGHT < WHILE
-      2DUP 3 PICK RED-COLOR-COUNT * CANVAS-WIDTH / 4 LSHIFT
-      3 PICK GREEN-COLOR-COUNT * CANVAS-HEIGHT / 2 LSHIFT OR R@ OR
-      CANVAS PIXEL-NO-CLEAR! 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP R> DROP ;
+: fill-canvas ( b -- )
+  >r canvas clear-pixels
+  0 begin dup canvas-width < while
+    0 begin dup canvas-height < while
+      2dup 3 pick red-color-count * canvas-width / 4 lshift
+      3 pick green-color-count * canvas-height / 2 lshift or r@ or
+      canvas pixel-no-clear! 1 +
+    repeat
+    drop 1 +
+  repeat
+  drop r> drop ;
 
-: ANIMATE ( -- )
-  HIDE-CURSOR 0 0 GO-TO-COORD ERASE-DOWN ERASE-END-OF-LINE SAVE-CURSOR
-  0 BEGIN DUP BLUE-COLOR-COUNT < KEY? NOT AND WHILE
-    RESTORE-CURSOR
-    DUP FILL-CANVAS CANVAS DRAW ( 1 0 SLEEP ) 1 +
-  REPEAT
-  DROP
-  KEY? IF KEY DROP THEN
-  SHOW-CURSOR 9999 0 GO-TO-COORD ;
+: animate ( -- )
+  hide-cursor 0 0 go-to-coord erase-down erase-end-of-line save-cursor
+  0 begin dup blue-color-count < key? not and while
+    restore-cursor
+    dup fill-canvas canvas draw ( 1 0 SLEEP ) 1 +
+  repeat
+  drop
+  key? if key drop then
+  show-cursor 9999 0 go-to-coord ;
 
-2VARIABLE START-TIME
-GET-MONOTONIC-TIME START-TIME 2!
+2variable start-time
+get-monotonic-time start-time 2!
 
-SET-COLORS ANIMATE
+set-colors animate
 
-2VARIABLE END-TIME
-GET-MONOTONIC-TIME END-TIME 2!
+2variable end-time
+get-monotonic-time end-time 2!
 
-END-TIME 2@ START-TIME 2@ SUBTRACT-TIME CONVERT-TIME-TO-MS .
+end-time 2@ start-time 2@ subtract-time convert-time-to-ms .
 
-REVERT
+revert

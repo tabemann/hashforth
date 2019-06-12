@@ -27,270 +27,270 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT MAP-WORDLIST
-FORTH-WORDLIST LAMBDA-WORDLIST MAP-WORDLIST 3 SET-ORDER
-MAP-WORDLIST SET-CURRENT
+wordlist constant map-wordlist
+forth-wordlist lambda-wordlist map-wordlist 3 set-order
+map-wordlist set-current
 
-WORDLIST CONSTANT MAP-PRIVATE-WORDLIST
-FORTH-WORDLIST LAMBDA-WORDLIST MAP-PRIVATE-WORDLIST MAP-WORDLIST
-LAMBDA-WORDLIST 5 SET-ORDER
-MAP-PRIVATE-WORDLIST SET-CURRENT
+wordlist constant map-private-wordlist
+forth-wordlist lambda-wordlist map-private-wordlist map-wordlist
+lambda-wordlist 5 set-order
+map-private-wordlist set-current
 
 \ The map entry structure
-BEGIN-STRUCTURE MAP-HEADER-SIZE
+begin-structure map-header-size
   \ The map entry key size
-  FIELD: MAP-ENTRY-KEY-SIZE
+  field: map-entry-key-size
 
   \ The map entry value size
-  FIELD: MAP-ENTRY-VALUE-SIZE
-END-STRUCTURE
+  field: map-entry-value-size
+end-structure
 
 \ The map structure
-BEGIN-STRUCTURE MAP-SIZE
+begin-structure map-size
   \ The number of map entry fields, regardless of whether they are used
-  FIELD: MAP-COUNT
+  field: map-count
 
   \ The number of actual map entries
-  FIELD: MAP-ENTRY-COUNT
+  field: map-entry-count
 
   \ The map entries
-  FIELD: MAP-ENTRIES
+  field: map-entries
 
   \ The finalizer word
-  FIELD: MAP-FINALIZER
+  field: map-finalizer
 
   \ The extra finalizer argument
-  FIELD: MAP-FINALIZER-ARG
-END-STRUCTURE
+  field: map-finalizer-arg
+end-structure
 
 \ Get the map entry size
-: MAP-ENTRY-SIZE ( entry -- )
-  DUP MAP-ENTRY-KEY-SIZE @ SWAP MAP-ENTRY-VALUE-SIZE @ +
-  MAP-HEADER-SIZE + ;
+: map-entry-size ( entry -- )
+  dup map-entry-key-size @ swap map-entry-value-size @ +
+  map-header-size + ;
 
 \ Calculate a hash for a key
-: HASH-KEY ( addr bytes -- hash )
-  0 BEGIN OVER 0 > WHILE
-    DUP 7 LSHIFT SWAP [ 1 CELLS 8 * 7 - ] LITERAL RSHIFT OR
-    2 PICK C@ XOR ROT 1 + ROT 1 - ROT
-  REPEAT
-  NIP NIP ;
+: hash-key ( addr bytes -- hash )
+  0 begin over 0 > while
+    dup 7 lshift swap [ 1 cells 8 * 7 - ] literal rshift or
+    2 pick c@ xor rot 1 + rot 1 - rot
+  repeat
+  nip nip ;
 
 \ Convert a key into an entry key
-: GET-ENTRY-KEY ( addr bytes map -- entry-key )
-  ROT ROT HASH-KEY SWAP MAP-COUNT @ UMOD ;
+: get-entry-key ( addr bytes map -- entry-key )
+  rot rot hash-key swap map-count @ umod ;
 
 \ Get entry address
-: GET-ENTRY ( entry-key map -- entry ) MAP-ENTRIES @ SWAP CELLS + ;
+: get-entry ( entry-key map -- entry ) map-entries @ swap cells + ;
 
 \ Compare keys
-: COMPARE-KEYS ( addr bytes entry -- match )
-  DUP MAP-HEADER-SIZE + SWAP MAP-ENTRY-KEY-SIZE @ EQUAL-STRINGS? ;
+: compare-keys ( addr bytes entry -- match )
+  dup map-header-size + swap map-entry-key-size @ equal-strings? ;
 
 \ Get the index for a key; return -1 if key is not found
-: GET-INDEX ( addr bytes map -- index )
-  2 PICK 2 PICK 2 PICK GET-ENTRY-KEY DUP >R BEGIN
-    DUP 2 PICK GET-ENTRY
-    DUP @ 0 = IF ( addr bytes map entry-key entry )
-      DROP NIP NIP NIP R> DROP TRUE
-    ELSE
-      4 PICK 4 PICK ROT @ COMPARE-KEYS IF
-	NIP NIP NIP R> DROP TRUE
-      ELSE
-	1 + OVER MAP-COUNT @ UMOD DUP R@ <> IF
-	  FALSE
-	ELSE
-	  2DROP 2DROP R> DROP -1 TRUE
-	THEN
-      THEN
-    THEN
-  UNTIL ;
+: get-index ( addr bytes map -- index )
+  2 pick 2 pick 2 pick get-entry-key dup >r begin
+    dup 2 pick get-entry
+    dup @ 0 = if ( addr bytes map entry-key entry )
+      drop nip nip nip r> drop true
+    else
+      4 pick 4 pick rot @ compare-keys if
+	nip nip nip r> drop true
+      else
+	1 + over map-count @ umod dup r@ <> if
+	  false
+	else
+	  2drop 2drop r> drop -1 true
+	then
+      then
+    then
+  until ;
 
 \ Get whether an index is a found index
-: IS-FOUND-INDEX ( index map -- ) GET-ENTRY @ 0 <> ;
+: is-found-index ( index map -- ) get-entry @ 0 <> ;
 
 \ Get the key of an entry
-: ENTRY-KEY ( entry -- addr bytes )
-  DUP MAP-HEADER-SIZE + SWAP MAP-ENTRY-KEY-SIZE @ ;
+: entry-key ( entry -- addr bytes )
+  dup map-header-size + swap map-entry-key-size @ ;
 
 \ Get the value of an entry
-: ENTRY-VALUE ( entry -- addr bytes )
-  DUP MAP-HEADER-SIZE + OVER MAP-ENTRY-KEY-SIZE @ +
-  SWAP MAP-ENTRY-VALUE-SIZE @ ;
+: entry-value ( entry -- addr bytes )
+  dup map-header-size + over map-entry-key-size @ +
+  swap map-entry-value-size @ ;
 
 \ Carry out finalizing of an entry if there is a finalizer xt
-: DO-FINALIZE ( entry map -- )
-  DUP >R MAP-FINALIZER @ IF
-    DUP ENTRY-VALUE ROT ENTRY-KEY R@ MAP-FINALIZER-ARG @
-    R> MAP-FINALIZER @ EXECUTE
-  ELSE
-    DROP R> DROP
-  THEN ;
+: do-finalize ( entry map -- )
+  dup >r map-finalizer @ if
+    dup entry-value rot entry-key r@ map-finalizer-arg @
+    r> map-finalizer @ execute
+  else
+    drop r> drop
+  then ;
 
 \ Actually set a value in a map
-: ACTUALLY-SET-MAP ( addr map -- success )
-  OVER ENTRY-KEY 2 PICK GET-INDEX DUP -1 <> IF
-    DUP 2 PICK IS-FOUND-INDEX IF
-      2DUP SWAP GET-ENTRY @ 2 PICK DO-FINALIZE
-      SWAP GET-ENTRY DUP @ FREE! ! TRUE
-    ELSE
-      1 2 PICK MAP-ENTRY-COUNT +!
-      SWAP GET-ENTRY ! TRUE
-    THEN
-  ELSE
-    DROP 2DROP FALSE
-  THEN ;
+: actually-set-map ( addr map -- success )
+  over entry-key 2 pick get-index dup -1 <> if
+    dup 2 pick is-found-index if
+      2dup swap get-entry @ 2 pick do-finalize
+      swap get-entry dup @ free! ! true
+    else
+      1 2 pick map-entry-count +!
+      swap get-entry ! true
+    then
+  else
+    drop 2drop false
+  then ;
 
 \ Allocate an entry block
-: ALLOCATE-ENTRY ( value-addr value-bytes key-addr key-bytes -- block-addr )
-  2 PICK OVER + MAP-HEADER-SIZE + ALLOCATE IF
-    2DUP MAP-ENTRY-KEY-SIZE !
-    3 PICK OVER MAP-ENTRY-VALUE-SIZE !
-    ROT OVER MAP-HEADER-SIZE + 3 ROLL MOVE
-    ROT OVER MAP-HEADER-SIZE + 2 PICK MAP-ENTRY-KEY-SIZE @ + 3 ROLL MOVE
-  ELSE
-    2DROP 2DROP 0
-  THEN ;
+: allocate-entry ( value-addr value-bytes key-addr key-bytes -- block-addr )
+  2 pick over + map-header-size + allocate if
+    2dup map-entry-key-size !
+    3 pick over map-entry-value-size !
+    rot over map-header-size + 3 roll move
+    rot over map-header-size + 2 pick map-entry-key-size @ + 3 roll move
+  else
+    2drop 2drop 0
+  then ;
 
 \ Map internal exception
-: X-MAP-INTERNAL ( -- ) SPACE ." map internal exception" CR ;
+: x-map-internal ( -- ) space ." map internal exception" cr ;
 
 \ Map allocation failed exception
-: X-MAP-ALLOCATE-FAILED ( -- ) SPACE ." this should not be seen" CR ;
+: x-map-allocate-failed ( -- ) space ." this should not be seen" cr ;
 
 \ Expand a map
-: EXPAND-MAP ( map -- )
-  DUP MAP-COUNT @ 2 * CELLS ALLOCATE AVERTS X-MAP-ALLOCATE-FAILED
-  HERE MAP-SIZE ALLOT
-  2 PICK MAP-COUNT @ 2 * OVER MAP-COUNT !
-  0 OVER MAP-ENTRY-COUNT !
-  0 OVER MAP-FINALIZER !
-  0 OVER MAP-FINALIZER-ARG !
-  2DUP MAP-ENTRIES !
-  DUP MAP-ENTRIES @ OVER MAP-COUNT @ CELLS 0 FILL
-  2 PICK MAP-COUNT @ 0 ?DO
-    I 3 PICK GET-ENTRY @ ?DUP IF
-      OVER ACTUALLY-SET-MAP AVERTS X-MAP-INTERNAL
-    THEN
-  LOOP
-  DROP MAP-SIZE NEGATE ALLOT
-  OVER MAP-ENTRIES @ FREE!
-  OVER MAP-COUNT @ 2 * 2 PICK MAP-COUNT !
-  SWAP MAP-ENTRIES ! ;
+: expand-map ( map -- )
+  dup map-count @ 2 * cells allocate averts x-map-allocate-failed
+  here map-size allot
+  2 pick map-count @ 2 * over map-count !
+  0 over map-entry-count !
+  0 over map-finalizer !
+  0 over map-finalizer-arg !
+  2dup map-entries !
+  dup map-entries @ over map-count @ cells 0 fill
+  2 pick map-count @ 0 ?do
+    i 3 pick get-entry @ ?dup if
+      over actually-set-map averts x-map-internal
+    then
+  loop
+  drop map-size negate allot
+  over map-entries @ free!
+  over map-count @ 2 * 2 pick map-count !
+  swap map-entries ! ;
 
-MAP-WORDLIST SET-CURRENT
+map-wordlist set-current
 
 \ Zero map size specified
-: X-ZERO-MAP-SIZE ( -- ) SPACE ." zero not valid map size" CR ;
+: x-zero-map-size ( -- ) space ." zero not valid map size" cr ;
 
 \ Allocate a map
-: ALLOCATE-MAP ( initial-entry-count -- map )
-  DUP 0 = IF 2DROP ['] X-ZERO-MAP-SIZE ?RAISE THEN
-  MAP-SIZE ALLOCATE!
-  2DUP MAP-COUNT !
-  0 OVER MAP-ENTRY-COUNT !
-  0 OVER MAP-FINALIZER-ARG !
-  0 OVER MAP-FINALIZER !
-  OVER CELLS ALLOCATE!
-  OVER MAP-ENTRIES !
-  DUP MAP-ENTRIES @ ROT CELLS 0 FILL ;
+: allocate-map ( initial-entry-count -- map )
+  dup 0 = if 2drop ['] x-zero-map-size ?raise then
+  map-size allocate!
+  2dup map-count !
+  0 over map-entry-count !
+  0 over map-finalizer-arg !
+  0 over map-finalizer !
+  over cells allocate!
+  over map-entries !
+  dup map-entries @ rot cells 0 fill ;
 
 \ Set a finalizer
-: SET-MAP-FINALIZER ( finalizer finalizer-arg map -- )
-  TUCK MAP-FINALIZER-ARG ! MAP-FINALIZER ! ;
+: set-map-finalizer ( finalizer finalizer-arg map -- )
+  tuck map-finalizer-arg ! map-finalizer ! ;
 
 \ Clear a map
-: CLEAR-MAP ( map -- )
-  DUP MAP-COUNT @ 0 ?DO
-    I OVER IS-FOUND-INDEX IF
-      I OVER GET-ENTRY DUP @ DUP 3 PICK DO-FINALIZE FREE! 0 SWAP !
-    THEN
-  LOOP
-  0 SWAP MAP-ENTRY-COUNT ! ;
+: clear-map ( map -- )
+  dup map-count @ 0 ?do
+    i over is-found-index if
+      i over get-entry dup @ dup 3 pick do-finalize free! 0 swap !
+    then
+  loop
+  0 swap map-entry-count ! ;
 
 \ Destroy a map
-: DESTROY-MAP ( map -- )
-  DUP CLEAR-MAP DUP MAP-ENTRIES @ FREE! FREE! ;
+: destroy-map ( map -- )
+  dup clear-map dup map-entries @ free! free! ;
 
 \ Evaluate an xt for each member of a map; note that the internal state
 \ is hidden from the xt, so the xt can transparently access the outside stack
-: ITER-MAP ( xt map -- )
-  0 BEGIN
-    2DUP SWAP MAP-COUNT @ < IF
-      2DUP SWAP IS-FOUND-INDEX IF
-	2DUP SWAP GET-ENTRY @ SWAP >R SWAP >R SWAP >R
-	DUP ENTRY-VALUE ROT ENTRY-KEY R@ EXECUTE
-	R> R> R>
-      THEN
-      1 + FALSE
-    ELSE
-      DROP 2DROP TRUE
-    THEN
-  UNTIL ;
+: iter-map ( xt map -- )
+  0 begin
+    2dup swap map-count @ < if
+      2dup swap is-found-index if
+	2dup swap get-entry @ swap >r swap >r swap >r
+	dup entry-value rot entry-key r@ execute
+	r> r> r>
+      then
+      1 + false
+    else
+      drop 2drop true
+    then
+  until ;
 
 \ Get a value from a map
-: GET-MAP ( key-addr key-bytes map -- value-addr value-bytes found )
-  DUP >R GET-INDEX DUP -1 <> IF
-    DUP R@ IS-FOUND-INDEX IF
-      R> GET-ENTRY @ ENTRY-VALUE TRUE
-    ELSE
-      DROP R> DROP 0 0 FALSE
-    THEN
-  ELSE
-    DROP R> DROP 0 0 FALSE
-  THEN ;
+: get-map ( key-addr key-bytes map -- value-addr value-bytes found )
+  dup >r get-index dup -1 <> if
+    dup r@ is-found-index if
+      r> get-entry @ entry-value true
+    else
+      drop r> drop 0 0 false
+    then
+  else
+    drop r> drop 0 0 false
+  then ;
 
 \ Set a value in a map
-: SET-MAP ( value-addr value-bytes key-addr key-bytes map -- success )
-  DUP MAP-ENTRY-COUNT @ OVER MAP-COUNT @ 2 / > IF
-    DUP ['] EXPAND-MAP TRY DUP ['] X-MAP-ALLOCATE-FAILED = IF
-      DROP 0
-    THEN
-    ?RAISE
-  THEN
-  >R ALLOCATE-ENTRY ?DUP IF
-    DUP R> ACTUALLY-SET-MAP IF
-      DROP TRUE
-    ELSE
-      FREE! FALSE
-    THEN
-  ELSE
-    R> DROP FALSE
-  THEN ;
+: set-map ( value-addr value-bytes key-addr key-bytes map -- success )
+  dup map-entry-count @ over map-count @ 2 / > if
+    dup ['] expand-map try dup ['] x-map-allocate-failed = if
+      drop 0
+    then
+    ?raise
+  then
+  >r allocate-entry ?dup if
+    dup r> actually-set-map if
+      drop true
+    else
+      free! false
+    then
+  else
+    r> drop false
+  then ;
 
 \ Delete a value in a map
-: DELETE-MAP ( key-addr key-bytes map -- found )
-  DUP >R GET-INDEX DUP -1 <> IF
-    DUP R@ IS-FOUND-INDEX IF
-      -1 R@ MAP-ENTRY-COUNT +!
-      R@ GET-ENTRY DUP @ R> DO-FINALIZE 0 SWAP ! TRUE
-    ELSE
-      DROP R> DROP FALSE
-    THEN
-  ELSE
-    DROP R> DROP FALSE
-  THEN ;
+: delete-map ( key-addr key-bytes map -- found )
+  dup >r get-index dup -1 <> if
+    dup r@ is-found-index if
+      -1 r@ map-entry-count +!
+      r@ get-entry dup @ r> do-finalize 0 swap ! true
+    else
+      drop r> drop false
+    then
+  else
+    drop r> drop false
+  then ;
 
 \ Get whether a key is a member of a map
-: MEMBER-MAP ( key-addr key-bytes intmap -- found )
-  DUP >R GET-INDEX DUP -1 <> IF
-    R> IS-FOUND-INDEX
-  ELSE
-    DROP R> DROP FALSE
-  THEN ;
+: member-map ( key-addr key-bytes intmap -- found )
+  dup >r get-index dup -1 <> if
+    r> is-found-index
+  else
+    drop r> drop false
+  then ;
 
 \ Unable to copy map
-: X-UNABLE-TO-COPY-MAP ( -- ) SPACE ." unable to copy map" CR ;
+: x-unable-to-copy-map ( -- ) space ." unable to copy map" cr ;
 
 \ Copy a map into another map
-: COPY-MAP ( source-map dest-map -- )
-  [: 4 PICK SET-MAP AVERTS X-UNABLE-TO-COPY-MAP ;]
-  ROT ITER-MAP DROP ;
+: copy-map ( source-map dest-map -- )
+  [: 4 pick set-map averts x-unable-to-copy-map ;]
+  rot iter-map drop ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

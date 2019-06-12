@@ -27,56 +27,56 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
-TASK-WORDLIST SET-CURRENT
+decimal
+forth-wordlist task-wordlist 2 set-order
+task-wordlist set-current
 
-BEGIN-STRUCTURE MUTEX-SIZE
-  FIELD: MUTEX-HELD
-  FIELD: MUTEX-WAITING
-  FIELD: MUTEX-WAITING-COUNT
-  FIELD: MUTEX-WAITING-SIZE
-END-STRUCTURE
+begin-structure mutex-size
+  field: mutex-held
+  field: mutex-waiting
+  field: mutex-waiting-count
+  field: mutex-waiting-size
+end-structure
 
 \ Allocate a new mutex variable with a specified waiting queue size.
-: NEW-MUTEX ( waiting-size -- mutex )
-  HERE MUTEX-SIZE ALLOT
-  TUCK MUTEX-WAITING-SIZE !
-  0 OVER MUTEX-WAITING-COUNT !
-  0 OVER MUTEX-HELD !
-  DUP MUTEX-WAITING-SIZE @ HERE SWAP CELLS ALLOT OVER MUTEX-WAITING ! ;
+: new-mutex ( waiting-size -- mutex )
+  here mutex-size allot
+  tuck mutex-waiting-size !
+  0 over mutex-waiting-count !
+  0 over mutex-held !
+  dup mutex-waiting-size @ here swap cells allot over mutex-waiting ! ;
 
 \ Lock a mutex.
-: LOCK-MUTEX ( mutex -- )
-  BEGIN DUP MUTEX-HELD @ 0<> OVER MUTEX-HELD @ CURRENT-TASK <> AND WHILE
-    BEGIN DUP MUTEX-WAITING-COUNT @ OVER MUTEX-WAITING-SIZE @ = WHILE
-      PAUSE
-    REPEAT
-    DUP MUTEX-HELD @ 0<> AND MUTEX-HELD @ CURRENT-TASK <> AND IF
-      DUP MUTEX-WAITING @ OVER MUTEX-WAITING-COUNT @ CELLS + CURRENT-TASK SWAP !
-      1 SWAP MUTEX-WAITING-COUNT +!
-      CURRENT-TASK DEACTIVATE-TASK
-    THEN
-  REPEAT
-  CURRENT-TASK SWAP MUTEX-HELD ! ;
+: lock-mutex ( mutex -- )
+  begin dup mutex-held @ 0<> over mutex-held @ current-task <> and while
+    begin dup mutex-waiting-count @ over mutex-waiting-size @ = while
+      pause
+    repeat
+    dup mutex-held @ 0<> and mutex-held @ current-task <> and if
+      dup mutex-waiting @ over mutex-waiting-count @ cells + current-task swap !
+      1 swap mutex-waiting-count +!
+      current-task deactivate-task
+    then
+  repeat
+  current-task swap mutex-held ! ;
 
 \ Unlock a mutex.
-: UNLOCK-MUTEX ( mutex -- )
-  DUP MUTEX-HELD @ CURRENT-TASK = IF
-    DUP MUTEX-WAITING-COUNT @ 0 > IF
-      DUP MUTEX-WAITING @ @ 2DUP MUTEX-HELD ! ACTIVATE-TASK
-      DUP MUTEX-WAITING @ CELL+ OVER MUTEX-WAITING @
-      2 PICK MUTEX-WAITING-COUNT @ 1 - CELLS MOVE
-      -1 SWAP MUTEX-WAITING-COUNT +!
-    ELSE
-      0 SWAP MUTEX-HELD !
-    THEN
-  THEN ;
+: unlock-mutex ( mutex -- )
+  dup mutex-held @ current-task = if
+    dup mutex-waiting-count @ 0 > if
+      dup mutex-waiting @ @ 2dup mutex-held ! activate-task
+      dup mutex-waiting @ cell+ over mutex-waiting @
+      2 pick mutex-waiting-count @ 1 - cells move
+      -1 swap mutex-waiting-count +!
+    else
+      0 swap mutex-held !
+    then
+  then ;
 
 \ Lock and unlock a mutex after executing a word.
-: WITH-MUTEX ( mutex xt -- )
-  OVER LOCK-MUTEX SWAP >R TRY R> UNLOCK-MUTEX ?RAISE ;
+: with-mutex ( mutex xt -- )
+  over lock-mutex swap >r try r> unlock-mutex ?raise ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

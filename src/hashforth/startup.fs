@@ -28,34 +28,34 @@
 \ POSSIBILITY OF SUCH DAMAGE.
 
 \ Add a value to an address
-: +! ( n addr ) DUP @ ROT + SWAP ! ;
+: +! ( n addr ) dup @ rot + swap ! ;
 
-: BIN 2 BASE ! ;
-: BINARY 2 BASE ! ;
+: bin 2 base ! ;
+: binary 2 base ! ;
 
-: OCT 8 BASE ! ;
-: OCTAL 8 BASE ! ;
+: oct 8 base ! ;
+: octal 8 base ! ;
 
-: DEC 10 BASE ! ;
-: DECIMAL 10 BASE ! ;
+: dec 10 base ! ;
+: decimal 10 base ! ;
 
-: HEX 16 BASE ! ;
+: hex 16 base ! ;
 
 \ Execute an xt with a specified BASE set, restoring BASE afterwards even if
 \ an exception occurs
-: BASE-EXECUTE ( i*x xt base -- j*x ) BASE @ >R BASE ! TRY R> BASE ! ?RAISE ;
+: base-execute ( i*x xt base -- j*x ) base @ >r base ! try r> base ! ?raise ;
 
 \ Execute . with a specified base
-: BASE. ( n base -- ) ['] . SWAP BASE-EXECUTE ;
+: base. ( n base -- ) ['] . swap base-execute ;
 
 \ Execute (.) with a specified base
-: (BASE.) ( n base -- ) ['] (.) SWAP BASE-EXECUTE ;
+: (base.) ( n base -- ) ['] (.) swap base-execute ;
 
 \ Execute U. with a specified base
-: UBASE. ( u base -- ) ['] U. SWAP BASE-EXECUTE ;
+: ubase. ( u base -- ) ['] u. swap base-execute ;
 
 \ Exxecute (U.) with a specified base
-: (UBASE.) ( u base -- ) ['] (U.) SWAP BASE-EXECUTE ;
+: (ubase.) ( u base -- ) ['] (u.) swap base-execute ;
 
 : 1+ 1 + ;
 
@@ -73,166 +73,166 @@
 
 : 0>= 0 >= ;
 
-: ABS DUP 0< IF NEGATE THEN ;
+: abs dup 0< if negate then ;
 
-: POSTPONE ' DUP IMMEDIATE? IF
-    COMPILE,
-  ELSE
-    COMPILE (LIT) , COMPILE COMPILE,
-  THEN ; IMMEDIATE COMPILE-ONLY
+: postpone ' dup immediate? if
+    compile,
+  else
+    compile (lit) , compile compile,
+  then ; immediate compile-only
 
-: & POSTPONE POSTPONE ; IMMEDIATE
+: & postpone postpone ; immediate
 
-: 2SWAP 3 ROLL 3 ROLL ;
+: 2swap 3 roll 3 roll ;
 
-: 2OVER 3 PICK 3 PICK ;
+: 2over 3 pick 3 pick ;
 
-: 2ROT 5 ROLL 5 ROLL ;
+: 2rot 5 roll 5 roll ;
 
-: 2! TUCK ! CELL+ ! ;
+: 2! tuck ! cell+ ! ;
 
-: 2@ DUP @ SWAP CELL+ @ SWAP ;
+: 2@ dup @ swap cell+ @ swap ;
 
-: 2, HERE 2! [ 2 CELLS ] LITERAL ALLOT ;
+: 2, here 2! [ 2 cells ] literal allot ;
 
-: 2>R R> ROT ROT SWAP >R >R >R ;
+: 2>r r> rot rot swap >r >r >r ;
 
-: 2R> R> R> R> SWAP ROT >R ;
+: 2r> r> r> r> swap rot >r ;
 
-: 2R@ R> R> R> 2DUP SWAP ROT >R ROT >R ROT >R ;
+: 2r@ r> r> r> 2dup swap rot >r rot >r rot >r ;
 
-: 2VARIABLE CREATE 0 0 2, ;
+: 2variable create 0 0 2, ;
 
-: 2CONSTANT CREATE 2, DOES> 2@ ;
+: 2constant create 2, does> 2@ ;
 
-: DEFER CREATE ['] ABORT , DOES> @ EXECUTE ;
+: defer create ['] abort , does> @ execute ;
 
-: DEFER! >BODY ! ;
+: defer! >body ! ;
 
-: DEFER@ >BODY @ ;
+: defer@ >body @ ;
 
-: ACTION-OF STATE @ IF & ['] & DEFER@ ELSE ' DEFER@ THEN ; IMMEDIATE
+: action-of state @ if & ['] & defer@ else ' defer@ then ; immediate
 
-: IS STATE @ IF & ['] & DEFER! ELSE ' DEFER! THEN ; IMMEDIATE
+: is state @ if & ['] & defer! else ' defer! then ; immediate
 
-: DO & (LIT) HERE DUP 0 , & >R & 2>R HERE ; IMMEDIATE COMPILE-ONLY
+: do & (lit) here dup 0 , & >r & 2>r here ; immediate compile-only
 
-: ?DO & (LIT) HERE 0 , & >R & 2DUP & 2>R & <> & 0BRANCH HERE 0 , HERE
-  ; IMMEDIATE COMPILE-ONLY
+: ?do & (lit) here 0 , & >r & 2dup & 2>r & <> & 0branch here 0 , here
+  ; immediate compile-only
 
-: LOOP & 2R> & 1+ & 2DUP & 2>R & = & 0BRANCH , HERE SWAP ! HERE SWAP !
-  & 2R> & 2DROP & R> & DROP ; IMMEDIATE COMPILE-ONLY
+: loop & 2r> & 1+ & 2dup & 2>r & = & 0branch , here swap ! here swap !
+  & 2r> & 2drop & r> & drop ; immediate compile-only
 
-: +LOOP & 2R> & ROT & DUP & 0>= & IF
-    & SWAP & DUP & (LIT) 3 , & PICK & < & ROT & ROT & +
-    & DUP & (LIT) 3 , & PICK & >= & ROT & AND & ROT & ROT & 2>R
-  & ELSE
-    & SWAP & DUP & (LIT) 3 , & PICK & >= & ROT & ROT & +
-    & DUP & (LIT) 3 , & PICK & < & ROT & AND & ROT & ROT & 2>R
-  & THEN
-  & 0BRANCH , HERE SWAP ! HERE SWAP ! & 2R> & 2DROP & R> & DROP ;
-  IMMEDIATE COMPILE-ONLY
+: +loop & 2r> & rot & dup & 0>= & if
+    & swap & dup & (lit) 3 , & pick & < & rot & rot & +
+    & dup & (lit) 3 , & pick & >= & rot & and & rot & rot & 2>r
+  & else
+    & swap & dup & (lit) 3 , & pick & >= & rot & rot & +
+    & dup & (lit) 3 , & pick & < & rot & and & rot & rot & 2>r
+  & then
+  & 0branch , here swap ! here swap ! & 2r> & 2drop & r> & drop ;
+  immediate compile-only
 
-: LEAVE R> 2R> 2DROP >R ;
+: leave r> 2r> 2drop >r ;
 
-: UNLOOP R> 2R> 2DROP R> DROP >R ;
+: unloop r> 2r> 2drop r> drop >r ;
 
-: I R> R@ SWAP >R ;
+: i r> r@ swap >r ;
 
-: J 2R> 2R> R@ 4 ROLL 4 ROLL 4 ROLL 4 ROLL 2>R 2>R ;
+: j 2r> 2r> r@ 4 roll 4 roll 4 roll 4 roll 2>r 2>r ;
 
-: CASE 0 ; IMMEDIATE COMPILE-ONLY
+: case 0 ; immediate compile-only
 
-: OF & OVER & = POSTPONE IF & DROP ; IMMEDIATE COMPILE-ONLY
+: of & over & = postpone if & drop ; immediate compile-only
 
-: ENDOF SWAP ?DUP IF HERE SWAP ! THEN
-  & BRANCH HERE 0 , SWAP POSTPONE THEN ; IMMEDIATE COMPILE-ONLY
+: endof swap ?dup if here swap ! then
+  & branch here 0 , swap postpone then ; immediate compile-only
 
-: ENDCASE & DROP ?DUP IF HERE SWAP ! THEN ; IMMEDIATE COMPILE-ONLY
+: endcase & drop ?dup if here swap ! then ; immediate compile-only
 
-: OFSTR
-  & (LIT) 3 , & PICK & (LIT) 3 , & PICK & EQUAL-STRINGS? POSTPONE IF & 2DROP
-; IMMEDIATE COMPILE-ONLY
+: ofstr
+  & (lit) 3 , & pick & (lit) 3 , & pick & equal-strings? postpone if & 2drop
+; immediate compile-only
 
-: OFSTRCASE
-  & (LIT) 3 , & PICK & (LIT) 3 , & PICK & EQUAL-NAME? POSTPONE IF & 2DROP
-; IMMEDIATE COMPILE-ONLY
+: ofstrcase
+  & (lit) 3 , & pick & (lit) 3 , & pick & equal-name? postpone if & 2drop
+; immediate compile-only
 
-: ENDCASESTR & 2DROP ?DUP IF HERE SWAP ! THEN ; IMMEDIATE COMPILE-ONLY
+: endcasestr & 2drop ?dup if here swap ! then ; immediate compile-only
 
-: FILL ( addr count char -- )
-  SWAP BEGIN DUP 0 > WHILE ROT 2 PICK OVER C! 1 + ROT ROT 1 - REPEAT
-  DROP 2DROP ;
+: fill ( addr count char -- )
+  swap begin dup 0 > while rot 2 pick over c! 1 + rot rot 1 - repeat
+  drop 2drop ;
 
-: ALIGN HERE CELL-SIZE MOD DUP 0<> IF
-    CELL-SIZE SWAP - ALLOT
-  ELSE
-    DROP
-  THEN ;
+: align here cell-size mod dup 0<> if
+    cell-size swap - allot
+  else
+    drop
+  then ;
 
-: ALIGNED DUP CELL-SIZE MOD DUP 0<> IF
-    CELL-SIZE SWAP - +
-  ELSE
-    DROP
-  THEN ;
+: aligned dup cell-size mod dup 0<> if
+    cell-size swap - +
+  else
+    drop
+  then ;
 
-: WALIGN HERE 4 MOD DUP 0<> IF
-    4 SWAP - ALLOT
-  ELSE
-    DROP
-  THEN ;
+: walign here 4 mod dup 0<> if
+    4 swap - allot
+  else
+    drop
+  then ;
 
-: WALIGNED DUP 4 MOD DUP 0<> IF
-    4 SWAP - +
-  ELSE
-    DROP
-  THEN ;
+: waligned dup 4 mod dup 0<> if
+    4 swap - +
+  else
+    drop
+  then ;
 
-: HALIGN HERE 2 MOD DUP 0<> IF
-    2 SWAP - ALLOT
-  ELSE
-    DROP
-  THEN ;
+: halign here 2 mod dup 0<> if
+    2 swap - allot
+  else
+    drop
+  then ;
 
-: HALIGNED DUP 2 MOD DUP 0<> IF
-    2 SWAP - +
-  ELSE
-    DROP
-  THEN ;
+: haligned dup 2 mod dup 0<> if
+    2 swap - +
+  else
+    drop
+  then ;
 
-: BEGIN-STRUCTURE CREATE HERE 0 0 , DOES> @ ;
+: begin-structure create here 0 0 , does> @ ;
 
-: END-STRUCTURE SWAP ! ;
+: end-structure swap ! ;
 
-: +FIELD CREATE OVER , + DOES> @ + ;
+: +field create over , + does> @ + ;
 
-: CFIELD: CREATE DUP , 1 + DOES> @ + ;
+: cfield: create dup , 1 + does> @ + ;
 
-: HFIELD: CREATE HALIGNED DUP , 2 + DOES> @ + ;
+: hfield: create haligned dup , 2 + does> @ + ;
 
-: WFIELD: CREATE WALIGNED DUP , 4 + DOES> @ + ;
+: wfield: create waligned dup , 4 + does> @ + ;
 
-: FIELD: CREATE ALIGNED DUP , [ CELL-SIZE ] LITERAL + DOES> @ + ;
+: field: create aligned dup , [ cell-size ] literal + does> @ + ;
 
 \ Add two times
-: TIME+ ( s1 ns1 s2 ns2 -- s3 ns3 )
-  ROT + DUP 1000000000 >= IF
-    1000000000 - ROT ROT + 1 + SWAP
-  ELSE DUP 0 < IF
-    1000000000 + ROT ROT + 1 - SWAP
-  ELSE
-    ROT ROT + SWAP
-  THEN THEN ;
+: time+ ( s1 ns1 s2 ns2 -- s3 ns3 )
+  rot + dup 1000000000 >= if
+    1000000000 - rot rot + 1 + swap
+  else dup 0 < if
+    1000000000 + rot rot + 1 - swap
+  else
+    rot rot + swap
+  then then ;
 
 \ Get a sign
-: SIGN ( n -- ) DUP 0 > IF 1 ELSE 0 < IF -1 ELSE 0 THEN THEN ;
+: sign ( n -- ) dup 0 > if 1 else 0 < if -1 else 0 then then ;
 
 \ Turn a counted string into a normal string
-: COUNT ( c-addr1 - c-addr2 u ) DUP C@ SWAP 1 + SWAP ;
+: count ( c-addr1 - c-addr2 u ) dup c@ swap 1 + swap ;
 
 \ Drop a given number of cells in addition to the count
-: DROPS ( x*u1 u1 -- ) CELLS SP@ + CELL+ SP! ;
+: drops ( x*u1 u1 -- ) cells sp@ + cell+ sp! ;
 
 \ Drop a given number of cells in addition to the count except for the cell
 \ directly beneath the count
-: NIPS ( x*u1 x1 u1 -- x1 ) SWAP >R 1- DROPS R> ;
+: nips ( x*u1 x1 u1 -- x1 ) swap >r 1- drops r> ;

@@ -27,22 +27,22 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
+forth-wordlist task-wordlist 2 set-order
 
-2 8 2 2 2 NEW-VARBCHAN CONSTANT MY-VARBCHAN
+2 8 2 2 2 new-varbchan constant my-varbchan
 
-: RECEIVER
-  BEGIN
-    HERE 32 32 ALLOT MY-VARBCHAN RECV-VARBCHAN -32 ALLOT HERE SWAP TYPE CR
-  AGAIN ;
+: receiver
+  begin
+    here 32 32 allot my-varbchan recv-varbchan -32 allot here swap type cr
+  again ;
 
-: DISPLAY" ( "ccc<quote>" -- )
-  PARSE-STRING MY-VARBCHAN SEND-VARBCHAN PAUSE ; IMMEDIATE
+: display" ( "ccc<quote>" -- )
+  parse-string my-varbchan send-varbchan pause ; immediate
 
-256 256 512 0 ' RECEIVER NEW-TASK CONSTANT RECEIVER-TASK
+256 256 512 0 ' receiver new-task constant receiver-task
 
-RECEIVER-TASK ACTIVATE-TASK
+receiver-task activate-task
 
-DISPLAY" This is an example!"
-DISPLAY" This is another example!"
-PAUSE
+display" this is an example!"
+display" this is another example!"
+pause

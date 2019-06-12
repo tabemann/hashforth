@@ -27,15 +27,15 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist task-wordlist 2 set-order
+forth-wordlist set-current
 
-: SLEEPER BEGIN 0 500000000 SLEEP ." * " AGAIN ;
+: sleeper begin 0 500000000 sleep ." * " again ;
 
-256 256 256 0 ' SLEEPER NEW-TASK CONSTANT SLEEPER-TASK
-SLEEPER-TASK ACTIVATE-TASK KEY DROP SLEEPER-TASK DEACTIVATE-TASK
+256 256 256 0 ' sleeper new-task constant sleeper-task
+sleeper-task activate-task key drop sleeper-task deactivate-task
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

@@ -27,96 +27,96 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-FORTH-WORDLIST VECTOR-WORDLIST 2 SET-ORDER
+forth-wordlist vector-wordlist 2 set-order
 
-4 2 CELLS ALLOCATE-VECTOR CONSTANT MY-VECTOR-0
-4 2 CELLS ALLOCATE-VECTOR CONSTANT MY-VECTOR-1
+4 2 cells allocate-vector constant my-vector-0
+4 2 cells allocate-vector constant my-vector-1
 
-TRUE CONSTANT SUCCESS
-FALSE CONSTANT FAILURE
+true constant success
+false constant failure
 
-: TYPE-PAIR ( value1 value 2 -- ) ." ( " SWAP . ." , " . ." ) " ;
+: type-pair ( value1 value 2 -- ) ." ( " SWAP . ." , " . ." ) " ;
 
-: DUMP-VECTOR ( vector -- )
-  >R ." < " 0 BEGIN DUP R@ COUNT-VECTOR < WHILE
-    DUP R@ GET-VECTOR-2CELL IF TYPE-PAIR ELSE 2DROP ." ??? " THEN 1 +
-  REPEAT
-  DROP ." > " R> DROP ;
+: dump-vector ( vector -- )
+  >r ." < " 0 begin dup r@ count-vector < while
+    dup r@ get-vector-2cell if type-pair else 2drop ." ??? " then 1 +
+  repeat
+  drop ." > " r> drop ;
 
-: PUSH-START-ENTRY ( success value1 value2 vector -- )
-  ." pushing-start " 2 PICK 2 PICK TYPE-PAIR
-  DUP >R PUSH-START-VECTOR-2CELL NOT XOR
-  IF ." success " ELSE ." failure " THEN R> DUMP-VECTOR CR ;
+: push-start-entry ( success value1 value2 vector -- )
+  ." pushing-start " 2 pick 2 pick type-pair
+  dup >r push-start-vector-2cell not xor
+  if ." success " else ." failure " then r> dump-vector cr ;
 
-: PUSH-END-ENTRY ( success value1 value2 vector -- )
-  ." pushing-end " 2 PICK 2 PICK TYPE-PAIR
-  DUP >R PUSH-END-VECTOR-2CELL NOT XOR
-  IF ." success " ELSE ." failure " THEN R> DUMP-VECTOR CR ;
+: push-end-entry ( success value1 value2 vector -- )
+  ." pushing-end " 2 pick 2 pick type-pair
+  dup >r push-end-vector-2cell not xor
+  if ." success " else ." failure " then r> dump-vector cr ;
 
-: POP-START-ENTRY ( success vector -- )
-  ." popping-start " DUP >R POP-START-VECTOR-2CELL ROT NOT XOR
-  IF TYPE-PAIR ." success " ELSE 2DROP ." failure " THEN R> DUMP-VECTOR CR ;
+: pop-start-entry ( success vector -- )
+  ." popping-start " dup >r pop-start-vector-2cell rot not xor
+  if type-pair ." success " else 2drop ." failure " then r> dump-vector cr ;
 
-: POP-END-ENTRY ( success vector -- )
-  ." popping-end " DUP >R POP-END-VECTOR-2CELL ROT NOT XOR
-  IF TYPE-PAIR ." success " ELSE 2DROP ." failure " THEN R> DUMP-VECTOR CR ;
+: pop-end-entry ( success vector -- )
+  ." popping-end " dup >r pop-end-vector-2cell rot not xor
+  if type-pair ." success " else 2drop ." failure " then r> dump-vector cr ;
 
-: PEEK-START-ENTRY ( success vector -- )
-  ." peeking-start " DUP >R PEEK-START-VECTOR-CELL ROT NOT XOR
-  IF TYPE-PAIR ." success " ELSE 2DROP ." failure " THEN R> DUMP-VECTOR CR ;
+: peek-start-entry ( success vector -- )
+  ." peeking-start " dup >r peek-start-vector-cell rot not xor
+  if type-pair ." success " else 2drop ." failure " then r> dump-vector cr ;
 
-: PEEK-END-ENTRY ( success vector -- )
-  ." peeking-end " DUP >R PEEK-END-VECTOR-CELL ROT NOT XOR
-  IF TYPE-PAIR ." success " ELSE 2DROP ." failure " THEN R> DUMP-VECTOR CR ;
+: peek-end-entry ( success vector -- )
+  ." peeking-end " dup >r peek-end-vector-cell rot not xor
+  if type-pair ." success " else 2drop ." failure " then r> dump-vector cr ;
 
-: DROP-START-ENTRY ( success vector -- )
-  ." dropping-start " DUP >R DROP-START-VECTOR NOT XOR
-  IF ." success " ELSE 2DROP ." failure " THEN R> DUMP-VECTOR CR ;
+: drop-start-entry ( success vector -- )
+  ." dropping-start " dup >r drop-start-vector not xor
+  if ." success " else 2drop ." failure " then r> dump-vector cr ;
 
-: DROP-END-ENTRY ( success vector -- )
-  ." dropping-end " DUP >R DROP-END-VECTOR NOT XOR
-  IF ." success " ELSE 2DROP ." failure " THEN R> DUMP-VECTOR CR ;
+: drop-end-entry ( success vector -- )
+  ." dropping-end " dup >r drop-end-vector not xor
+  if ." success " else 2drop ." failure " then r> dump-vector cr ;
 
-: PREPEND-ENTRIES ( success source-vector dest-vector )
-  ." prepending " DUP >R PREPEND-VECTOR NOT XOR
-  IF ." success " ELSE ." failure " THEN R> DUMP-VECTOR CR ;
+: prepend-entries ( success source-vector dest-vector )
+  ." prepending " dup >r prepend-vector not xor
+  if ." success " else ." failure " then r> dump-vector cr ;
 
-: APPEND-ENTRIES ( success source-vector dest-vector )
-  ." appending " DUP >R APPEND-VECTOR NOT XOR
-  IF ." success " ELSE ." failure " THEN R> DUMP-VECTOR CR ;
+: append-entries ( success source-vector dest-vector )
+  ." appending " dup >r append-vector not xor
+  if ." success " else ." failure " then r> dump-vector cr ;
 
-: CLEAR-ENTRIES ( vector -- ) ." clearing " DUP CLEAR-VECTOR DUMP-VECTOR CR ;
+: clear-entries ( vector -- ) ." clearing " dup clear-vector dump-vector cr ;
 
-CR .( Populating MY-VECTOR-0) CR
+cr .( Populating MY-VECTOR-0) cr
 
-SUCCESS 0 -1 MY-VECTOR-0 PUSH-START-ENTRY
-SUCCESS 1 -2 MY-VECTOR-0 PUSH-END-ENTRY
-SUCCESS 2 -3 MY-VECTOR-0 PUSH-START-ENTRY
-SUCCESS 3 -4 MY-VECTOR-0 PUSH-END-ENTRY
-SUCCESS 4 -5 MY-VECTOR-0 PUSH-START-ENTRY
-SUCCESS 5 -6 MY-VECTOR-0 PUSH-END-ENTRY
+success 0 -1 my-vector-0 push-start-entry
+success 1 -2 my-vector-0 push-end-entry
+success 2 -3 my-vector-0 push-start-entry
+success 3 -4 my-vector-0 push-end-entry
+success 4 -5 my-vector-0 push-start-entry
+success 5 -6 my-vector-0 push-end-entry
 
-.( Copying to MY-VECTOR-1) CR
+.( Copying to MY-VECTOR-1) cr
 
-SUCCESS 0 0 MY-VECTOR-1 PUSH-START-ENTRY
-SUCCESS MY-VECTOR-0 MY-VECTOR-1 PREPEND-ENTRIES
-SUCCESS MY-VECTOR-0 MY-VECTOR-1 APPEND-ENTRIES
+success 0 0 my-vector-1 push-start-entry
+success my-vector-0 my-vector-1 prepend-entries
+success my-vector-0 my-vector-1 append-entries
 
-.( Popping entries from MY-VECTOR-1) CR
+.( Popping entries from MY-VECTOR-1) cr
 
-SUCCESS MY-VECTOR-1 POP-START-ENTRY
-SUCCESS MY-VECTOR-1 POP-END-ENTRY
-SUCCESS MY-VECTOR-1 POP-START-ENTRY
-SUCCESS MY-VECTOR-1 POP-END-ENTRY
-SUCCESS MY-VECTOR-1 POP-START-ENTRY
-SUCCESS MY-VECTOR-1 POP-END-ENTRY
+success my-vector-1 pop-start-entry
+success my-vector-1 pop-end-entry
+success my-vector-1 pop-start-entry
+success my-vector-1 pop-end-entry
+success my-vector-1 pop-start-entry
+success my-vector-1 pop-end-entry
 
-.( Dropping entries from MY-VECTOR-1) CR
+.( Dropping entries from MY-VECTOR-1) cr
 
-SUCCESS MY-VECTOR-1 DROP-START-ENTRY
-SUCCESS MY-VECTOR-1 DROP-END-ENTRY
-SUCCESS MY-VECTOR-1 DROP-START-ENTRY
-SUCCESS MY-VECTOR-1 DROP-END-ENTRY
-SUCCESS MY-VECTOR-1 DROP-START-ENTRY
-SUCCESS MY-VECTOR-1 DROP-END-ENTRY
-SUCCESS MY-VECTOR-1 DROP-END-ENTRY
+success my-vector-1 drop-start-entry
+success my-vector-1 drop-end-entry
+success my-vector-1 drop-start-entry
+success my-vector-1 drop-end-entry
+success my-vector-1 drop-start-entry
+success my-vector-1 drop-end-entry
+success my-vector-1 drop-end-entry

@@ -27,24 +27,24 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
+forth-wordlist task-wordlist 2 set-order
 
-2 256 2 NEW-BUFBCHAN CONSTANT MY-BUFBCHAN
+2 256 2 new-bufbchan constant my-bufbchan
 
-: RECEIVER
-  BEGIN
-    HERE 256 ALLOT MY-BUFBCHAN RECV-BUFBCHAN
-    -256 ALLOT HERE CELL+ HERE @ TYPE CR
-  AGAIN ;
+: receiver
+  begin
+    here 256 allot my-bufbchan recv-bufbchan
+    -256 allot here cell+ here @ type cr
+  again ;
 
-: DISPLAY" ( "ccc<quote>" -- )
-  PARSE-STRING 256 1 CELLS - MIN DUP HERE ! SWAP HERE CELL+ ROT CMOVE
-  HERE MY-BUFBCHAN SEND-BUFBCHAN PAUSE ; IMMEDIATE
+: display" ( "ccc<quote>" -- )
+  parse-string 256 1 cells - min dup here ! swap here cell+ rot cmove
+  here my-bufbchan send-bufbchan pause ; immediate
 
-256 256 512 0 ' RECEIVER NEW-TASK CONSTANT RECEIVER-TASK
+256 256 512 0 ' receiver new-task constant receiver-task
 
-RECEIVER-TASK ACTIVATE-TASK
+receiver-task activate-task
 
-DISPLAY" This is an example!"
-DISPLAY" This is another example!"
-PAUSE
+display" this is an example!"
+display" this is another example!"
+pause

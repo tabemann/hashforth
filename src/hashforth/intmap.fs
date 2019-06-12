@@ -27,312 +27,312 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT INTMAP-WORDLIST
-FORTH-WORDLIST LAMBDA-WORDLIST INTMAP-WORDLIST 3 SET-ORDER
-INTMAP-WORDLIST SET-CURRENT
+wordlist constant intmap-wordlist
+forth-wordlist lambda-wordlist intmap-wordlist 3 set-order
+intmap-wordlist set-current
 
-WORDLIST CONSTANT INTMAP-PRIVATE-WORDLIST
-FORTH-WORDLIST LAMBDA-WORDLIST INTMAP-PRIVATE-WORDLIST INTMAP-WORDLIST
-LAMBDA-WORDLIST 5 SET-ORDER
-INTMAP-PRIVATE-WORDLIST SET-CURRENT
+wordlist constant intmap-private-wordlist
+forth-wordlist lambda-wordlist intmap-private-wordlist intmap-wordlist
+lambda-wordlist 5 set-order
+intmap-private-wordlist set-current
 
 \ The intmap entry structure
-BEGIN-STRUCTURE INTMAP-HEADER-SIZE
+begin-structure intmap-header-size
   \ The intmap entry key (+ 1, a key of 0 indicates that an entry is free)
-  FIELD: INTMAP-ENTRY-KEY
-END-STRUCTURE
+  field: intmap-entry-key
+end-structure
 
 \ The intmap structure
-BEGIN-STRUCTURE INTMAP-SIZE
+begin-structure intmap-size
   \ The intmap flags
-  FIELD: INTMAP-FLAGS
+  field: intmap-flags
 
   \ The intmap value size
-  FIELD: INTMAP-VALUE-SIZE
+  field: intmap-value-size
   
   \ The number of intmap entry fields, regardless of whether they are used
-  FIELD: INTMAP-COUNT
+  field: intmap-count
 
   \ The number of actual intmap entries
-  FIELD: INTMAP-ENTRY-COUNT
+  field: intmap-entry-count
 
   \ The intmap entries
-  FIELD: INTMAP-ENTRIES
+  field: intmap-entries
 
   \ The finalizer word
-  FIELD: INTMAP-FINALIZER
+  field: intmap-finalizer
 
   \ The extra finalizer argument
-  FIELD: INTMAP-FINALIZER-ARG
-END-STRUCTURE
+  field: intmap-finalizer-arg
+end-structure
 
 \ Get the intmap entry size
-: INTMAP-ENTRY-SIZE ( intmap -- bytes )
-  INTMAP-VALUE-SIZE @ INTMAP-HEADER-SIZE + ;
+: intmap-entry-size ( intmap -- bytes )
+  intmap-value-size @ intmap-header-size + ;
 
 \ Convert a key into an entry key
-: GET-ENTRY-KEY ( key intmap -- entry-key ) INTMAP-COUNT @ UMOD ;
+: get-entry-key ( key intmap -- entry-key ) intmap-count @ umod ;
 
 \ Get entry address
-: GET-ENTRY ( entry-key intmap -- entry )
-  DUP INTMAP-ENTRIES @ ROT ROT INTMAP-ENTRY-SIZE * + ;
+: get-entry ( entry-key intmap -- entry )
+  dup intmap-entries @ rot rot intmap-entry-size * + ;
 
 \ Get the index for a key; returns -1 if key is not found
-: GET-INDEX ( key intmap -- index )
-  2DUP GET-ENTRY-KEY DUP >R BEGIN
-    DUP 2 PICK GET-ENTRY
-    DUP INTMAP-ENTRY-KEY @ 0 = IF ( key intmap entry-key entry )
-      DROP NIP NIP R> DROP TRUE ( [: ." a " ;] as-non-task-io )
-    ELSE
-      DUP INTMAP-ENTRY-KEY @ 4 PICK 1 + = IF
-	DROP NIP NIP R> DROP TRUE ( [: ." b " ;] as-non-task-io )
-      ELSE
-	DROP 1 + OVER INTMAP-COUNT @ UMOD DUP R@ <> IF
-	  FALSE ( [: ." c " ;] as-non-task-io )
-	ELSE
-	  2DROP DROP R> DROP -1 TRUE ( [: ." d " ;] as-non-task-io )
-	THEN
-      THEN
-    THEN
-  UNTIL ;
+: get-index ( key intmap -- index )
+  2dup get-entry-key dup >r begin
+    dup 2 pick get-entry
+    dup intmap-entry-key @ 0 = if ( key intmap entry-key entry )
+      drop nip nip r> drop true ( [: ." a " ;] as-non-task-io )
+    else
+      dup intmap-entry-key @ 4 pick 1 + = if
+	drop nip nip r> drop true ( [: ." b " ;] as-non-task-io )
+      else
+	drop 1 + over intmap-count @ umod dup r@ <> if
+	  false ( [: ." c " ;] as-non-task-io )
+	else
+	  2drop drop r> drop -1 true ( [: ." d " ;] as-non-task-io )
+	then
+      then
+    then
+  until ;
 
 \ Get whether an index is a found index
-: IS-FOUND-INDEX ( index intmap -- ) GET-ENTRY INTMAP-ENTRY-KEY @ 0 <> ;
+: is-found-index ( index intmap -- ) get-entry intmap-entry-key @ 0 <> ;
 
 \ Carry out finalizing of an entry if there is a finalizer xt
-: DO-FINALIZE ( entry intmap -- )
-  DUP >R INTMAP-FINALIZER @ IF
-    DUP INTMAP-HEADER-SIZE + SWAP INTMAP-ENTRY-KEY @
-    R@ INTMAP-FINALIZER-ARG @ R> INTMAP-FINALIZER @ EXECUTE
-  ELSE
-    DROP R> DROP
-  THEN ;
+: do-finalize ( entry intmap -- )
+  dup >r intmap-finalizer @ if
+    dup intmap-header-size + swap intmap-entry-key @
+    r@ intmap-finalizer-arg @ r> intmap-finalizer @ execute
+  else
+    drop r> drop
+  then ;
 
 \ The intmap allocated flag
-1 CONSTANT INTMAP-ALLOCATED
+1 constant intmap-allocated
 
 \ Actually set a value in an intmap
-: ACTUALLY-SET-INTMAP ( addr key intmap -- success )
-  2DUP GET-INDEX DUP -1 <> IF
-    DUP 2 PICK IS-FOUND-INDEX IF
-      OVER GET-ENTRY ROT DROP DUP 2 PICK DO-FINALIZE
-      INTMAP-HEADER-SIZE + ROT SWAP ROT INTMAP-VALUE-SIZE @ MOVE TRUE
-    ELSE
-      1 2 PICK INTMAP-ENTRY-COUNT +!
-      OVER GET-ENTRY ROT 1 + OVER INTMAP-ENTRY-KEY !
-      INTMAP-HEADER-SIZE + ROT SWAP ROT INTMAP-VALUE-SIZE @ MOVE TRUE
-    THEN
-  ELSE
-    2DROP 2DROP FALSE
-  THEN ;
+: actually-set-intmap ( addr key intmap -- success )
+  2dup get-index dup -1 <> if
+    dup 2 pick is-found-index if
+      over get-entry rot drop dup 2 pick do-finalize
+      intmap-header-size + rot swap rot intmap-value-size @ move true
+    else
+      1 2 pick intmap-entry-count +!
+      over get-entry rot 1 + over intmap-entry-key !
+      intmap-header-size + rot swap rot intmap-value-size @ move true
+    then
+  else
+    2drop 2drop false
+  then ;
 
 \ Intmap internal exception
-: X-INTMAP-INTERNAL ( -- ) SPACE ." intmap internal exception" CR ;
+: x-intmap-internal ( -- ) space ." intmap internal exception" cr ;
 
 \ Intmap allocation failed exception
-: X-INTMAP-ALLOCATE-FAILED ( -- ) SPACE ." this should not be seen" CR ;
+: x-intmap-allocate-failed ( -- ) space ." this should not be seen" cr ;
 
 \ Expand a heap-allocated intmap
-: EXPAND-INTMAP ( intmap -- )
-  DUP INTMAP-COUNT @ 2 * OVER INTMAP-ENTRY-SIZE *
-  ALLOCATE AVERTS X-INTMAP-ALLOCATE-FAILED
-  HERE INTMAP-SIZE ALLOT
-  0 OVER INTMAP-FLAGS !
-  2 PICK INTMAP-VALUE-SIZE @ OVER INTMAP-VALUE-SIZE !
-  2 PICK INTMAP-COUNT @ 2 * OVER INTMAP-COUNT !
-  0 OVER INTMAP-ENTRY-COUNT !
-  0 OVER INTMAP-FINALIZER !
-  0 OVER INTMAP-FINALIZER-ARG !
-  2DUP INTMAP-ENTRIES !
-  DUP INTMAP-ENTRIES @ OVER INTMAP-COUNT @ 2 PICK INTMAP-ENTRY-SIZE *
-  0 FILL
-  2 PICK INTMAP-COUNT @ 0 ?DO
-    I 3 PICK GET-ENTRY DUP INTMAP-ENTRY-KEY @ 0 <> IF
-      DUP INTMAP-HEADER-SIZE + SWAP INTMAP-ENTRY-KEY @ 1 -
-      2 PICK ACTUALLY-SET-INTMAP AVERTS X-INTMAP-INTERNAL
-    ELSE
-      DROP
-    THEN
-  LOOP
-  DROP INTMAP-SIZE NEGATE ALLOT
-  OVER INTMAP-ENTRIES @ FREE!
-  OVER INTMAP-COUNT @ 2 * 2 PICK INTMAP-COUNT !
-  SWAP INTMAP-ENTRIES ! ;
+: expand-intmap ( intmap -- )
+  dup intmap-count @ 2 * over intmap-entry-size *
+  allocate averts x-intmap-allocate-failed
+  here intmap-size allot
+  0 over intmap-flags !
+  2 pick intmap-value-size @ over intmap-value-size !
+  2 pick intmap-count @ 2 * over intmap-count !
+  0 over intmap-entry-count !
+  0 over intmap-finalizer !
+  0 over intmap-finalizer-arg !
+  2dup intmap-entries !
+  dup intmap-entries @ over intmap-count @ 2 pick intmap-entry-size *
+  0 fill
+  2 pick intmap-count @ 0 ?do
+    i 3 pick get-entry dup intmap-entry-key @ 0 <> if
+      dup intmap-header-size + swap intmap-entry-key @ 1 -
+      2 pick actually-set-intmap averts x-intmap-internal
+    else
+      drop
+    then
+  loop
+  drop intmap-size negate allot
+  over intmap-entries @ free!
+  over intmap-count @ 2 * 2 pick intmap-count !
+  swap intmap-entries ! ;
 
-INTMAP-WORDLIST SET-CURRENT
+intmap-wordlist set-current
 
 \ Zero intmap size specified
-: X-ZERO-INTMAP-SIZE ( -- ) SPACE ." zero not valid intmap size" CR ;
+: x-zero-intmap-size ( -- ) space ." zero not valid intmap size" cr ;
 
 \ Zero value size specified
-: X-ZERO-VALUE-SIZE ( -- ) SPACE ." zero not valid value size" CR ;
+: x-zero-value-size ( -- ) space ." zero not valid value size" cr ;
 
 \ Allot an intmap
-: ALLOT-INTMAP ( value-size max-entry-count -- intmap )
-  DUP 0 = IF 2DROP ['] X-ZERO-INTMAP-SIZE ?RAISE THEN
-  OVER 0 = IF 2DROP ['] X-ZERO-VALUE-SIZE ?RAISE THEN
-  ALIGN HERE INTMAP-SIZE ALLOT
-  ROT OVER INTMAP-VALUE-SIZE !
-  0 OVER INTMAP-FINALIZER-ARG !
-  0 OVER INTMAP-FINALIZER !
-  2DUP INTMAP-COUNT !
-  0 OVER INTMAP-ENTRY-COUNT !
-  0 OVER INTMAP-FLAGS !
-  ALIGN HERE 2 PICK 2 PICK INTMAP-ENTRY-SIZE * ALLOT
-  OVER INTMAP-ENTRIES !
-  DUP INTMAP-ENTRIES @ ROT 2 PICK INTMAP-ENTRY-SIZE * 0 FILL ;
+: allot-intmap ( value-size max-entry-count -- intmap )
+  dup 0 = if 2drop ['] x-zero-intmap-size ?raise then
+  over 0 = if 2drop ['] x-zero-value-size ?raise then
+  align here intmap-size allot
+  rot over intmap-value-size !
+  0 over intmap-finalizer-arg !
+  0 over intmap-finalizer !
+  2dup intmap-count !
+  0 over intmap-entry-count !
+  0 over intmap-flags !
+  align here 2 pick 2 pick intmap-entry-size * allot
+  over intmap-entries !
+  dup intmap-entries @ rot 2 pick intmap-entry-size * 0 fill ;
 
 \ Allocate an intmap
-: ALLOCATE-INTMAP ( value-size initial-entry-count -- intmap )
-  DUP 0 = IF 2DROP ['] X-ZERO-INTMAP-SIZE ?RAISE THEN
-  OVER 0 = IF 2DROP ['] X-ZERO-VALUE-SIZE ?RAISE THEN
-  INTMAP-SIZE ALLOCATE!
-  ROT OVER INTMAP-VALUE-SIZE !
-  0 OVER INTMAP-FINALIZER-ARG !
-  0 OVER INTMAP-FINALIZER !
-  2DUP INTMAP-COUNT !
-  0 OVER INTMAP-ENTRY-COUNT !
-  INTMAP-ALLOCATED OVER INTMAP-FLAGS !
-  2DUP INTMAP-ENTRY-SIZE * ALLOCATE!
-  OVER INTMAP-ENTRIES !
-  DUP INTMAP-ENTRIES @ ROT 2 PICK INTMAP-ENTRY-SIZE * 0 FILL ;
+: allocate-intmap ( value-size initial-entry-count -- intmap )
+  dup 0 = if 2drop ['] x-zero-intmap-size ?raise then
+  over 0 = if 2drop ['] x-zero-value-size ?raise then
+  intmap-size allocate!
+  rot over intmap-value-size !
+  0 over intmap-finalizer-arg !
+  0 over intmap-finalizer !
+  2dup intmap-count !
+  0 over intmap-entry-count !
+  intmap-allocated over intmap-flags !
+  2dup intmap-entry-size * allocate!
+  over intmap-entries !
+  dup intmap-entries @ rot 2 pick intmap-entry-size * 0 fill ;
 
 \ Set a finalizer
-: SET-INTMAP-FINALIZER ( finalizer finalizer-arg intmap -- )
-  TUCK INTMAP-FINALIZER-ARG ! INTMAP-FINALIZER ! ;
+: set-intmap-finalizer ( finalizer finalizer-arg intmap -- )
+  tuck intmap-finalizer-arg ! intmap-finalizer ! ;
 
 \ Clear an intmap
-: CLEAR-INTMAP ( intmap -- )
-  DUP INTMAP-COUNT @ 0 ?DO
-    I OVER IS-FOUND-INDEX IF
-      I OVER GET-ENTRY DUP 2 PICK DO-FINALIZE 0 SWAP !
-    THEN
-  LOOP
-  0 SWAP INTMAP-ENTRY-COUNT ! ;
+: clear-intmap ( intmap -- )
+  dup intmap-count @ 0 ?do
+    i over is-found-index if
+      i over get-entry dup 2 pick do-finalize 0 swap !
+    then
+  loop
+  0 swap intmap-entry-count ! ;
 
 \ Intmap is not allocated exception
-: X-INTMAP-NOT-ALLOCATED ( -- ) SPACE ." intmap is not allocated" CR ;
+: x-intmap-not-allocated ( -- ) space ." intmap is not allocated" cr ;
 
 \ Destroy an allocated intmap
-: DESTROY-INTMAP ( intmap -- )
-  DUP INTMAP-FLAGS @ INTMAP-ALLOCATED AND 0 = IF
-    DROP ['] X-INTMAP-NOT-ALLOCATED ?RAISE
-  THEN
-  DUP CLEAR-INTMAP DUP INTMAP-ENTRIES @ FREE! FREE! ;
+: destroy-intmap ( intmap -- )
+  dup intmap-flags @ intmap-allocated and 0 = if
+    drop ['] x-intmap-not-allocated ?raise
+  then
+  dup clear-intmap dup intmap-entries @ free! free! ;
 
 \ Evaluate an xt for each member of an intmap; note that the internal state
 \ is hidden from the xt, so the xt can transparently access the outside stack
-: ITER-INTMAP ( xt intmap -- )
-  0 BEGIN
-    2DUP SWAP INTMAP-COUNT @ < IF
-      2DUP SWAP IS-FOUND-INDEX IF
-	2DUP SWAP GET-ENTRY SWAP >R SWAP >R SWAP >R
-	DUP INTMAP-HEADER-SIZE + SWAP @ 1 - R@ EXECUTE
-	R> R> R>
-      THEN
-      1 + FALSE
-    ELSE
-      DROP 2DROP TRUE
-    THEN
-  UNTIL ;
+: iter-intmap ( xt intmap -- )
+  0 begin
+    2dup swap intmap-count @ < if
+      2dup swap is-found-index if
+	2dup swap get-entry swap >r swap >r swap >r
+	dup intmap-header-size + swap @ 1 - r@ execute
+	r> r> r>
+      then
+      1 + false
+    else
+      drop 2drop true
+    then
+  until ;
 
 \ Get a value from an intmap
-: GET-INTMAP ( addr key intmap -- found )
-  TUCK GET-INDEX DUP -1 <> IF
-    DUP 2 PICK IS-FOUND-INDEX IF
-      OVER GET-ENTRY INTMAP-HEADER-SIZE +
-      ROT ROT INTMAP-VALUE-SIZE @ MOVE TRUE
-    ELSE
-      DROP 2DROP FALSE
-    THEN
-  ELSE
-    DROP 2DROP FALSE
-  THEN ;
+: get-intmap ( addr key intmap -- found )
+  tuck get-index dup -1 <> if
+    dup 2 pick is-found-index if
+      over get-entry intmap-header-size +
+      rot rot intmap-value-size @ move true
+    else
+      drop 2drop false
+    then
+  else
+    drop 2drop false
+  then ;
 
 \ Set a value in an intmap
-: SET-INTMAP ( addr key intmap -- success )
-  DUP INTMAP-FLAGS @ INTMAP-ALLOCATED AND IF
-    DUP INTMAP-ENTRY-COUNT @ OVER INTMAP-COUNT @ 2 / > IF
-      DUP ['] EXPAND-INTMAP TRY DUP ['] X-INTMAP-ALLOCATE-FAILED = IF
-	DROP 0
-      THEN
-      ?RAISE
-    THEN
-  THEN
-  ACTUALLY-SET-INTMAP ;
+: set-intmap ( addr key intmap -- success )
+  dup intmap-flags @ intmap-allocated and if
+    dup intmap-entry-count @ over intmap-count @ 2 / > if
+      dup ['] expand-intmap try dup ['] x-intmap-allocate-failed = if
+	drop 0
+      then
+      ?raise
+    then
+  then
+  actually-set-intmap ;
 
 \ Delete a value in an intmap
-: DELETE-INTMAP ( key intmap -- found )
-  TUCK GET-INDEX DUP -1 <> IF
-    DUP 2 PICK IS-FOUND-INDEX IF
-      -1 2 PICK INTMAP-ENTRY-COUNT +!
-      OVER GET-ENTRY DUP ROT DO-FINALIZE 0 SWAP INTMAP-ENTRY-KEY ! TRUE
-    ELSE
-      2DROP FALSE
-    THEN
-  ELSE
-    2DROP FALSE
-  THEN ;
+: delete-intmap ( key intmap -- found )
+  tuck get-index dup -1 <> if
+    dup 2 pick is-found-index if
+      -1 2 pick intmap-entry-count +!
+      over get-entry dup rot do-finalize 0 swap intmap-entry-key ! true
+    else
+      2drop false
+    then
+  else
+    2drop false
+  then ;
 
 \ Get whether a key is a member of an intmap
-: MEMBER-INTMAP ( key intmap -- found )
-  TUCK GET-INDEX DUP -1 <> IF
-    SWAP IS-FOUND-INDEX
-  ELSE
-    2DROP FALSE
-  THEN ;
+: member-intmap ( key intmap -- found )
+  tuck get-index dup -1 <> if
+    swap is-found-index
+  else
+    2drop false
+  then ;
 
 \ Intmap does not contain cells exception
-: X-NON-CELL-INTMAP ( -- ) SPACE ." non-cell intmap" CR ;
+: x-non-cell-intmap ( -- ) space ." non-cell intmap" cr ;
 
 \ Intmap does not contain double cells exception
-: X-NON-2CELL-INTMAP ( -- ) SPACE ." non-double cell intmap" CR ;
+: x-non-2cell-intmap ( -- ) space ." non-double cell intmap" cr ;
 
 \ Get a cell from an intmap
-: GET-INTMAP-CELL ( key intmap -- value found )
-  DUP INTMAP-VALUE-SIZE @ 1 CELLS = AVERTS X-NON-CELL-INTMAP
-  HERE DUP >R 1 CELLS ALLOT ROT ROT GET-INTMAP -1 CELLS ALLOT R> @ SWAP IF
-    TRUE
-  ELSE
-    DROP 0 FALSE
-  THEN ;
+: get-intmap-cell ( key intmap -- value found )
+  dup intmap-value-size @ 1 cells = averts x-non-cell-intmap
+  here dup >r 1 cells allot rot rot get-intmap -1 cells allot r> @ swap if
+    true
+  else
+    drop 0 false
+  then ;
 
 \ Get a double cell from an intmap
-: GET-INTMAP-2CELL ( key intmap -- value1 value2 found )
-  DUP INTMAP-VALUE-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-INTMAP
-  HERE DUP >R 2 CELLS ALLOT ROT ROT GET-INTMAP -2 CELLS ALLOT R> 2@ ROT IF
-    TRUE
-  ELSE
-    2DROP 0 0 FALSE
-  THEN ;
+: get-intmap-2cell ( key intmap -- value1 value2 found )
+  dup intmap-value-size @ 2 cells = averts x-non-2cell-intmap
+  here dup >r 2 cells allot rot rot get-intmap -2 cells allot r> 2@ rot if
+    true
+  else
+    2drop 0 0 false
+  then ;
 
 \ Set a cell in an intmap
-: SET-INTMAP-CELL ( value key intmap -- success )
-  DUP INTMAP-VALUE-SIZE @ 1 CELLS = AVERTS X-NON-CELL-INTMAP
-  ROT HERE TUCK ! 1 CELLS ALLOT ROT ROT SET-INTMAP -1 CELLS ALLOT ;
+: set-intmap-cell ( value key intmap -- success )
+  dup intmap-value-size @ 1 cells = averts x-non-cell-intmap
+  rot here tuck ! 1 cells allot rot rot set-intmap -1 cells allot ;
 
 \ Set a double cell in an intmap
-: SET-INTMAP-2CELL ( value1 value2 key intmap -- success )
-  DUP INTMAP-VALUE-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-INTMAP
-  >R >R HERE ROT ROT 2 PICK 2! 2 CELLS ALLOT R> R> SET-INTMAP -2 CELLS ALLOT ;
+: set-intmap-2cell ( value1 value2 key intmap -- success )
+  dup intmap-value-size @ 2 cells = averts x-non-2cell-intmap
+  >r >r here rot rot 2 pick 2! 2 cells allot r> r> set-intmap -2 cells allot ;
 
 \ Intmaps do not share a value size
-: X-VALUE-SIZES-NOT-MATCHING ( -- )
-  SPACE ." intmap value sizes do not match" CR ;
+: x-value-sizes-not-matching ( -- )
+  space ." intmap value sizes do not match" cr ;
 
 \ Unable to copy intmap
-: X-UNABLE-TO-COPY-INTMAP ( -- ) SPACE ." unable to copy intmap" CR ;
+: x-unable-to-copy-intmap ( -- ) space ." unable to copy intmap" cr ;
 
 \ Copy one intmap into another intmap
-: COPY-INTMAP ( source-intmap dest-intmap -- )
-  OVER INTMAP-VALUE-SIZE @ OVER INTMAP-VALUE-SIZE @ =
-  AVERTS X-VALUE-SIZES-NOT-MATCHING
-  [: 2 PICK SET-INTMAP AVERTS X-UNABLE-TO-COPY-INTMAP ;] ROT ITER-INTMAP DROP ;
+: copy-intmap ( source-intmap dest-intmap -- )
+  over intmap-value-size @ over intmap-value-size @ =
+  averts x-value-sizes-not-matching
+  [: 2 pick set-intmap averts x-unable-to-copy-intmap ;] rot iter-intmap drop ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

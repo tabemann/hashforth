@@ -27,150 +27,150 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT LAMBDA-WORDLIST
+wordlist constant lambda-wordlist
 
-FORTH-WORDLIST LAMBDA-WORDLIST 2 SET-ORDER
-LAMBDA-WORDLIST SET-CURRENT
+forth-wordlist lambda-wordlist 2 set-order
+lambda-wordlist set-current
 
 : [: ( -- xt) ( in xt: -- )
-  & BRANCH HERE 0 , 0 COMPILE, LATESTXT :NONAME ; IMMEDIATE
+  & branch here 0 , 0 compile, latestxt :noname ; immediate
 
 : ;] ( -- ) ( in xt: -- )
-  & EXIT 0 COMPILE, ROT HERE SWAP ! & (LIT) , LATESTXT-VALUE ! ; IMMEDIATE
+  & exit 0 compile, rot here swap ! & (lit) , latestxt-value ! ; immediate
 
-: OPTION ( ... flag true-xt -- ... )
-  STATE @ IF
-    & SWAP & IF & EXECUTE & ELSE & DROP & THEN
-  ELSE
-    SWAP IF EXECUTE ELSE DROP THEN
-  THEN ; IMMEDIATE
+: option ( ... flag true-xt -- ... )
+  state @ if
+    & swap & if & execute & else & drop & then
+  else
+    swap if execute else drop then
+  then ; immediate
 
-: CHOOSE ( ... flag true-xt false-xt -- ... )
-  STATE @ IF
-    & ROT & IF & DROP & EXECUTE & ELSE & NIP & EXECUTE & THEN
-  ELSE
-    ROT IF DROP EXECUTE ELSE NIP EXECUTE THEN
-  THEN ; IMMEDIATE
+: choose ( ... flag true-xt false-xt -- ... )
+  state @ if
+    & rot & if & drop & execute & else & nip & execute & then
+  else
+    rot if drop execute else nip execute then
+  then ; immediate
 
-: LOOP-UNTIL ( ... xt -- ... )
-  STATE @ IF
-    & >R & BEGIN & R@ & EXECUTE & UNTIL & R> & DROP
-  ELSE
-    >R BEGIN R@ EXECUTE UNTIL R> DROP
-  THEN ; IMMEDIATE
+: loop-until ( ... xt -- ... )
+  state @ if
+    & >r & begin & r@ & execute & until & r> & drop
+  else
+    >r begin r@ execute until r> drop
+  then ; immediate
 
-: WHILE-LOOP ( ... while-xt body-xt -- ... )
-  STATE @ IF
-    & 2>R & BEGIN & 2R@ & DROP & EXECUTE & WHILE & R@ & EXECUTE & REPEAT
-    & 2R> & 2DROP
-  ELSE
-    2>R BEGIN 2R@ DROP EXECUTE WHILE R@ EXECUTE REPEAT 2R> 2DROP
-  THEN ; IMMEDIATE
+: while-loop ( ... while-xt body-xt -- ... )
+  state @ if
+    & 2>r & begin & 2r@ & drop & execute & while & r@ & execute & repeat
+    & 2r> & 2drop
+  else
+    2>r begin 2r@ drop execute while r@ execute repeat 2r> 2drop
+  then ; immediate
 
-: COUNT-LOOP ( ... limit init xt -- ... )
-  STATE @ IF
-    & ROT & ROT & ?DO & I & SWAP & DUP & >R & EXECUTE & R> & LOOP & DROP
-  ELSE
-    ROT ROT ?DO I SWAP DUP >R EXECUTE R> LOOP DROP
-  THEN ; IMMEDIATE
+: count-loop ( ... limit init xt -- ... )
+  state @ if
+    & rot & rot & ?do & i & swap & dup & >r & execute & r> & loop & drop
+  else
+    rot rot ?do i swap dup >r execute r> loop drop
+  then ; immediate
 
-: COUNT+LOOP ( ... limit init xt -- ... )
-  STATE @ IF
-    & ROT & ROT & ?DO & I & SWAP & DUP & >R & EXECUTE & R> & SWAP & +LOOP & DROP
-  ELSE
-    ROT ROT ?DO I SWAP DUP >R EXECUTE R> SWAP +LOOP DROP
-  THEN ; IMMEDIATE
+: count+loop ( ... limit init xt -- ... )
+  state @ if
+    & rot & rot & ?do & i & swap & dup & >r & execute & r> & swap & +loop & drop
+  else
+    rot rot ?do i swap dup >r execute r> swap +loop drop
+  then ; immediate
 
-: FETCH-ADVANCE ( a-addr1 count1 -- a-addr2 count2 x )
-  & SWAP & DUP & @ & ROT & 1- & ROT & CELL+ & SWAP & ROT ; IMMEDIATE
+: fetch-advance ( a-addr1 count1 -- a-addr2 count2 x )
+  & swap & dup & @ & rot & 1- & rot & cell+ & swap & rot ; immediate
 
-: HIDE-3-BELOW-2 ( x1 x2 x3 x4 x5 -- x4 x5 ) ( R: -- x3 x2 x1 )
-  & ROT & >R & ROT & >R & ROT & >R ; IMMEDIATE
+: hide-3-below-2 ( x1 x2 x3 x4 x5 -- x4 x5 ) ( R: -- x3 x2 x1 )
+  & rot & >r & rot & >r & rot & >r ; immediate
 
-: SHOW-3 ( -- x1 x2 x3 ) ( R: x3 x2 x1 -- ) & R> & R> & R> ; IMMEDIATE
+: show-3 ( -- x1 x2 x3 ) ( R: x3 x2 x1 -- ) & r> & r> & r> ; immediate
 
-: ITER ( a-addr count xt -- )
-  [: OVER 0> ;] [: ROT ROT FETCH-ADVANCE 3 PICK HIDE-3-BELOW-2 EXECUTE
-     SHOW-3 ROT ;] WHILE-LOOP
-  2DROP DROP ;
+: iter ( a-addr count xt -- )
+  [: over 0> ;] [: rot rot fetch-advance 3 pick hide-3-below-2 execute
+     show-3 rot ;] while-loop
+  2drop drop ;
 
-: HIDE-4-BELOW-3 ( x1 x2 x3 x4 x5 x6 x7 -- x5 x6 x7 ) ( R: -- x4 x3 x2 x1 )
-  & (LIT) 3 , & ROLL & >R & (LIT) 3 , & ROLL & >R
-  & (LIT) 3 , & ROLL & >R & (LIT) 3 , & ROLL & >R ; IMMEDIATE
+: hide-4-below-3 ( x1 x2 x3 x4 x5 x6 x7 -- x5 x6 x7 ) ( R: -- x4 x3 x2 x1 )
+  & (lit) 3 , & roll & >r & (lit) 3 , & roll & >r
+  & (lit) 3 , & roll & >r & (lit) 3 , & roll & >r ; immediate
 
-: SHOW-4 ( -- x1 x2 x3 x4 ) ( R: x4 x3 x2 x1 -- )
-  & R> & R> & R> & R> ; IMMEDIATE
+: show-4 ( -- x1 x2 x3 x4 ) ( R: x4 x3 x2 x1 -- )
+  & r> & r> & r> & r> ; immediate
 
-: ITERI ( a-addr count xt -- )
+: iteri ( a-addr count xt -- )
   0
-  [: 2 PICK 0> ;]
-  [: 3 ROLL 3 ROLL FETCH-ADVANCE 3 PICK SWAP 5 PICK HIDE-4-BELOW-3 EXECUTE
-     SHOW-4 3 ROLL 3 ROLL 1+ ;] WHILE-LOOP
-  2DROP 2DROP ;
+  [: 2 pick 0> ;]
+  [: 3 roll 3 roll fetch-advance 3 pick swap 5 pick hide-4-below-3 execute
+     show-4 3 roll 3 roll 1+ ;] while-loop
+  2drop 2drop ;
 
-: HIDE-4-BELOW-2 ( x1 x2 x3 x4 x5 x6 -- x5 x6 ) ( R: -- x4 x3 x2 x1 )
-  & ROT & >R & ROT & >R & ROT & >R & ROT & >R ; IMMEDIATE
+: hide-4-below-2 ( x1 x2 x3 x4 x5 x6 -- x5 x6 ) ( R: -- x4 x3 x2 x1 )
+  & rot & >r & rot & >r & rot & >r & rot & >r ; immediate
 
-: SHOW-4-BELOW-1 ( x5 -- x1 x2 x3 x4 x5 ) ( R: x4 x3 x2 x1 -- )
-  & R> & R> & R> & R> & (LIT) 4 , & ROLL ; IMMEDIATE
+: show-4-below-1 ( x5 -- x1 x2 x3 x4 x5 ) ( R: x4 x3 x2 x1 -- )
+  & r> & r> & r> & r> & (lit) 4 , & roll ; immediate
 
-: (MAP) ( a-addr1 count1 a-addr2 xt -- count2 )
-  [: 2 PICK 0> ;]
-  [: 3 ROLL 3 ROLL FETCH-ADVANCE 3 PICK HIDE-4-BELOW-2 EXECUTE
-     SHOW-4-BELOW-1 4 ROLL TUCK ! CELL+ 3 ROLL ;] WHILE-LOOP
-  2DROP 2DROP ;
+: (map) ( a-addr1 count1 a-addr2 xt -- count2 )
+  [: 2 pick 0> ;]
+  [: 3 roll 3 roll fetch-advance 3 pick hide-4-below-2 execute
+     show-4-below-1 4 roll tuck ! cell+ 3 roll ;] while-loop
+  2drop 2drop ;
 
-: MAP ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
-  ROT ROT 2>R 2R@ ROT (MAP) 2R> SWAP ;
+: map ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
+  rot rot 2>r 2r@ rot (map) 2r> swap ;
 
-: HIDE-6-BELOW-2 ( x1 x2 x3 x4 x5 x6 x7 x8 -- x7 x8 )
+: hide-6-below-2 ( x1 x2 x3 x4 x5 x6 x7 x8 -- x7 x8 )
   ( R: -- x6 x5 x4 x3 x2 x1 )
-  & ROT & >R & ROT & >R & ROT & >R & ROT & >R & ROT & >R & ROT & >R ; IMMEDIATE
+  & rot & >r & rot & >r & rot & >r & rot & >r & rot & >r & rot & >r ; immediate
 
-: SHOW-6-BELOW-1 ( x7 -- x1 x2 x3 x4 x5 x6 x7 ) ( R: x6 x5 x4 x3 x2 x1 -- )
-  & R> & R> & R> & R> & R> & R> & (LIT) 6 , & ROLL ; IMMEDIATE
+: show-6-below-1 ( x7 -- x1 x2 x3 x4 x5 x6 x7 ) ( R: x6 x5 x4 x3 x2 x1 -- )
+  & r> & r> & r> & r> & r> & r> & (lit) 6 , & roll ; immediate
 
-: (FILTER) ( a-addr1 count1 a-addr2 xt -- count2 )
+: (filter) ( a-addr1 count1 a-addr2 xt -- count2 )
   0
-  [: 3 PICK 0> ;]
-  [: 4 ROLL 4 ROLL FETCH-ADVANCE DUP 5 PICK HIDE-6-BELOW-2 EXECUTE
-     SHOW-6-BELOW-1
-     [: ( a2 xt c2 a1 c1 x ) 5 ROLL TUCK ! CELL+ 3 ROLL 1+ 4 ROLL SWAP ;]
-     [: DROP 4 ROLL 4 ROLL 4 ROLL ;] CHOOSE ;] WHILE-LOOP
-  ROT ROT 2DROP ROT ROT 2DROP ;
+  [: 3 pick 0> ;]
+  [: 4 roll 4 roll fetch-advance dup 5 pick hide-6-below-2 execute
+     show-6-below-1
+     [: ( a2 xt c2 a1 c1 x ) 5 roll tuck ! cell+ 3 roll 1+ 4 roll swap ;]
+     [: drop 4 roll 4 roll 4 roll ;] choose ;] while-loop
+  rot rot 2drop rot rot 2drop ;
 
-: FILTER ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
-  SWAP >R R@ SWAP (FILTER) R> SWAP ;
+: filter ( a-addr1 count1 a-addr2 xt -- a-addr2 count2 )
+  swap >r r@ swap (filter) r> swap ;
 
-: HIDE-7-BELOW-2 ( x1 x2 x3 x4 x5 x6 x7 x8 x9 -- x8 x9 )
+: hide-7-below-2 ( x1 x2 x3 x4 x5 x6 x7 x8 x9 -- x8 x9 )
   ( R: -- x7 x6 x5 x4 x3 x2 x1 )
-  & ROT & >R & ROT & >R & ROT & >R & ROT & >R & ROT & >R & ROT & >R
-  & ROT & >R ; IMMEDIATE
+  & rot & >r & rot & >r & rot & >r & rot & >r & rot & >r & rot & >r
+  & rot & >r ; immediate
 
-: SHOW-7-BELOW-1 ( x8 -- x1 x2 x3 x4 x5 x6 x7 x8 )
+: show-7-below-1 ( x8 -- x1 x2 x3 x4 x5 x6 x7 x8 )
   ( R: x7 x6 x5 x4 x3 x2 x1 -- )
-  & R> & R> & R> & R> & R> & R> & R> & (LIT) 7 , & ROLL ; IMMEDIATE
+  & r> & r> & r> & r> & r> & r> & r> & (lit) 7 , & roll ; immediate
 
-: SHOW-6-BELOW-1 ( x7 -- x1 x2 x3 x4 x5 x6 x7 ) ( R: x6 x5 x4 x3 x2 x1 -- )
-  & R> & R> & R> & R> & R> & R> & (LIT) 6 , & ROLL ; IMMEDIATE
+: show-6-below-1 ( x7 -- x1 x2 x3 x4 x5 x6 x7 ) ( R: x6 x5 x4 x3 x2 x1 -- )
+  & r> & r> & r> & r> & r> & r> & (lit) 6 , & roll ; immediate
 
-: (FILTER-MAP) ( a-addr1 count1 a-addr2 xt-filter xt-map -- count2 )
+: (filter-map) ( a-addr1 count1 a-addr2 xt-filter xt-map -- count2 )
   0
-  [: 4 PICK 0> ;]
-  [: 5 ROLL 5 ROLL FETCH-ADVANCE DUP 6 PICK HIDE-7-BELOW-2 EXECUTE
-     SHOW-7-BELOW-1
-     [: 4 PICK HIDE-6-BELOW-2 EXECUTE SHOW-6-BELOW-1 6 ROLL TUCK !
-        CELL+ 3 ROLL 1+ 5 ROLL 5 ROLL ROT ;]
-     [: DROP 5 ROLL 5 ROLL 5 ROLL 5 ROLL ;] CHOOSE ;] WHILE-LOOP
-  ROT ROT 2DROP ROT ROT 2DROP NIP ;
+  [: 4 pick 0> ;]
+  [: 5 roll 5 roll fetch-advance dup 6 pick hide-7-below-2 execute
+     show-7-below-1
+     [: 4 pick hide-6-below-2 execute show-6-below-1 6 roll tuck !
+        cell+ 3 roll 1+ 5 roll 5 roll rot ;]
+     [: drop 5 roll 5 roll 5 roll 5 roll ;] choose ;] while-loop
+  rot rot 2drop rot rot 2drop nip ;
 
-: FILTER-MAP ( a-addr1 count1 a-addr2 xt-filter xt-map -- a-addr2 count2 )
-  ROT >R R@ ROT ROT (FILTER-MAP) R> SWAP ;
+: filter-map ( a-addr1 count1 a-addr2 xt-filter xt-map -- a-addr2 count2 )
+  rot >r r@ rot rot (filter-map) r> swap ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

@@ -27,366 +27,366 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-INCLUDE src/hashforth/sixel.fs
+include src/hashforth/sixel.fs
 
-WORDLIST CONSTANT LIFE-WORDLIST
-FORTH-WORDLIST SIXEL-WORDLIST LIFE-WORDLIST 3 SET-ORDER
-LIFE-WORDLIST SET-CURRENT
+wordlist constant life-wordlist
+forth-wordlist sixel-wordlist life-wordlist 3 set-order
+life-wordlist set-current
 
 \ Some basic constants
-512 CONSTANT WORLD-WIDTH
-512 CONSTANT WORLD-HEIGHT
-WORLD-WIDTH WORLD-HEIGHT * CONSTANT WORLD-SIZE
-2 CONSTANT COLOR-COUNT
+512 constant world-width
+512 constant world-height
+world-width world-height * constant world-size
+2 constant color-count
 
 \ Our canvas
-WORLD-WIDTH WORLD-HEIGHT COLOR-COUNT NEW-SIXEL-FB CONSTANT CANVAS
+world-width world-height color-count new-sixel-fb constant canvas
 
 \ Our (double-buffered) forth world
-CREATE WORLD-0 WORLD-SIZE ALLOT
-CREATE WORLD-1 WORLD-SIZE ALLOT
-VARIABLE CURRENT-WORLD WORLD-0 CURRENT-WORLD !
-VARIABLE NEXT-WORLD WORLD-1 NEXT-WORLD !
+create world-0 world-size allot
+create world-1 world-size allot
+variable current-world world-0 current-world !
+variable next-world world-1 next-world !
 
 \ The escape character
-$1B CONSTANT ESCAPE
+$1b constant escape
 
 \ Some words for controlling the terminal
 
 \ Type a decimal number
-: (DEC.) ( n -- ) 10 (BASE.) ;
+: (dec.) ( n -- ) 10 (base.) ;
 
 \ Type the CSI sequence
-: CSI ( -- ) ESCAPE EMIT [CHAR] [ EMIT ;
+: csi ( -- ) escape emit [char] [ emit ;
 
 \ Type control characters to show the cursor
-: SHOW-CURSOR ( -- ) CSI [CHAR] ? EMIT 25 (DEC.) [CHAR] h EMIT ;
+: show-cursor ( -- ) csi [char] ? emit 25 (dec.) [char] h emit ;
 
 \ Type control characters to hide the cursor
-: HIDE-CURSOR ( -- ) CSI [CHAR] ? EMIT 25 (DEC.) [CHAR] l EMIT ;
+: hide-cursor ( -- ) csi [char] ? emit 25 (dec.) [char] l emit ;
 
 \ Type control characters to save the cursor position
-: SAVE-CURSOR ( -- ) CSI [CHAR] s EMIT ;
+: save-cursor ( -- ) csi [char] s emit ;
 
 \ Type control characters to restore the cursor position
-: RESTORE-CURSOR ( -- )  CSI [CHAR] u EMIT ;
+: restore-cursor ( -- )  csi [char] u emit ;
 
 \ Type control characters to erase to the end of the current line
-: ERASE-END-OF-LINE ( -- ) CSI [CHAR] K EMIT ;
+: erase-end-of-line ( -- ) csi [char] K emit ;
 
 \ Type control characters to erase down from the current line
-: ERASE-DOWN ( -- ) CSI [CHAR] J EMIT ;
+: erase-down ( -- ) csi [char] J emit ;
 
 \ Type control characters to go to a particular coordinate.
-: GO-TO-COORD ( row column -- )
-  SWAP CSI 1 + (DEC.) [CHAR] ; EMIT 1 + (DEC.) [CHAR] f EMIT ;
+: go-to-coord ( row column -- )
+  swap csi 1 + (dec.) [char] ; emit 1 + (dec.) [char] f emit ;
 
 \ Initialize colors
-: INIT-COLORS ( -- ) 0 0 0 0 CANVAS SET-COLOR 255 255 255 1 CANVAS SET-COLOR ;
+: init-colors ( -- ) 0 0 0 0 canvas set-color 255 255 255 1 canvas set-color ;
 
 \ Clear the world
-: CLEAR-WORLD ( -- ) WORLD-0 WORLD-SIZE 0 FILL WORLD-1 WORLD-SIZE 0 FILL ;
+: clear-world ( -- ) world-0 world-size 0 fill world-1 world-size 0 fill ;
 
 \ Initialize world
-: INIT-WORLD ( -- ) INIT-COLORS CLEAR-WORLD ;
+: init-world ( -- ) init-colors clear-world ;
 
-INIT-WORLD
+init-world
 
 \ Get a cell at a coordinate
-: CELL@ ( x y -- state ) [ WORLD-WIDTH ] LITERAL * + CURRENT-WORLD @ + C@ ;
+: cell@ ( x y -- state ) [ world-width ] literal * + current-world @ + c@ ;
 
 \ Get a cell at a coordinate, optimized for compilation
-: CCELL@ ( runtime: x y -- state )
-  & (LIT) WORLD-WIDTH , & * & + & (LIT) CURRENT-WORLD , & @ & + & C@
-; IMMEDIATE COMPILE-ONLY
+: ccell@ ( runtime: x y -- state )
+  & (lit) world-width , & * & + & (lit) current-world , & @ & + & c@
+; immediate compile-only
 
 \ Get a cell at a coordinate in the next world
-: CELL-NEXT@ ( x y -- state ) WORLD-WIDTH * + NEXT-WORLD @ + C@ ;
+: cell-next@ ( x y -- state ) world-width * + next-world @ + c@ ;
 
 \ Set a cell at a coordinate
-: CELL! ( state x y -- ) WORLD-WIDTH * + NEXT-WORLD @ + C! ;
+: cell! ( state x y -- ) world-width * + next-world @ + c! ;
 
 \ Set a cell at a coordinate for the current world
-: CELL-CURRENT! ( state x y -- ) WORLD-WIDTH * + CURRENT-WORLD @ + C! ;
+: cell-current! ( state x y -- ) world-width * + current-world @ + c! ;
 
 \ Set cell
-: SET-CELL ( x y -- )
-  1 2 PICK 2 PICK CELL! 1 [ CANVAS ] LITERAL PIXEL-NO-CLEAR! ;
+: set-cell ( x y -- )
+  1 2 pick 2 pick cell! 1 [ canvas ] literal pixel-no-clear! ;
 
 \ Clear cell
-: CLEAR-CELL ( x y -- )
-  0 2 PICK 2 PICK CELL! 0 [ CANVAS ] LITERAL PIXEL-NO-CLEAR! ;
+: clear-cell ( x y -- )
+  0 2 pick 2 pick cell! 0 [ canvas ] literal pixel-no-clear! ;
 
 \ Set cell for the current world
-: SET-CELL-CURRENT ( x y -- )
-  1 2 PICK 2 PICK CELL-CURRENT! 1 [ CANVAS ] LITERAL PIXEL-NO-CLEAR! ;
+: set-cell-current ( x y -- )
+  1 2 pick 2 pick cell-current! 1 [ canvas ] literal pixel-no-clear! ;
 
 \ Clear cell for the current world
-: CLEAR-CELL-CURRENT ( x y -- )
-  0 2 PICK 2 PICK CELL-CURRENT! 0 [ CANVAS ] LITERAL PIXEL-NO-CLEAR! ;
+: clear-cell-current ( x y -- )
+  0 2 pick 2 pick cell-current! 0 [ canvas ] literal pixel-no-clear! ;
 
 \ Update the canvas without cycling
-: UPDATE-CANVAS ( -- )
-  [ CANVAS ] LITERAL CLEAR-PIXELS
-  0 BEGIN DUP [ WORLD-WIDTH ] LITERAL < WHILE
-    0 BEGIN DUP [ WORLD-HEIGHT ] LITERAL < WHILE
-      2DUP CELL@ 2 PICK 1 - 2 PICK 1 - ROT [ CANVAS ] LITERAL PIXEL-NO-CLEAR!
+: update-canvas ( -- )
+  [ canvas ] literal clear-pixels
+  0 begin dup [ world-width ] literal < while
+    0 begin dup [ world-height ] literal < while
+      2dup cell@ 2 pick 1 - 2 pick 1 - rot [ canvas ] literal pixel-no-clear!
       1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP ;
+    repeat
+    drop 1 +
+  repeat
+  drop ;
 
 \ Get the N neighbor of a cell
-: N-NEIGHBOR ( x y -- c )
-  1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX ;
+: n-neighbor ( x y -- c )
+  1 - [ world-height 1 - ] literal over -1 > mux ;
 
 \ Get the NE neighbor of a cell
-: NE-NEIGHBOR ( x y -- c )
-  1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX
-  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP ;
+: ne-neighbor ( x y -- c )
+  1 - [ world-height 1 - ] literal over -1 > mux
+  swap 1 + 0 over [ world-width ] literal < mux swap ;
 
 \ Get the E neighbor of a cell
-: E-NEIGHBOR ( x y -- c )
-  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP ;
+: e-neighbor ( x y -- c )
+  swap 1 + 0 over [ world-width ] literal < mux swap ;
 
 \ Get the SE neighbor of a cell
-: SE-NEIGHBOR ( x y -- c )
-  1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX
-  SWAP 1 + 0 OVER [ WORLD-WIDTH ] LITERAL < MUX SWAP ;
+: se-neighbor ( x y -- c )
+  1 + 0 over [ world-height ] literal < mux
+  swap 1 + 0 over [ world-width ] literal < mux swap ;
 
 \ Get the S neighbor of a cell
-: S-NEIGHBOR ( x y -- c )
-  1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX ;
+: s-neighbor ( x y -- c )
+  1 + 0 over [ world-height ] literal < mux ;
 
 \ Get the SW neighbor of a cell
-: SW-NEIGHBOR ( x y -- c )
-  1 + 0 OVER [ WORLD-HEIGHT ] LITERAL < MUX
-  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP ;
+: sw-neighbor ( x y -- c )
+  1 + 0 over [ world-height ] literal < mux
+  swap 1 - [ world-width 1 - ] literal over -1 > mux swap ;
 
 \ Get the W neighbor of a cell
-: W-NEIGHBOR ( x y -- c )
-  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP ;
+: w-neighbor ( x y -- c )
+  swap 1 - [ world-width 1 - ] literal over -1 > mux swap ;
 
 \ Get the NW neighbor of a cell
-: NW-NEIGHBOR ( x y -- c )
-  1 - [ WORLD-HEIGHT 1 - ] LITERAL OVER -1 > MUX
-  SWAP 1 - [ WORLD-WIDTH 1 - ] LITERAL OVER -1 > MUX SWAP ;
+: nw-neighbor ( x y -- c )
+  1 - [ world-height 1 - ] literal over -1 > mux
+  swap 1 - [ world-width 1 - ] literal over -1 > mux swap ;
 
 \ Execute one cycle for a cell
-: CYCLE-CELL ( x y -- )
-  OVER OVER 1 - SWAP 1 - SWAP CCELL@
-  2 PICK 2 PICK 1 - CCELL@ +
-  2 PICK 2 PICK 1 - SWAP 1 + SWAP CCELL@ +
-  2 PICK 2 PICK SWAP 1 + SWAP CCELL@ +
-  2 PICK 2 PICK 1 + SWAP 1 + SWAP CCELL@ +
-  2 PICK 2 PICK 1 + CCELL@ +
-  2 PICK 2 PICK 1 + SWAP 1 - SWAP CCELL@ +
-  2 PICK 2 PICK SWAP 1 - SWAP CCELL@ +
-  2 PICK 2 PICK CCELL@ IF
-    DUP 2 = SWAP 3 = OR IF SET-CELL ELSE CLEAR-CELL THEN
-  ELSE
-    3 = IF SET-CELL ELSE CLEAR-CELL THEN
-  THEN ;
+: cycle-cell ( x y -- )
+  over over 1 - swap 1 - swap ccell@
+  2 pick 2 pick 1 - ccell@ +
+  2 pick 2 pick 1 - swap 1 + swap ccell@ +
+  2 pick 2 pick swap 1 + swap ccell@ +
+  2 pick 2 pick 1 + swap 1 + swap ccell@ +
+  2 pick 2 pick 1 + ccell@ +
+  2 pick 2 pick 1 + swap 1 - swap ccell@ +
+  2 pick 2 pick swap 1 - swap ccell@ +
+  2 pick 2 pick ccell@ if
+    dup 2 = swap 3 = or if set-cell else clear-cell then
+  else
+    3 = if set-cell else clear-cell then
+  then ;
 
 \ Execute one cycle for an edge cell
-: CYCLE-EDGE-CELL ( x y -- )
-  OVER OVER NW-NEIGHBOR CCELL@
-  2 PICK 2 PICK N-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK NE-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK E-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK SE-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK S-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK SW-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK W-NEIGHBOR CCELL@ +
-  2 PICK 2 PICK CCELL@ IF
-    DUP 2 = SWAP 3 = OR IF SET-CELL ELSE CLEAR-CELL THEN
-  ELSE
-    3 = IF SET-CELL ELSE CLEAR-CELL THEN
-  THEN ;
+: cycle-edge-cell ( x y -- )
+  over over nw-neighbor ccell@
+  2 pick 2 pick n-neighbor ccell@ +
+  2 pick 2 pick ne-neighbor ccell@ +
+  2 pick 2 pick e-neighbor ccell@ +
+  2 pick 2 pick se-neighbor ccell@ +
+  2 pick 2 pick s-neighbor ccell@ +
+  2 pick 2 pick sw-neighbor ccell@ +
+  2 pick 2 pick w-neighbor ccell@ +
+  2 pick 2 pick ccell@ if
+    dup 2 = swap 3 = or if set-cell else clear-cell then
+  else
+    3 = if set-cell else clear-cell then
+  then ;
 
 \ Execute one cycle in the world
-: CYCLE-WORLD ( -- )
-  [ CANVAS ] LITERAL CLEAR-PIXELS
-  1 BEGIN DUP [ WORLD-WIDTH 1 - ] LITERAL < WHILE
-    1 BEGIN DUP [ WORLD-HEIGHT 1 - ] LITERAL < WHILE
-      2DUP CYCLE-CELL 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP
-  1 BEGIN DUP [ WORLD-WIDTH 1 - ] LITERAL < WHILE
-    DUP 0 CYCLE-EDGE-CELL DUP [ WORLD-HEIGHT 1 - ] LITERAL CYCLE-EDGE-CELL 1 +
-  REPEAT
-  DROP
-  1 BEGIN DUP [ WORLD-HEIGHT 1 - ] LITERAL < WHILE
-    0 OVER CYCLE-EDGE-CELL [ WORLD-WIDTH 1 - ] LITERAL OVER CYCLE-EDGE-CELL 1 +
-  REPEAT
-  DROP
-  0 0 CYCLE-EDGE-CELL
-  [ WORLD-WIDTH 1 - ] LITERAL 0 CYCLE-EDGE-CELL
-  [ WORLD-WIDTH 1 - ] LITERAL [ WORLD-HEIGHT 1 - ] LITERAL CYCLE-EDGE-CELL
-  0 [ WORLD-HEIGHT 1 - ] LITERAL CYCLE-EDGE-CELL
-  NEXT-WORLD @ CURRENT-WORLD @ NEXT-WORLD ! CURRENT-WORLD ! ;
+: cycle-world ( -- )
+  [ canvas ] literal clear-pixels
+  1 begin dup [ world-width 1 - ] literal < while
+    1 begin dup [ world-height 1 - ] literal < while
+      2dup cycle-cell 1 +
+    repeat
+    drop 1 +
+  repeat
+  drop
+  1 begin dup [ world-width 1 - ] literal < while
+    dup 0 cycle-edge-cell dup [ world-height 1 - ] literal cycle-edge-cell 1 +
+  repeat
+  drop
+  1 begin dup [ world-height 1 - ] literal < while
+    0 over cycle-edge-cell [ world-width 1 - ] literal over cycle-edge-cell 1 +
+  repeat
+  drop
+  0 0 cycle-edge-cell
+  [ world-width 1 - ] literal 0 cycle-edge-cell
+  [ world-width 1 - ] literal [ world-height 1 - ] literal cycle-edge-cell
+  0 [ world-height 1 - ] literal cycle-edge-cell
+  next-world @ current-world @ next-world ! current-world ! ;
 
 \ Display execution of cycles until key is pressed
-: DISPLAY-CYCLES ( u -- )
-  HIDE-CURSOR 0 0 GO-TO-COORD ERASE-DOWN ERASE-END-OF-LINE SAVE-CURSOR
-  BEGIN KEY? NOT WHILE
-    RESTORE-CURSOR CYCLE-WORLD [ CANVAS ] LITERAL DRAW
-  REPEAT
-  KEY? IF KEY DROP THEN
-  SHOW-CURSOR 9999 0 GO-TO-COORD ;
+: display-cycles ( u -- )
+  hide-cursor 0 0 go-to-coord erase-down erase-end-of-line save-cursor
+  begin key? not while
+    restore-cursor cycle-world [ canvas ] literal draw
+  repeat
+  key? if key drop then
+  show-cursor 9999 0 go-to-coord ;
 
 \ Display execution of a specified number of cycles
-: DISPLAY-N-CYCLES ( u -- )
-  HIDE-CURSOR 0 0 GO-TO-COORD ERASE-DOWN ERASE-END-OF-LINE SAVE-CURSOR
-  BEGIN DUP 0 > WHILE
-    RESTORE-CURSOR CYCLE-WORLD [ CANVAS ] LITERAL DRAW 1 -
-  REPEAT
-  DROP
-  SHOW-CURSOR 9999 0 GO-TO-COORD ;
+: display-n-cycles ( u -- )
+  hide-cursor 0 0 go-to-coord erase-down erase-end-of-line save-cursor
+  begin dup 0 > while
+    restore-cursor cycle-world [ canvas ] literal draw 1 -
+  repeat
+  drop
+  show-cursor 9999 0 go-to-coord ;
 
 \ Display the current state
-: DISPLAY-CURRENT ( -- )
-  HIDE-CURSOR 0 0 GO-TO-COORD ERASE-DOWN ERASE-END-OF-LINE
-  UPDATE-CANVAS [ CANVAS ] LITERAL DRAW SHOW-CURSOR 9999 0 GO-TO-COORD ;
+: display-current ( -- )
+  hide-cursor 0 0 go-to-coord erase-down erase-end-of-line
+  update-canvas [ canvas ] literal draw show-cursor 9999 0 go-to-coord ;
 
 \ Get the next non-space character from a string, or null for end of string
-: GET-CHAR ( addr1 bytes1 -- addr2 bytes2 c )
-  BEGIN
-    DUP 0 > IF
-      OVER C@ DUP BL <> IF
-        ROT 1 + ROT 1 - ROT TRUE
-      ELSE
-        DROP 1 - SWAP 1 + SWAP FALSE
-      THEN
-    ELSE
-      0 TRUE
-    THEN
-  UNTIL ;
+: get-char ( addr1 bytes1 -- addr2 bytes2 c )
+  begin
+    dup 0 > if
+      over c@ dup bl <> if
+        rot 1 + rot 1 - rot true
+      else
+        drop 1 - swap 1 + swap false
+      then
+    else
+      0 true
+    then
+  until ;
 
 \ Convert a coordinate so it is relative to the center of the world
-: CONVERT-COORD ( x0 y0 -- x1 y1 )
-  WORLD-HEIGHT 2 / + SWAP WORLD-WIDTH 2 / + SWAP ;
+: convert-coord ( x0 y0 -- x1 y1 )
+  world-height 2 / + swap world-width 2 / + swap ;
 
 \ Modify SET-CELL so that it is relative to the center of the world
-: SET-CELL ( x y -- ) CONVERT-COORD SET-CELL-CURRENT ;
+: set-cell ( x y -- ) convert-coord set-cell-current ;
 
 \ Modify CLEAR-CELL so that it is relative to the center of the world
-: CLEAR-CELL ( x y -- ) CONVERT-COORD CLEAR-CELL-CURRENT ;
+: clear-cell ( x y -- ) convert-coord clear-cell-current ;
 
 \ Set a cell in the next world
-: CELL-NEXT! ( state x y -- ) CONVERT-COORD CELL! ;
+: cell-next! ( state x y -- ) convert-coord cell! ;
 
 \ Get a cell in the next world
-: CELL-NEXT@ ( state x y -- ) CONVERT-COORD CELL-NEXT@ ;
+: cell-next@ ( state x y -- ) convert-coord cell-next@ ;
 
 \ Modify CELL! so it uses SET-CELL and CLEAR-CELL
-: CELL! ( state x y -- ) ROT IF SET-CELL ELSE CLEAR-CELL THEN ;
+: cell! ( state x y -- ) rot if set-cell else clear-cell then ;
 
 \ Modify CELL@ so that it is relative to the center of the world
-: CELL@ ( x y -- state ) CONVERT-COORD CELL@ 0 <> ;
+: cell@ ( x y -- state ) convert-coord cell@ 0 <> ;
 
 \ Set multiple cells with a string with the format "_" for an dead cell,
 \ "*" for a live cell, and a "/" for a newline
-: SET-MULTIPLE ( addr bytes x y -- )
-  OVER >R 2SWAP BEGIN GET-CHAR DUP 0 <> WHILE
-    CASE
-      [CHAR] _ OF 2SWAP 2DUP CLEAR-CELL SWAP 1 + SWAP 2SWAP ENDOF
-      [CHAR] * OF 2SWAP 2DUP SET-CELL SWAP 1 + SWAP 2SWAP ENDOF
-      [CHAR] / OF 2SWAP 1 + NIP R@ SWAP 2SWAP ENDOF
-    ENDCASE
-  REPEAT
-  DROP 2DROP 2DROP R> DROP ;
+: set-multiple ( addr bytes x y -- )
+  over >r 2swap begin get-char dup 0 <> while
+    case
+      [char] _ of 2swap 2dup clear-cell swap 1 + swap 2swap endof
+      [char] * of 2swap 2dup set-cell swap 1 + swap 2swap endof
+      [char] / of 2swap 1 + nip r@ swap 2swap endof
+    endcase
+  repeat
+  drop 2drop 2drop r> drop ;
 
 \ Flip part of a coordinate
-: FLIP-COORD-PART ( n1 n-center -- n2 ) TUCK - - ;
+: flip-coord-part ( n1 n-center -- n2 ) tuck - - ;
 
 \ Get the center of part of a coordinate
-: COORD-PART-CENTER ( n1 n-span -- ) 2 / + ;
+: coord-part-center ( n1 n-span -- ) 2 / + ;
 
 \ Copy cells from the next world back to the current world
-: COPY-NEXT-TO-CURRENT ( x y width height )
-  3 PICK BEGIN DUP 5 PICK 4 PICK + < WHILE
-    3 PICK BEGIN DUP 5 PICK 4 PICK + < WHILE
-      2DUP CELL-NEXT@ 2 PICK 2 PICK CELL! 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP 2DROP 2DROP ;
+: copy-next-to-current ( x y width height )
+  3 pick begin dup 5 pick 4 pick + < while
+    3 pick begin dup 5 pick 4 pick + < while
+      2dup cell-next@ 2 pick 2 pick cell! 1 +
+    repeat
+    drop 1 +
+  repeat
+  drop 2drop 2drop ;
 
 \ Actually flip a region horizontally
-: DO-FLIP-HORIZONTAL ( x y width height -- )
-  3 PICK 2 PICK COORD-PART-CENTER
-  4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
-    4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
-      2DUP CELL@ 2 PICK 4 PICK FLIP-COORD-PART 2 PICK CELL-NEXT! 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  2DROP 2DROP 2DROP ;
+: do-flip-horizontal ( x y width height -- )
+  3 pick 2 pick coord-part-center
+  4 pick begin dup 6 pick 5 pick + < while
+    4 pick begin dup 6 pick 5 pick + < while
+      2dup cell@ 2 pick 4 pick flip-coord-part 2 pick cell-next! 1 +
+    repeat
+    drop 1 +
+  repeat
+  2drop 2drop 2drop ;
 
 \ Actually flip a region vertically
-: DO-FLIP-VERTICAL ( x y width height -- )
-  2 PICK OVER COORD-PART-CENTER
-  4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
-    4 PICK BEGIN DUP 6 PICK 5 PICK + < WHILE
-      2DUP CELL@ 2 PICK 2 PICK 5 PICK FLIP-COORD-PART CELL-NEXT! 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  2DROP 2DROP 2DROP ;
+: do-flip-vertical ( x y width height -- )
+  2 pick over coord-part-center
+  4 pick begin dup 6 pick 5 pick + < while
+    4 pick begin dup 6 pick 5 pick + < while
+      2dup cell@ 2 pick 2 pick 5 pick flip-coord-part cell-next! 1 +
+    repeat
+    drop 1 +
+  repeat
+  2drop 2drop 2drop ;
 
 \ Flip a region horizontally
-: FLIP-HORIZONTAL ( x y width height -- )
-  3 PICK 3 PICK 3 PICK 3 PICK DO-FLIP-HORIZONTAL COPY-NEXT-TO-CURRENT ;
+: flip-horizontal ( x y width height -- )
+  3 pick 3 pick 3 pick 3 pick do-flip-horizontal copy-next-to-current ;
 
 \ Flip a region vertically
-: FLIP-VERTICAL ( x y width height -- )
-  3 PICK 3 PICK 3 PICK 3 PICK DO-FLIP-VERTICAL COPY-NEXT-TO-CURRENT ;
+: flip-vertical ( x y width height -- )
+  3 pick 3 pick 3 pick 3 pick do-flip-vertical copy-next-to-current ;
 
 \ Motion directions
-0 CONSTANT NE
-1 CONSTANT SE
-2 CONSTANT SW
-3 CONSTANT NW
+0 constant ne
+1 constant se
+2 constant sw
+3 constant nw
 
 \ Flip a region in two dimensions
-: FLIP-2D ( x y width height dir -- )
-  CASE
-    SE OF 2DROP 2DROP ENDOF
-    SW OF FLIP-HORIZONTAL ENDOF
-    NW OF 2OVER 2OVER FLIP-HORIZONTAL FLIP-VERTICAL ENDOF
-    NE OF FLIP-VERTICAL ENDOF
-  ENDCASE ;
+: flip-2d ( x y width height dir -- )
+  case
+    se of 2drop 2drop endof
+    sw of flip-horizontal endof
+    nw of 2over 2over flip-horizontal flip-vertical endof
+    ne of flip-vertical endof
+  endcase ;
 
 \ Add a block to the world
-: BLOCK ( x y -- ) S" ** / **" 2SWAP SET-MULTIPLE ;
+: block ( x y -- ) s" ** / **" 2swap set-multiple ;
 
 \ Add a blinker to the world (2 phases)
-: BLINKER ( phase x y -- )
-  ROT CASE 0 OF S" _*_ / _*_ / _*_" ENDOF 1 OF S" ___ / *** / ___" ENDOF ENDCASE
-  2SWAP SET-MULTIPLE ;
+: blinker ( phase x y -- )
+  rot case 0 of s" _*_ / _*_ / _*_" endof 1 of s" ___ / *** / ___" endof endcase
+  2swap set-multiple ;
 
 \ Add a glider to the world (4 phases)
-: GLIDER ( motion phase x y -- )
-  ROT CASE
-    0 OF S" _*_ / __* / ***" ENDOF
-    1 OF S" *_* / _** / _*_" ENDOF
-    2 OF S" __* / *_* / _**" ENDOF
-    3 OF S" *__ / _** / **_" ENDOF
-  ENDCASE
-  2OVER SET-MULTIPLE ROT 3 3 ROT FLIP-2D ;
+: glider ( motion phase x y -- )
+  rot case
+    0 of s" _*_ / __* / ***" endof
+    1 of s" *_* / _** / _*_" endof
+    2 of s" __* / *_* / _**" endof
+    3 of s" *__ / _** / **_" endof
+  endcase
+  2over set-multiple rot 3 3 rot flip-2d ;
 
 \ Add an R-pentomino to the world
-: R-PENTOMINO ( dir x y -- )
-  S" _** / **_ / _*_" 2OVER SET-MULTIPLE ROT 3 3 ROT FLIP-2D ;
+: r-pentomino ( dir x y -- )
+  s" _** / **_ / _*_" 2over set-multiple rot 3 3 rot flip-2d ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

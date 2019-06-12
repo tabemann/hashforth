@@ -27,141 +27,141 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
-TASK-WORDLIST SET-CURRENT
+decimal
+forth-wordlist task-wordlist 2 set-order
+task-wordlist set-current
 
-BEGIN-STRUCTURE BUFBCHAN-SIZE
-  FIELD: BUFBCHAN-RECV-COND
-  FIELD: BUFBCHAN-SEND-COND
-  FIELD: BUFBCHAN-QUEUE
-  FIELD: BUFBCHAN-QUEUE-COUNT
-  FIELD: BUFBCHAN-QUEUE-SIZE
-  FIELD: BUFBCHAN-ENTRY-SIZE
-  FIELD: BUFBCHAN-ENQUEUE-INDEX
-  FIELD: BUFBCHAN-DEQUEUE-INDEX
-END-STRUCTURE
+begin-structure bufbchan-size
+  field: bufbchan-recv-cond
+  field: bufbchan-send-cond
+  field: bufbchan-queue
+  field: bufbchan-queue-count
+  field: bufbchan-queue-size
+  field: bufbchan-entry-size
+  field: bufbchan-enqueue-index
+  field: bufbchan-dequeue-index
+end-structure
 
 \ Print out the internal values of a bounded channel.
-: BUFBCHAN. ( chan -- )
-  CR ." BUFBCHAN-RECV-COND: " DUP BUFBCHAN-RECV-COND @ .
-  CR ." BUFBCHAN-SEND-COND: " DUP BUFBCHAN-SEND-COND @ .
-  CR ." BUFBCHAN-QUEUE: " DUP BUFBCHAN-QUEUE @ .
-  CR ." BUFBCHAN-QUEUE-COUNT: " DUP BUFBCHAN-QUEUE-COUNT @ .
-  CR ." BUFBCHAN-QUEUE-SIZE: " DUP BUFBCHAN-QUEUE-SIZE @ .
-  CR ." BUFBCHAN-ENTRY-SIZE: " DUP BUFBCHAN-ENTRY-SIZE @ .
-  CR ." BUFBCHAN-ENQUEUE-INDEX: " DUP BUFBCHAN-ENQUEUE-INDEX @ .
-  CR ." BUFBCHAN-DEQUEUE-INDEX: " BUFBCHAN-DEQUEUE-INDEX @ . CR ;
+: bufbchan. ( chan -- )
+  cr ." bufbchan-recv-cond: " dup bufbchan-recv-cond @ .
+  cr ." bufbchan-send-cond: " dup bufbchan-send-cond @ .
+  cr ." bufbchan-queue: " dup bufbchan-queue @ .
+  cr ." bufbchan-queue-count: " dup bufbchan-queue-count @ .
+  cr ." bufbchan-queue-size: " dup bufbchan-queue-size @ .
+  cr ." bufbchan-entry-size: " dup bufbchan-entry-size @ .
+  cr ." bufbchan-enqueue-index: " dup bufbchan-enqueue-index @ .
+  cr ." bufbchan-dequeue-index: " bufbchan-dequeue-index @ . cr ;
 
 \ Create a new bounded channel with the specified queue size, entry size, and
 \ condition variable queue size.
-: NEW-BUFBCHAN ( queue-size entry-size cond-size -- chan )
-  HERE BUFBCHAN-SIZE ALLOT
-  3 PICK OVER BUFBCHAN-QUEUE-SIZE !
-  0 OVER BUFBCHAN-QUEUE-COUNT !
-  0 OVER BUFBCHAN-ENQUEUE-INDEX !
-  0 OVER BUFBCHAN-DEQUEUE-INDEX !
-  HERE 4 ROLL 4 PICK * ALLOT OVER BUFBCHAN-QUEUE !
-  OVER NEW-COND OVER BUFBCHAN-RECV-COND !
-  SWAP NEW-COND OVER BUFBCHAN-SEND-COND !
-  TUCK BUFBCHAN-ENTRY-SIZE ! ;
+: new-bufbchan ( queue-size entry-size cond-size -- chan )
+  here bufbchan-size allot
+  3 pick over bufbchan-queue-size !
+  0 over bufbchan-queue-count !
+  0 over bufbchan-enqueue-index !
+  0 over bufbchan-dequeue-index !
+  here 4 roll 4 pick * allot over bufbchan-queue !
+  over new-cond over bufbchan-recv-cond !
+  swap new-cond over bufbchan-send-cond !
+  tuck bufbchan-entry-size ! ;
 
 \ Internal - dequeue a packet from a bounded channel; note that this does not
 \ have any safeties for preventing dequeueing a value from an already empty
 \ bounded channel, nor does this wake up any tasks waiting to send on the
 \ bounded channel.
-: DEQUEUE-BUFBCHAN ( addr chan -- )
-  DUP BUFBCHAN-QUEUE @ OVER BUFBCHAN-DEQUEUE-INDEX @
-  2 PICK BUFBCHAN-ENTRY-SIZE @ * + ROT 2 PICK BUFBCHAN-ENTRY-SIZE @ CMOVE
-  DUP BUFBCHAN-QUEUE-COUNT @ 1- OVER BUFBCHAN-QUEUE-COUNT !
-  DUP BUFBCHAN-DEQUEUE-INDEX @ 1+ OVER BUFBCHAN-QUEUE-SIZE @ MOD
-  SWAP BUFBCHAN-DEQUEUE-INDEX ! ;
+: dequeue-bufbchan ( addr chan -- )
+  dup bufbchan-queue @ over bufbchan-dequeue-index @
+  2 pick bufbchan-entry-size @ * + rot 2 pick bufbchan-entry-size @ cmove
+  dup bufbchan-queue-count @ 1- over bufbchan-queue-count !
+  dup bufbchan-dequeue-index @ 1+ over bufbchan-queue-size @ mod
+  swap bufbchan-dequeue-index ! ;
 
 \ Internal - enqueue a packet onto a bounded channel; note that this does not
 \ have any safeties for preventing enqueuing a value onto an already full
 \ bounded channel, nor does this wake up any tasks waiting to receiving on the
 \ bounded channel.
-: ENQUEUE-BUFBCHAN ( addr chan -- )
-  TUCK BUFBCHAN-QUEUE @ 2 PICK BUFBCHAN-ENQUEUE-INDEX @
-  3 PICK BUFBCHAN-ENTRY-SIZE @ * + 2 PICK BUFBCHAN-ENTRY-SIZE @ CMOVE
-  DUP BUFBCHAN-QUEUE-COUNT @ 1+ OVER BUFBCHAN-QUEUE-COUNT !
-  DUP BUFBCHAN-ENQUEUE-INDEX @ 1+ OVER BUFBCHAN-QUEUE-SIZE @ MOD
-  SWAP BUFBCHAN-ENQUEUE-INDEX ! ;
+: enqueue-bufbchan ( addr chan -- )
+  tuck bufbchan-queue @ 2 pick bufbchan-enqueue-index @
+  3 pick bufbchan-entry-size @ * + 2 pick bufbchan-entry-size @ cmove
+  dup bufbchan-queue-count @ 1+ over bufbchan-queue-count !
+  dup bufbchan-enqueue-index @ 1+ over bufbchan-queue-size @ mod
+  swap bufbchan-enqueue-index ! ;
 
 \ Internal - peek a value from a bounded channel; note that this does not have
 \ any safeties for preventing peeking a value from an empty bounded channel.
-: DO-PEEK-BUFBCHAN ( addr chan -- )
-  DUP BUFBCHAN-QUEUE @ OVER BUFBCHAN-DEQUEUE-INDEX @
-  2 PICK BUFBCHAN-ENTRY-SIZE @ * + ROT ROT BUFBCHAN-ENTRY-SIZE @ CMOVE ;
+: do-peek-bufbchan ( addr chan -- )
+  dup bufbchan-queue @ over bufbchan-dequeue-index @
+  2 pick bufbchan-entry-size @ * + rot rot bufbchan-entry-size @ cmove ;
 
 \ Send a packet on a bounded channel, waking up one task waiting to receive a
 \ packet from the bounded channel, and waiting for a value to be read from the
 \ bounded channel if it is already full.
-: SEND-BUFBCHAN ( addr chan -- )
-  BEGIN DUP BUFBCHAN-QUEUE-COUNT @ OVER BUFBCHAN-QUEUE-SIZE @ >= WHILE
-    DUP BUFBCHAN-SEND-COND @ WAIT-COND
-  REPEAT
-  TUCK ENQUEUE-BUFBCHAN BUFBCHAN-RECV-COND @ SIGNAL-COND ;
+: send-bufbchan ( addr chan -- )
+  begin dup bufbchan-queue-count @ over bufbchan-queue-size @ >= while
+    dup bufbchan-send-cond @ wait-cond
+  repeat
+  tuck enqueue-bufbchan bufbchan-recv-cond @ signal-cond ;
 
 \ Attempt to send a packet on a bounded channel, waking up one task waiting to
 \ receive a packet from the bounded channel, and returning FALSE if the bounded
 \ channel is already full.
-: TRY-SEND-BUFBCHAN ( addr chan -- success )
-  DUP BUFBCHAN-QUEUE-COUNT @ OVER BUFBCHAN-QUEUE-SIZE @ < IF
-    TUCK ENQUEUE-BUFBCHAN BUFBCHAN-RECV-COND @ SIGNAL-COND TRUE
-  ELSE
-    2DROP FALSE
-  THEN ;
+: try-send-bufbchan ( addr chan -- success )
+  dup bufbchan-queue-count @ over bufbchan-queue-size @ < if
+    tuck enqueue-bufbchan bufbchan-recv-cond @ signal-cond true
+  else
+    2drop false
+  then ;
 
 \ Receive a packet from a bounded channel, waking up one task waiting to send
 \ a packet on the bounded channel, and waiting for a task to send a packet on
 \ the bounded channel if it is empty.
-: RECV-BUFBCHAN ( addr chan -- )
-  BEGIN DUP BUFBCHAN-QUEUE-COUNT @ 0= WHILE
-    DUP BUFBCHAN-RECV-COND @ WAIT-COND
-  REPEAT
-  TUCK DEQUEUE-BUFBCHAN BUFBCHAN-SEND-COND @ SIGNAL-COND ;
+: recv-bufbchan ( addr chan -- )
+  begin dup bufbchan-queue-count @ 0= while
+    dup bufbchan-recv-cond @ wait-cond
+  repeat
+  tuck dequeue-bufbchan bufbchan-send-cond @ signal-cond ;
 
 \ Receive a packet from a bounded channel without dequeueing any packets,
 \ waiting for a task to send a packet on the bounded channel if it is empty.
-: PEEK-BUFBCHAN ( addr chan -- )
-  BEGIN DUP BUFBCHAN-QUEUE-COUNT @ 0= WHILE
-    DUP BUFBCHAN-RECV-COND @ WAIT-COND
-  REPEAT
-  DO-PEEK-BUFBCHAN ;
+: peek-bufbchan ( addr chan -- )
+  begin dup bufbchan-queue-count @ 0= while
+    dup bufbchan-recv-cond @ wait-cond
+  repeat
+  do-peek-bufbchan ;
 
 \ Attempt to receive a packet from a bounded channel, waking up one task waiting
 \ to send a packet on the bounded channel, and returning FALSE if the bounded
 \ channel is empty.
-: TRY-RECV-BUFBCHAN ( addr chan -- found )
-  DUP BUFBCHAN-QUEUE-COUNT @ 0<> IF
-    TUCK DEQUEUE-BUFBCHAN BUFBCHAN-SEND-COND @ SIGNAL-COND TRUE
-  ELSE
-    2DROP FALSE
-  THEN ;
+: try-recv-bufbchan ( addr chan -- found )
+  dup bufbchan-queue-count @ 0<> if
+    tuck dequeue-bufbchan bufbchan-send-cond @ signal-cond true
+  else
+    2drop false
+  then ;
 
 \ Attempt to receive a packet from a bounded channel without dequeueing any
 \ packets, returning FALSE if the bounded channel is empty.
-: TRY-PEEK-BUFBCHAN ( addr chan -- found )
-  DUP BUFBCHAN-QUEUE-COUNT @ 0<> IF
-    DO-PEEK-BUFBCHAN TRUE
-  ELSE
-    2DROP 0 FALSE
-  THEN ;
+: try-peek-bufbchan ( addr chan -- found )
+  dup bufbchan-queue-count @ 0<> if
+    do-peek-bufbchan true
+  else
+    2drop 0 false
+  then ;
 
 \ Get the number of values queued in a bounded channel.
-: COUNT-BUFBCHAN ( chan -- u ) BUFBCHAN-QUEUE-COUNT @ ;
+: count-bufbchan ( chan -- u ) bufbchan-queue-count @ ;
 
 \ Get whether a bounded channel is empty.
-: EMPTY-BUFBCHAN? ( chan -- empty ) BUFBCHAN-QUEUE-COUNT @ 0 = ;
+: empty-bufbchan? ( chan -- empty ) bufbchan-queue-count @ 0 = ;
 
 \ Get whether a bounded channel is full.
-: FULL-BUFBCHAN? ( chan -- full )
-  DUP BUFBCHAN-QUEUE-COUNT @ SWAP BUFBCHAN-QUEUE-SIZE @ = ;
+: full-bufbchan? ( chan -- full )
+  dup bufbchan-queue-count @ swap bufbchan-queue-size @ = ;
 
 \ Get bounded channel entry size.
-: GET-BUFBCHAN-ENTRY-SIZE ( chan -- u ) BUFBCHAN-ENTRY-SIZE @ ;
+: get-bufbchan-entry-size ( chan -- u ) bufbchan-entry-size @ ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

@@ -27,39 +27,39 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-INCLUDE src/hashforth/sixel.fs
+include src/hashforth/sixel.fs
 
-FORTH-WORDLIST SIXEL-WORDLIST 2 SET-ORDER
+forth-wordlist sixel-wordlist 2 set-order
 
-16 CONSTANT COLOR-COUNT
-16 CONSTANT COLOR-WIDTH
-36 CONSTANT HEIGHT
-COLOR-COUNT COLOR-WIDTH * HEIGHT COLOR-COUNT NEW-SIXEL-FB CONSTANT FB
+16 constant color-count
+16 constant color-width
+36 constant height
+color-count color-width * height color-count new-sixel-fb constant fb
 
-: RED-GRADIENT ( index -- red ) COLOR-COUNT SWAP - 255 * COLOR-COUNT / ;
+: red-gradient ( index -- red ) color-count swap - 255 * color-count / ;
 
-: GREEN-GRADIENT ( index -- green )
-  DUP COLOR-COUNT 2 / < IF
-    255 * COLOR-COUNT 2 / /
-  ELSE
-    COLOR-COUNT SWAP - 255 * COLOR-COUNT 2 / /
-  THEN ;
+: green-gradient ( index -- green )
+  dup color-count 2 / < if
+    255 * color-count 2 / /
+  else
+    color-count swap - 255 * color-count 2 / /
+  then ;
 
-: BLUE-GRADIENT ( index -- blue ) 255 * COLOR-COUNT / ;
+: blue-gradient ( index -- blue ) 255 * color-count / ;
 
-: FILL-PALETTE ( -- )
-  COLOR-COUNT 0 ?DO
-    I RED-GRADIENT I GREEN-GRADIENT I BLUE-GRADIENT I FB SET-COLOR
-  LOOP ;
+: fill-palette ( -- )
+  color-count 0 ?do
+    i red-gradient i green-gradient i blue-gradient i fb set-color
+  loop ;
 
-: FILL-GRADIENT ( -- )
-  FB CLEAR-PIXELS
-  COLOR-COUNT 0 ?DO
-    I COLOR-WIDTH * DUP COLOR-WIDTH + SWAP ?DO
-      0 BEGIN DUP HEIGHT < WHILE I OVER J FB PIXEL-NO-CLEAR! 1 + REPEAT DROP
-    LOOP
-  LOOP ;
+: fill-gradient ( -- )
+  fb clear-pixels
+  color-count 0 ?do
+    i color-width * dup color-width + swap ?do
+      0 begin dup height < while i over j fb pixel-no-clear! 1 + repeat drop
+    loop
+  loop ;
 
-: DRAW-GRADIENT ( -- ) FILL-PALETTE FILL-GRADIENT FB DRAW ;
+: draw-gradient ( -- ) fill-palette fill-gradient fb draw ;
 
-DRAW-GRADIENT
+draw-gradient

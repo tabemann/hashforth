@@ -27,27 +27,27 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT BUILD-IMAGE-WORDLIST
-WORDLIST CONSTANT BUILD-IMAGE-ASM-WORDLIST
+wordlist constant build-image-wordlist
+wordlist constant build-image-asm-wordlist
 
-INCLUDE src/asm/asm.fs
+include src/asm/asm.fs
 
-HASHFORTH-ASM-WORDLIST BUILD-IMAGE-ASM-WORDLIST HASHFORTH-WORDLIST
-BUILD-IMAGE-WORDLIST BUFFER-WORDLIST FORTH-WORDLIST 6 SET-ORDER
-BUILD-IMAGE-WORDLIST SET-CURRENT
+hashforth-asm-wordlist build-image-asm-wordlist hashforth-wordlist
+build-image-wordlist buffer-wordlist forth-wordlist 6 set-order
+build-image-wordlist set-current
 
-: VM FORTH-WORDLIST BUFFER-WORDLIST HASHFORTH-WORDLIST HASHFORTH-ASM-WORDLIST
-  BUILD-IMAGE-WORDLIST BUILD-IMAGE-ASM-WORDLIST 6 SET-ORDER ; IMMEDIATE
+: vm forth-wordlist buffer-wordlist hashforth-wordlist hashforth-asm-wordlist
+  build-image-wordlist build-image-asm-wordlist 6 set-order ; immediate
 
-: NOT-VM HASHFORTH-ASM-WORDLIST BUILD-IMAGE-ASM-WORDLIST HASHFORTH-WORDLIST
-  BUILD-IMAGE-WORDLIST BUFFER-WORDLIST FORTH-WORDLIST 6 SET-ORDER ; IMMEDIATE
+: not-vm hashforth-asm-wordlist build-image-asm-wordlist hashforth-wordlist
+  build-image-wordlist buffer-wordlist forth-wordlist 6 set-order ; immediate
 
-BUILD-IMAGE-ASM-WORDLIST SET-CURRENT
+build-image-asm-wordlist set-current
 
-INCLUDE src/asm/image.fs
+include src/asm/image.fs
 
-S" images/cell_64_token_16_32.image" WRITE-ASM-TO-FILE
+s" images/cell_64_token_16_32.image" write-asm-to-file

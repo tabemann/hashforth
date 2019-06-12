@@ -27,284 +27,284 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT SIXEL-WORDLIST
-FORTH-WORDLIST SIXEL-WORDLIST 2 SET-ORDER
-SIXEL-WORDLIST SET-CURRENT
+wordlist constant sixel-wordlist
+forth-wordlist sixel-wordlist 2 set-order
+sixel-wordlist set-current
 
-1024 CONSTANT SIXEL-OUTPUT-SIZE
+1024 constant sixel-output-size
 
-$1B CONSTANT ESCAPE
+$1b constant escape
 \ BL CONSTANT ESCAPE
 
-BEGIN-STRUCTURE SIXEL-FB-SIZE
-  FIELD: SIXEL-FB-WIDTH
-  FIELD: SIXEL-FB-HEIGHT
-  FIELD: SIXEL-FB-COLORS
-  FIELD: SIXEL-FB-COLOR-COUNT
-  FIELD: SIXEL-FB-ROW-LENGTH
-  FIELD: SIXEL-FB-COLOR-LENGTH
-  FIELD: SIXEL-FB-DATA
-  FIELD: SIXEL-FB-DATA-CURRENT
-  FIELD: SIXEL-FB-DATA-END
-  FIELD: SIXEL-FB-COMPRESS
-  FIELD: SIXEL-FB-COMPRESS-CURRENT
-  FIELD: SIXEL-FB-OUTPUT
-  FIELD: SIXEL-FB-OUTPUT-INDEX
-END-STRUCTURE
+begin-structure sixel-fb-size
+  field: sixel-fb-width
+  field: sixel-fb-height
+  field: sixel-fb-colors
+  field: sixel-fb-color-count
+  field: sixel-fb-row-length
+  field: sixel-fb-color-length
+  field: sixel-fb-data
+  field: sixel-fb-data-current
+  field: sixel-fb-data-end
+  field: sixel-fb-compress
+  field: sixel-fb-compress-current
+  field: sixel-fb-output
+  field: sixel-fb-output-index
+end-structure
 
-1024 CONSTANT MAX-NUM-COUNT
-1024 CONSTANT MAX-RLE-MULTIPLIER-COUNT
+1024 constant max-num-count
+1024 constant max-rle-multiplier-count
 
-CREATE PREFIXED-NUM-SIZES MAX-NUM-COUNT ALLOT
-CREATE PREFIXED-NUM-SUMS MAX-NUM-COUNT 2 * ALLOT
-CREATE RLE-MULTIPLIERS MAX-RLE-MULTIPLIER-COUNT 5 * ALLOT
+create prefixed-num-sizes max-num-count allot
+create prefixed-num-sums max-num-count 2 * allot
+create rle-multipliers max-rle-multiplier-count 5 * allot
 
-: INIT-PREFIXED-NUM-SUMS ( -- )
-  0 0 BEGIN DUP MAX-NUM-COUNT < WHILE
-    DUP DUP 10 < IF
-      DROP 2
-    ELSE DUP 100 < IF
-      DROP 3
-    ELSE 1000 < IF
+: init-prefixed-num-sums ( -- )
+  0 0 begin dup max-num-count < while
+    dup dup 10 < if
+      drop 2
+    else dup 100 < if
+      drop 3
+    else 1000 < if
       4
-    ELSE
+    else
       5
-    THEN THEN THEN
-    2DUP SWAP PREFIXED-NUM-SIZES + C! ROT + 2DUP SWAP 2 *
-    PREFIXED-NUM-SUMS + H! SWAP 1 +
-  REPEAT
-  2DROP ;
+    then then then
+    2dup swap prefixed-num-sizes + c! rot + 2dup swap 2 *
+    prefixed-num-sums + h! swap 1 +
+  repeat
+  2drop ;
 
-INIT-PREFIXED-NUM-SUMS
+init-prefixed-num-sums
 
-: INIT-RLE-MULTIPLIERS ( -- )
-  0 BEGIN DUP MAX-RLE-MULTIPLIER-COUNT < WHILE
-    [CHAR] ! OVER 5 * RLE-MULTIPLIERS + C!
-    DUP FORMAT-NUMBER 2 PICK 5 * 1 + RLE-MULTIPLIERS + SWAP MOVE
+: init-rle-multipliers ( -- )
+  0 begin dup max-rle-multiplier-count < while
+    [char] ! over 5 * rle-multipliers + c!
+    dup format-number 2 pick 5 * 1 + rle-multipliers + swap move
     1 +
-  REPEAT
-  DROP ;
+  repeat
+  drop ;
 
-INIT-RLE-MULTIPLIERS
+init-rle-multipliers
 
-: BUFFER-CHAR ( c fb -- )
-  DUP SIXEL-FB-OUTPUT-INDEX @ SIXEL-OUTPUT-SIZE >= IF
-    DUP SIXEL-FB-OUTPUT @ SIXEL-OUTPUT-SIZE TYPE
-    1 OVER SIXEL-FB-OUTPUT-INDEX ! SIXEL-FB-OUTPUT @ C!
-  ELSE
-    DUP SIXEL-FB-OUTPUT-INDEX @ >R TUCK SIXEL-FB-OUTPUT @ R@ + C!
-    R> 1 + SWAP SIXEL-FB-OUTPUT-INDEX !
-  THEN ;
+: buffer-char ( c fb -- )
+  dup sixel-fb-output-index @ sixel-output-size >= if
+    dup sixel-fb-output @ sixel-output-size type
+    1 over sixel-fb-output-index ! sixel-fb-output @ c!
+  else
+    dup sixel-fb-output-index @ >r tuck sixel-fb-output @ r@ + c!
+    r> 1 + swap sixel-fb-output-index !
+  then ;
 
-: BUFFER-STRING ( c-addr u fb -- )
-  >R BEGIN DUP 0 > WHILE
-    1 - SWAP DUP C@ R@ BUFFER-CHAR 1 + SWAP
-  REPEAT
-  R> DROP 2DROP ;
+: buffer-string ( c-addr u fb -- )
+  >r begin dup 0 > while
+    1 - swap dup c@ r@ buffer-char 1 + swap
+  repeat
+  r> drop 2drop ;
 
-: BUFFER-DECIMAL ( n fb -- )
-  SWAP ['] FORMAT-NUMBER 10 BASE-EXECUTE ROT BUFFER-STRING ;
+: buffer-decimal ( n fb -- )
+  swap ['] format-number 10 base-execute rot buffer-string ;
 
-: FLUSH-BUFFER ( fb -- )
-  DUP SIXEL-FB-OUTPUT @ OVER SIXEL-FB-OUTPUT-INDEX @ TYPE
-  0 SWAP SIXEL-FB-OUTPUT-INDEX ! ;
+: flush-buffer ( fb -- )
+  dup sixel-fb-output @ over sixel-fb-output-index @ type
+  0 swap sixel-fb-output-index ! ;
 
-: BEGIN-FRAME ( fb -- )
-  ESCAPE OVER BUFFER-CHAR [CHAR] P OVER BUFFER-CHAR [CHAR] q SWAP BUFFER-CHAR ;
+: begin-frame ( fb -- )
+  escape over buffer-char [char] P over buffer-char [char] q swap buffer-char ;
 
-: END-FRAME ( -- ) ESCAPE EMIT [CHAR] \ EMIT ;
+: end-frame ( -- ) escape emit [char] \ emit ;
 
-: CLEAR-COLORS ( fb -- )
-  >R 0 BEGIN DUP R@ SIXEL-FB-COLOR-COUNT @ < WHILE
-    DUP CELLS R@ SIXEL-FB-COLORS @ + 0 SWAP ! 1 +
-  REPEAT
-  DROP R> DROP ;
+: clear-colors ( fb -- )
+  >r 0 begin dup r@ sixel-fb-color-count @ < while
+    dup cells r@ sixel-fb-colors @ + 0 swap ! 1 +
+  repeat
+  drop r> drop ;
 
-: SET-COLOR ( r g b color fb -- )
-  SIXEL-FB-COLORS @ SWAP CELLS +
-  SWAP $FF AND ROT $FF AND 8 LSHIFT OR ROT $FF AND 16 LSHIFT OR SWAP ! ;
+: set-color ( r g b color fb -- )
+  sixel-fb-colors @ swap cells +
+  swap $ff and rot $ff and 8 lshift or rot $ff and 16 lshift or swap ! ;
 
-: GET-COLOR ( color fb -- r g b )
-  SIXEL-FB-COLORS @ SWAP CELLS + @ >R
-  R@ 16 RSHIFT R@ 8 RSHIFT $FF AND R> $FF AND ;
+: get-color ( color fb -- r g b )
+  sixel-fb-colors @ swap cells + @ >r
+  r@ 16 rshift r@ 8 rshift $ff and r> $ff and ;
 
-: GENERATE-PALETTE-ENTRY ( r g b color fb --)
-  [CHAR] # OVER BUFFER-CHAR TUCK BUFFER-DECIMAL
-  [CHAR] ; OVER BUFFER-CHAR [CHAR] 2 OVER BUFFER-CHAR
-  [CHAR] ; OVER BUFFER-CHAR 3 ROLL 100 * 255 / OVER BUFFER-DECIMAL
-  [CHAR] ; OVER BUFFER-CHAR ROT 100 * 255 / OVER BUFFER-DECIMAL
-  [CHAR] ; OVER BUFFER-CHAR SWAP 100 * 255 / SWAP BUFFER-DECIMAL ;
+: generate-palette-entry ( r g b color fb --)
+  [char] # over buffer-char tuck buffer-decimal
+  [char] ; over buffer-char [char] 2 over buffer-char
+  [char] ; over buffer-char 3 roll 100 * 255 / over buffer-decimal
+  [char] ; over buffer-char rot 100 * 255 / over buffer-decimal
+  [char] ; over buffer-char swap 100 * 255 / swap buffer-decimal ;
 
-: GENERATE-PALETTE ( fb -- )
-  >R 0 BEGIN DUP R@ SIXEL-FB-COLOR-COUNT @ < WHILE
-    DUP R@ GET-COLOR 3 PICK R@ GENERATE-PALETTE-ENTRY 1 +
-  REPEAT
-  DROP R> DROP ;
+: generate-palette ( fb -- )
+  >r 0 begin dup r@ sixel-fb-color-count @ < while
+    dup r@ get-color 3 pick r@ generate-palette-entry 1 +
+  repeat
+  drop r> drop ;
 
-: GET-DATA-SIZE ( fb -- bytes )
-  >R R@ SIXEL-FB-COLOR-COUNT @ R@ SIXEL-FB-WIDTH @ 1 + *
-  R@ SIXEL-FB-HEIGHT @ 6 / *
-  R@ SIXEL-FB-HEIGHT @ 6 /
-  R@ SIXEL-FB-COLOR-COUNT @ 1 - 2 * PREFIXED-NUM-SUMS + H@ * +
-  R> SIXEL-FB-HEIGHT @ 6 / + ;
+: get-data-size ( fb -- bytes )
+  >r r@ sixel-fb-color-count @ r@ sixel-fb-width @ 1 + *
+  r@ sixel-fb-height @ 6 / *
+  r@ sixel-fb-height @ 6 /
+  r@ sixel-fb-color-count @ 1 - 2 * prefixed-num-sums + h@ * +
+  r> sixel-fb-height @ 6 / + ;
 
-: GET-ROW-LENGTH ( fb -- bytes )
-  >R R@ SIXEL-FB-COLOR-COUNT @ R@ SIXEL-FB-WIDTH @ 1 + * 1 +
-  R> SIXEL-FB-COLOR-COUNT @ 1 - 2 * PREFIXED-NUM-SUMS + H@ + ;
+: get-row-length ( fb -- bytes )
+  >r r@ sixel-fb-color-count @ r@ sixel-fb-width @ 1 + * 1 +
+  r> sixel-fb-color-count @ 1 - 2 * prefixed-num-sums + h@ + ;
 
-: GET-COLOR-LENGTH ( fb -- bytes ) SIXEL-FB-WIDTH @ 1 + ;
+: get-color-length ( fb -- bytes ) sixel-fb-width @ 1 + ;
 
-: GET-ADDRESS ( x y color fb -- addr )
-  >R R@ SIXEL-FB-ROW-LENGTH @ ROT 6 / *
-  OVER 2 * PREFIXED-NUM-SUMS + H@ +
-  SWAP R@ SIXEL-FB-COLOR-LENGTH @ * + + R> SIXEL-FB-DATA @ + ;
+: get-address ( x y color fb -- addr )
+  >r r@ sixel-fb-row-length @ rot 6 / *
+  over 2 * prefixed-num-sums + h@ +
+  swap r@ sixel-fb-color-length @ * + + r> sixel-fb-data @ + ;
 
-: CLEAR-PIXEL ( x y fb -- )
-  >R R@ SIXEL-FB-ROW-LENGTH @ OVER 6 / * R@ SIXEL-FB-DATA @ + ROT +
-  SWAP 6 MOD SWAP
-  0 BEGIN DUP R@ SIXEL-FB-COLOR-COUNT @ < WHILE
-    SWAP OVER PREFIXED-NUM-SIZES + C@ + SWAP
-    OVER C@ 63 - 1 3 PICK LSHIFT NOT AND 63 + 2 PICK C!
-    1 + SWAP R@ SIXEL-FB-COLOR-LENGTH @ + SWAP
-  REPEAT
-  2DROP DROP R> DROP ;
+: clear-pixel ( x y fb -- )
+  >r r@ sixel-fb-row-length @ over 6 / * r@ sixel-fb-data @ + rot +
+  swap 6 mod swap
+  0 begin dup r@ sixel-fb-color-count @ < while
+    swap over prefixed-num-sizes + c@ + swap
+    over c@ 63 - 1 3 pick lshift not and 63 + 2 pick c!
+    1 + swap r@ sixel-fb-color-length @ + swap
+  repeat
+  2drop drop r> drop ;
 
-: PIXEL! ( x y color fb -- )
-  3 PICK 3 PICK 2 PICK CLEAR-PIXEL
-  2 PICK >R GET-ADDRESS DUP C@ 63 - 1 R> 6 MOD LSHIFT OR 63 + SWAP C! ;
+: pixel! ( x y color fb -- )
+  3 pick 3 pick 2 pick clear-pixel
+  2 pick >r get-address dup c@ 63 - 1 r> 6 mod lshift or 63 + swap c! ;
 
-: PIXEL-NO-CLEAR! ( x y color fb -- )
-  2 PICK >R GET-ADDRESS DUP C@ 63 - 1 R> 6 MOD LSHIFT OR 63 + SWAP C! ;
+: pixel-no-clear! ( x y color fb -- )
+  2 pick >r get-address dup c@ 63 - 1 r> 6 mod lshift or 63 + swap c! ;
 
-: POPULATE-LF ( y/6 fb -- )
-  >R R@ SIXEL-FB-ROW-LENGTH @ SWAP 1 + * 1 - R> SIXEL-FB-DATA @ +
-  [CHAR] - SWAP C! ;
+: populate-lf ( y/6 fb -- )
+  >r r@ sixel-fb-row-length @ swap 1 + * 1 - r> sixel-fb-data @ +
+  [char] - swap c! ;
 
-: POPULATE-CR ( y/6 color fb -- )
-  >R DUP 2 * PREFIXED-NUM-SUMS + H@
-  R@ SIXEL-FB-ROW-LENGTH @ 3 PICK * + OVER R@ SIXEL-FB-COLOR-LENGTH @ * +
-  R@ SIXEL-FB-WIDTH @ + R> SIXEL-FB-DATA @ + [CHAR] $ SWAP C! 2DROP ;
+: populate-cr ( y/6 color fb -- )
+  >r dup 2 * prefixed-num-sums + h@
+  r@ sixel-fb-row-length @ 3 pick * + over r@ sixel-fb-color-length @ * +
+  r@ sixel-fb-width @ + r> sixel-fb-data @ + [char] $ swap c! 2drop ;
 
-: POPULATE-COLOR ( y/6 color fb -- )
-  >R DUP 2 * PREFIXED-NUM-SUMS + H@ OVER PREFIXED-NUM-SIZES + C@ -
-  R@ SIXEL-FB-ROW-LENGTH @ 3 PICK * + OVER R@ SIXEL-FB-COLOR-LENGTH @ * +
-  R> SIXEL-FB-DATA @ + [CHAR] # OVER C! 1 +
-  OVER ['] FORMAT-NUMBER 10 BASE-EXECUTE ROT SWAP MOVE 2DROP ;
+: populate-color ( y/6 color fb -- )
+  >r dup 2 * prefixed-num-sums + h@ over prefixed-num-sizes + c@ -
+  r@ sixel-fb-row-length @ 3 pick * + over r@ sixel-fb-color-length @ * +
+  r> sixel-fb-data @ + [char] # over c! 1 +
+  over ['] format-number 10 base-execute rot swap move 2drop ;
 
-: CLEAR-LINE-COLOR ( y/6 color fb -- )
-  >R DUP 2 * PREFIXED-NUM-SUMS + H@
-  R@ SIXEL-FB-ROW-LENGTH @ 3 PICK * + OVER R@ SIXEL-FB-COLOR-LENGTH @ * +
-  R@ SIXEL-FB-DATA @ +
-  R> SIXEL-FB-WIDTH @ 63 FILL 2DROP ;
+: clear-line-color ( y/6 color fb -- )
+  >r dup 2 * prefixed-num-sums + h@
+  r@ sixel-fb-row-length @ 3 pick * + over r@ sixel-fb-color-length @ * +
+  r@ sixel-fb-data @ +
+  r> sixel-fb-width @ 63 fill 2drop ;
 
-: FILL-LINE-COLOR ( y/6 color fb -- )
-  >R DUP 2 * PREFIXED-NUM-SUMS + H@
-  R@ SIXEL-FB-ROW-LENGTH @ 3 PICK * + OVER R@ SIXEL-FB-COLOR-LENGTH @ * +
-  R@ SIXEL-FB-DATA @ +
-  R> SIXEL-FB-WIDTH @ 126 FILL 2DROP ;
+: fill-line-color ( y/6 color fb -- )
+  >r dup 2 * prefixed-num-sums + h@
+  r@ sixel-fb-row-length @ 3 pick * + over r@ sixel-fb-color-length @ * +
+  r@ sixel-fb-data @ +
+  r> sixel-fb-width @ 126 fill 2drop ;
 
-: CLEAR-PIXELS ( fb -- )
-  >R 0 BEGIN DUP R@ SIXEL-FB-HEIGHT @ 6 / < WHILE
-    0 BEGIN DUP R@ SIXEL-FB-COLOR-COUNT @ < WHILE
-      2DUP R@ CLEAR-LINE-COLOR 1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP R> DROP ;
+: clear-pixels ( fb -- )
+  >r 0 begin dup r@ sixel-fb-height @ 6 / < while
+    0 begin dup r@ sixel-fb-color-count @ < while
+      2dup r@ clear-line-color 1 +
+    repeat
+    drop 1 +
+  repeat
+  drop r> drop ;
 
-: FILL-PIXELS ( color fb -- )
-  >R 0 BEGIN DUP R@ SIXEL-FB-HEIGHT @ 6 / < WHILE
-    0 BEGIN DUP R@ SIXEL-FB-COLOR-COUNT @ < WHILE
-      DUP 3 PICK = IF
-        2DUP R@ FILL-LINE-COLOR
-      ELSE
-        2DUP R@ CLEAR-LINE-COLOR
-      THEN
+: fill-pixels ( color fb -- )
+  >r 0 begin dup r@ sixel-fb-height @ 6 / < while
+    0 begin dup r@ sixel-fb-color-count @ < while
+      dup 3 pick = if
+        2dup r@ fill-line-color
+      else
+        2dup r@ clear-line-color
+      then
       1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  2DROP R> DROP ;
+    repeat
+    drop 1 +
+  repeat
+  2drop r> drop ;
 
-: INIT-PIXELS ( fb -- )
-  >R 0 BEGIN DUP R@ SIXEL-FB-HEIGHT @ 6 / < WHILE
-    DUP R@ POPULATE-LF
-    0 BEGIN DUP R@ SIXEL-FB-COLOR-COUNT @ < WHILE
-      2DUP R@ POPULATE-CR
-      2DUP R@ POPULATE-COLOR
-      2DUP R@ CLEAR-LINE-COLOR
+: init-pixels ( fb -- )
+  >r 0 begin dup r@ sixel-fb-height @ 6 / < while
+    dup r@ populate-lf
+    0 begin dup r@ sixel-fb-color-count @ < while
+      2dup r@ populate-cr
+      2dup r@ populate-color
+      2dup r@ clear-line-color
       1 +
-    REPEAT
-    DROP 1 +
-  REPEAT
-  DROP R> DROP ;
+    repeat
+    drop 1 +
+  repeat
+  drop r> drop ;
 
-: GET-RUN-LENGTH ( fb -- )
-  SIXEL-FB-DATA-CURRENT @ DUP C@ >R 1 + 1 BEGIN
-    DUP MAX-NUM-COUNT < IF
-      OVER C@ R@ = IF
-        SWAP 1 + SWAP 1 + FALSE
-      ELSE
-        TRUE
-      THEN
-    ELSE
-      TRUE
-    THEN
-  UNTIL
-  NIP R> DROP ;
+: get-run-length ( fb -- )
+  sixel-fb-data-current @ dup c@ >r 1 + 1 begin
+    dup max-num-count < if
+      over c@ r@ = if
+        swap 1 + swap 1 + false
+      else
+        true
+      then
+    else
+      true
+    then
+  until
+  nip r> drop ;
 
-: COMPRESS ( fb -- )
-  >R BEGIN R@ SIXEL-FB-DATA-CURRENT @ R@ SIXEL-FB-DATA-END @ < WHILE
-    R@ SIXEL-FB-DATA-CURRENT @ C@ DUP 63 < OVER 126 > OR IF
-      R@ SIXEL-FB-COMPRESS-CURRENT @ C!
-      1 R@ SIXEL-FB-DATA-CURRENT +!
-      1 R@ SIXEL-FB-COMPRESS-CURRENT +!
-    ELSE
-      R@ GET-RUN-LENGTH DUP PREFIXED-NUM-SIZES + C@ 1 + OVER < IF
-        DUP 5 * RLE-MULTIPLIERS + R@ SIXEL-FB-COMPRESS-CURRENT @
-	2 PICK PREFIXED-NUM-SIZES + C@ DUP >R CMOVE
-	R> R@ SIXEL-FB-COMPRESS-CURRENT +!
-	R@ SIXEL-FB-DATA-CURRENT +!
-	R@ SIXEL-FB-COMPRESS-CURRENT @ C!
-	1 R@ SIXEL-FB-COMPRESS-CURRENT +!
-      ELSE
-        R@ SIXEL-FB-COMPRESS-CURRENT @ OVER 3 ROLL FILL
-	DUP R@ SIXEL-FB-DATA-CURRENT +!
-	R@ SIXEL-FB-COMPRESS-CURRENT +!
-      THEN
-    THEN
-  REPEAT
-  R> DROP ;
+: compress ( fb -- )
+  >r begin r@ sixel-fb-data-current @ r@ sixel-fb-data-end @ < while
+    r@ sixel-fb-data-current @ c@ dup 63 < over 126 > or if
+      r@ sixel-fb-compress-current @ c!
+      1 r@ sixel-fb-data-current +!
+      1 r@ sixel-fb-compress-current +!
+    else
+      r@ get-run-length dup prefixed-num-sizes + c@ 1 + over < if
+        dup 5 * rle-multipliers + r@ sixel-fb-compress-current @
+	2 pick prefixed-num-sizes + c@ dup >r cmove
+	r> r@ sixel-fb-compress-current +!
+	r@ sixel-fb-data-current +!
+	r@ sixel-fb-compress-current @ c!
+	1 r@ sixel-fb-compress-current +!
+      else
+        r@ sixel-fb-compress-current @ over 3 roll fill
+	dup r@ sixel-fb-data-current +!
+	r@ sixel-fb-compress-current +!
+      then
+    then
+  repeat
+  r> drop ;
 
-: DRAW ( fb -- )
-  DUP BEGIN-FRAME DUP GENERATE-PALETTE DUP FLUSH-BUFFER
-  DUP SIXEL-FB-DATA @ OVER SIXEL-FB-DATA-CURRENT !
-  DUP SIXEL-FB-COMPRESS @ OVER SIXEL-FB-COMPRESS-CURRENT !
-  DUP COMPRESS
-  DUP SIXEL-FB-COMPRESS @ SWAP SIXEL-FB-COMPRESS-CURRENT @ OVER - TYPE
-  END-FRAME ;
+: draw ( fb -- )
+  dup begin-frame dup generate-palette dup flush-buffer
+  dup sixel-fb-data @ over sixel-fb-data-current !
+  dup sixel-fb-compress @ over sixel-fb-compress-current !
+  dup compress
+  dup sixel-fb-compress @ swap sixel-fb-compress-current @ over - type
+  end-frame ;
 
-: NEW-SIXEL-FB ( width height colors -- fb )
-  >R DUP 6 MOD DUP 0 > IF 6 SWAP - + ELSE DROP THEN
-  HERE SIXEL-FB-SIZE ALLOT
-  R> OVER SIXEL-FB-COLOR-COUNT ! TUCK SIXEL-FB-HEIGHT ! TUCK SIXEL-FB-WIDTH !
-  DUP GET-ROW-LENGTH OVER SIXEL-FB-ROW-LENGTH !
-  DUP GET-COLOR-LENGTH OVER SIXEL-FB-COLOR-LENGTH !
-  HERE >R DUP SIXEL-FB-COLOR-COUNT @ CELLS ALLOT R> OVER SIXEL-FB-COLORS !
-  DUP CLEAR-COLORS
-  HERE >R DUP GET-DATA-SIZE ALLOT R> OVER SIXEL-FB-DATA !
-  DUP SIXEL-FB-DATA @ OVER SIXEL-FB-DATA-CURRENT !
-  DUP SIXEL-FB-DATA @ OVER GET-DATA-SIZE + OVER SIXEL-FB-DATA-END !
-  DUP INIT-PIXELS
-  HERE >R DUP GET-DATA-SIZE ALLOT R> OVER SIXEL-FB-COMPRESS !
-  DUP SIXEL-FB-COMPRESS @ OVER SIXEL-FB-COMPRESS-CURRENT !
-  HERE >R SIXEL-OUTPUT-SIZE ALLOT R> OVER SIXEL-FB-OUTPUT !
-  0 OVER SIXEL-FB-OUTPUT-INDEX ! ;
+: new-sixel-fb ( width height colors -- fb )
+  >r dup 6 mod dup 0 > if 6 swap - + else drop then
+  here sixel-fb-size allot
+  r> over sixel-fb-color-count ! tuck sixel-fb-height ! tuck sixel-fb-width !
+  dup get-row-length over sixel-fb-row-length !
+  dup get-color-length over sixel-fb-color-length !
+  here >r dup sixel-fb-color-count @ cells allot r> over sixel-fb-colors !
+  dup clear-colors
+  here >r dup get-data-size allot r> over sixel-fb-data !
+  dup sixel-fb-data @ over sixel-fb-data-current !
+  dup sixel-fb-data @ over get-data-size + over sixel-fb-data-end !
+  dup init-pixels
+  here >r dup get-data-size allot r> over sixel-fb-compress !
+  dup sixel-fb-compress @ over sixel-fb-compress-current !
+  here >r sixel-output-size allot r> over sixel-fb-output !
+  0 over sixel-fb-output-index ! ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

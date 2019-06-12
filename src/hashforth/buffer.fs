@@ -27,130 +27,130 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-BASE @ GET-CURRENT GET-ORDER
+base @ get-current get-order
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT BUFFER-WORDLIST
-FORTH-WORDLIST BUFFER-WORDLIST 2 SET-ORDER
-BUFFER-WORDLIST SET-CURRENT
+wordlist constant buffer-wordlist
+forth-wordlist buffer-wordlist 2 set-order
+buffer-wordlist set-current
 
-BEGIN-STRUCTURE BUFFER-SIZE
-  FIELD: BUFFER-DATA
-  FIELD: BUFFER-DATA-COUNT
-  FIELD: BUFFER-DATA-SIZE
-END-STRUCTURE
+begin-structure buffer-size
+  field: buffer-data
+  field: buffer-data-count
+  field: buffer-data-size
+end-structure
 
-: NEW-BUFFER ( init-bytes -- buffer )
-  BUFFER-SIZE ALLOCATE!
-  OVER ALLOCATE! OVER BUFFER-DATA !
-  TUCK BUFFER-DATA-SIZE !
-  0 OVER BUFFER-DATA-COUNT ! ;
+: new-buffer ( init-bytes -- buffer )
+  buffer-size allocate!
+  over allocate! over buffer-data !
+  tuck buffer-data-size !
+  0 over buffer-data-count ! ;
 
-: DESTROY-BUFFER ( buffer -- ) DUP BUFFER-DATA @ FREE! FREE! ;
+: destroy-buffer ( buffer -- ) dup buffer-data @ free! free! ;
 
-: GET-BUFFER-LENGTH ( buffer -- bytes ) BUFFER-DATA-COUNT @ ;
+: get-buffer-length ( buffer -- bytes ) buffer-data-count @ ;
 
-: EXPAND-BUFFER ( bytes buffer -- )
-  DUP BUFFER-DATA-COUNT @ ROT + OVER BUFFER-DATA-SIZE @ 2 * MAX
-  OVER BUFFER-DATA @ OVER RESIZE! 2 PICK BUFFER-DATA !
-  SWAP BUFFER-DATA-SIZE ! ;
+: expand-buffer ( bytes buffer -- )
+  dup buffer-data-count @ rot + over buffer-data-size @ 2 * max
+  over buffer-data @ over resize! 2 pick buffer-data !
+  swap buffer-data-size ! ;
 
-: APPEND-BUFFER ( c-addr bytes buffer -- )
-  DUP BUFFER-DATA-COUNT @ 2 PICK + OVER BUFFER-DATA-SIZE @ > IF
-    2DUP EXPAND-BUFFER
-  THEN
-  DUP BUFFER-DATA @ OVER BUFFER-DATA-COUNT @ + 3 ROLL SWAP 3 PICK MOVE
-  BUFFER-DATA-COUNT +! ;
+: append-buffer ( c-addr bytes buffer -- )
+  dup buffer-data-count @ 2 pick + over buffer-data-size @ > if
+    2dup expand-buffer
+  then
+  dup buffer-data @ over buffer-data-count @ + 3 roll swap 3 pick move
+  buffer-data-count +! ;
 
-: APPEND-BYTE-BUFFER ( c buffer -- )
-  DUP BUFFER-DATA-COUNT @ OVER BUFFER-DATA-SIZE @ >= IF
-    1 OVER EXPAND-BUFFER
-  THEN
-  DUP BUFFER-DATA @ OVER BUFFER-DATA-COUNT @ + ROT SWAP C!
-  1 SWAP BUFFER-DATA-COUNT +! ;
+: append-byte-buffer ( c buffer -- )
+  dup buffer-data-count @ over buffer-data-size @ >= if
+    1 over expand-buffer
+  then
+  dup buffer-data @ over buffer-data-count @ + rot swap c!
+  1 swap buffer-data-count +! ;
 
-: REMOVE-BUFFER ( bytes offset buffer -- )
-  DUP BUFFER-DATA @ 3 PICK + 2 PICK + OVER BUFFER-DATA @ 3 PICK +
-  2 PICK BUFFER-DATA-COUNT @ 5 PICK - MOVE
-  ROT OVER BUFFER-DATA-COUNT @ SWAP - SWAP BUFFER-DATA-COUNT ! DROP ;
+: remove-buffer ( bytes offset buffer -- )
+  dup buffer-data @ 3 pick + 2 pick + over buffer-data @ 3 pick +
+  2 pick buffer-data-count @ 5 pick - move
+  rot over buffer-data-count @ swap - swap buffer-data-count ! drop ;
 
-: REMOVE-START-BUFFER ( bytes buffer -- )
-  DUP BUFFER-DATA @ 2 PICK + OVER BUFFER-DATA @ 2 PICK BUFFER-DATA-COUNT @
-  4 PICK - MOVE DUP BUFFER-DATA-COUNT @ ROT - SWAP BUFFER-DATA-COUNT ! ;
+: remove-start-buffer ( bytes buffer -- )
+  dup buffer-data @ 2 pick + over buffer-data @ 2 pick buffer-data-count @
+  4 pick - move dup buffer-data-count @ rot - swap buffer-data-count ! ;
 
-: REMOVE-END-BUFFER ( bytes buffer -- )
-  DUP BUFFER-DATA-COUNT @ ROT - SWAP BUFFER-DATA-COUNT ! ;
+: remove-end-buffer ( bytes buffer -- )
+  dup buffer-data-count @ rot - swap buffer-data-count ! ;
 
-: PREPEND-BUFFER ( c-addr bytes buffer -- )
-  DUP BUFFER-DATA-COUNT @ 2 PICK + OVER BUFFER-DATA-SIZE @ > IF
-    2DUP EXPAND-BUFFER
-  THEN
-  DUP BUFFER-DATA @ OVER BUFFER-DATA @ 3 PICK +
-  2 PICK BUFFER-DATA-COUNT @ MOVE 2 PICK OVER BUFFER-DATA @ 3 PICK MOVE
-  DUP BUFFER-DATA-COUNT @ ROT + SWAP BUFFER-DATA-COUNT ! DROP ;
+: prepend-buffer ( c-addr bytes buffer -- )
+  dup buffer-data-count @ 2 pick + over buffer-data-size @ > if
+    2dup expand-buffer
+  then
+  dup buffer-data @ over buffer-data @ 3 pick +
+  2 pick buffer-data-count @ move 2 pick over buffer-data @ 3 pick move
+  dup buffer-data-count @ rot + swap buffer-data-count ! drop ;
 
-: PREPEND-BYTE-BUFFER ( c buffer -- )
-  DUP BUFFER-DATA-COUNT @ OVER BUFFER-DATA-SIZE @ >= IF
-    1 OVER EXPAND-BUFFER
-  THEN
-  DUP BUFFER-DATA @ OVER BUFFER-DATA @ 1+
-  2 PICK BUFFER-DATA-COUNT @ MOVE TUCK BUFFER-DATA @ C!
-  DUP BUFFER-DATA-COUNT @ 1+ SWAP BUFFER-DATA-COUNT ! ;
+: prepend-byte-buffer ( c buffer -- )
+  dup buffer-data-count @ over buffer-data-size @ >= if
+    1 over expand-buffer
+  then
+  dup buffer-data @ over buffer-data @ 1+
+  2 pick buffer-data-count @ move tuck buffer-data @ c!
+  dup buffer-data-count @ 1+ swap buffer-data-count ! ;
 
-: WRITE-BUFFER ( c-addr bytes offset buffer -- )
-  OVER 3 PICK + OVER BUFFER-DATA-SIZE @ > IF
-    OVER 3 PICK + OVER BUFFER-DATA-COUNT @ - OVER EXPAND-BUFFER
-  THEN
-  3 ROLL OVER BUFFER-DATA @ 3 PICK + 4 PICK MOVE
-  2 PICK 2 PICK + OVER BUFFER-DATA-COUNT @ > IF
-    ROT ROT + SWAP BUFFER-DATA-COUNT !
-  ELSE
-    2DROP DROP
-  THEN ;
+: write-buffer ( c-addr bytes offset buffer -- )
+  over 3 pick + over buffer-data-size @ > if
+    over 3 pick + over buffer-data-count @ - over expand-buffer
+  then
+  3 roll over buffer-data @ 3 pick + 4 pick move
+  2 pick 2 pick + over buffer-data-count @ > if
+    rot rot + swap buffer-data-count !
+  else
+    2drop drop
+  then ;
 
-: WRITE-BYTE-BUFFER ( c offset buffer -- )
-  OVER 1+ OVER BUFFER-DATA-SIZE @ > IF
-    OVER 1+ OVER BUFFER-DATA-COUNT @ - OVER EXPAND-BUFFER
-  THEN
-  ROT OVER BUFFER-DATA @ 3 PICK + C!
-  OVER 1+ OVER BUFFER-DATA-COUNT @ > IF
-    OVER 1+ SWAP BUFFER-DATA-COUNT !
-  ELSE
-    2DROP
-  THEN ;
+: write-byte-buffer ( c offset buffer -- )
+  over 1+ over buffer-data-size @ > if
+    over 1+ over buffer-data-count @ - over expand-buffer
+  then
+  rot over buffer-data @ 3 pick + c!
+  over 1+ over buffer-data-count @ > if
+    over 1+ swap buffer-data-count !
+  else
+    2drop
+  then ;
 
-: INSERT-BUFFER ( c-addr bytes offset buffer -- )
-  DUP BUFFER-DATA-COUNT @ 2 PICK >= IF
-    WRITE-BUFFER
-  ELSE
-    DUP BUFFER-DATA-COUNT @ 3 PICK + OVER BUFFER-DATA-SIZE @ > IF
-      2 PICK OVER EXPAND-BUFFER
-    THEN
-    DUP BUFFER-DATA @ 2 PICK + OVER BUFFER-DATA @ 3 PICK + 4 PICK +
-    2 PICK BUFFER-DATA-COUNT @ 4 PICK - MOVE
-    3 PICK OVER BUFFER-DATA @ 3 PICK + 4 PICK MOVE
-    DUP BUFFER-DATA-COUNT @ 3 ROLL + SWAP BUFFER-DATA-COUNT ! 2DROP
-  THEN ;
+: insert-buffer ( c-addr bytes offset buffer -- )
+  dup buffer-data-count @ 2 pick >= if
+    write-buffer
+  else
+    dup buffer-data-count @ 3 pick + over buffer-data-size @ > if
+      2 pick over expand-buffer
+    then
+    dup buffer-data @ 2 pick + over buffer-data @ 3 pick + 4 pick +
+    2 pick buffer-data-count @ 4 pick - move
+    3 pick over buffer-data @ 3 pick + 4 pick move
+    dup buffer-data-count @ 3 roll + swap buffer-data-count ! 2drop
+  then ;
 
-: INSERT-BYTE-BUFFER ( c offset buffer -- )
-  DUP BUFFER-DATA-COUNT @ 2 PICK >= IF
-    WRITE-BYTE-BUFFER
-  ELSE
-    DUP BUFFER-DATA-COUNT @ OVER BUFFER-DATA-SIZE @ >= IF
-      1 OVER EXPAND-BUFFER
-    THEN
-    DUP BUFFER-DATA @ 2 PICK + OVER BUFFER-DATA @ 3 PICK + 1+
-    2 PICK BUFFER-DATA-COUNT @ 4 PICK - MOVE
-    ROT OVER BUFFER-DATA @ 3 PICK + C!
-    DUP BUFFER-DATA-COUNT @ 1+ SWAP BUFFER-DATA-COUNT ! DROP
-  THEN ;
+: insert-byte-buffer ( c offset buffer -- )
+  dup buffer-data-count @ 2 pick >= if
+    write-byte-buffer
+  else
+    dup buffer-data-count @ over buffer-data-size @ >= if
+      1 over expand-buffer
+    then
+    dup buffer-data @ 2 pick + over buffer-data @ 3 pick + 1+
+    2 pick buffer-data-count @ 4 pick - move
+    rot over buffer-data @ 3 pick + c!
+    dup buffer-data-count @ 1+ swap buffer-data-count ! drop
+  then ;
 
-: GET-BUFFER ( buffer -- c-addr bytes )
-  DUP BUFFER-DATA @ SWAP BUFFER-DATA-COUNT @ ;
+: get-buffer ( buffer -- c-addr bytes )
+  dup buffer-data @ swap buffer-data-count @ ;
 
-: CLEAR-BUFFER ( buffer -- ) 0 SWAP BUFFER-DATA-COUNT ! ;
+: clear-buffer ( buffer -- ) 0 swap buffer-data-count ! ;
 
-SET-ORDER SET-CURRENT BASE !
+set-order set-current base !

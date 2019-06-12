@@ -27,133 +27,133 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
-TASK-WORDLIST SET-CURRENT
+decimal
+forth-wordlist task-wordlist 2 set-order
+task-wordlist set-current
 
-BEGIN-STRUCTURE BCHAN-SIZE
-  FIELD: BCHAN-RECV-COND
-  FIELD: BCHAN-SEND-COND
-  FIELD: BCHAN-QUEUE
-  FIELD: BCHAN-QUEUE-COUNT
-  FIELD: BCHAN-QUEUE-SIZE
-  FIELD: BCHAN-ENQUEUE-INDEX
-  FIELD: BCHAN-DEQUEUE-INDEX
-END-STRUCTURE
+begin-structure bchan-size
+  field: bchan-recv-cond
+  field: bchan-send-cond
+  field: bchan-queue
+  field: bchan-queue-count
+  field: bchan-queue-size
+  field: bchan-enqueue-index
+  field: bchan-dequeue-index
+end-structure
 
 \ Print out the internal values of a bounded channel.
-: BCHAN. ( chan -- )
-  CR ." BCHAN-RECV-COND: " DUP BCHAN-RECV-COND @ .
-  CR ." BCHAN-SEND-COND: " DUP BCHAN-SEND-COND @ .
-  CR ." BCHAN-QUEUE: " DUP BCHAN-QUEUE @ .
-  CR ." BCHAN-QUEUE-COUNT: " DUP BCHAN-QUEUE-COUNT @ .
-  CR ." BCHAN-QUEUE-SIZE: " DUP BCHAN-QUEUE-SIZE @ .
-  CR ." BCHAN-ENQUEUE-INDEX: " BCHAN-ENQUEUE-INDEX @ .
-  CR ." BCHAN-DEQUEUE-INDEX: " BCHAN-DEQUEUE-INDEX @ . CR ;
+: bchan. ( chan -- )
+  cr ." bchan-recv-cond: " dup bchan-recv-cond @ .
+  cr ." bchan-send-cond: " dup bchan-send-cond @ .
+  cr ." bchan-queue: " dup bchan-queue @ .
+  cr ." bchan-queue-count: " dup bchan-queue-count @ .
+  cr ." bchan-queue-size: " dup bchan-queue-size @ .
+  cr ." bchan-enqueue-index: " bchan-enqueue-index @ .
+  cr ." bchan-dequeue-index: " bchan-dequeue-index @ . cr ;
 
 \ Create a new bounded channel with the specified queue size and condition
 \ variable queue size.
-: NEW-BCHAN ( queue-size cond-size -- chan )
-  SWAP
-  HERE BCHAN-SIZE ALLOT
-  2DUP BCHAN-QUEUE-SIZE !
-  0 OVER BCHAN-QUEUE-COUNT !
-  0 OVER BCHAN-ENQUEUE-INDEX !
-  0 OVER BCHAN-DEQUEUE-INDEX !
-  HERE ROT CELLS ALLOT OVER BCHAN-QUEUE !
-  OVER NEW-COND OVER BCHAN-RECV-COND !
-  SWAP NEW-COND OVER BCHAN-SEND-COND ! ;
+: new-bchan ( queue-size cond-size -- chan )
+  swap
+  here bchan-size allot
+  2dup bchan-queue-size !
+  0 over bchan-queue-count !
+  0 over bchan-enqueue-index !
+  0 over bchan-dequeue-index !
+  here rot cells allot over bchan-queue !
+  over new-cond over bchan-recv-cond !
+  swap new-cond over bchan-send-cond ! ;
 
 \ Internal - dequeue a value from a bounded channel; note that this does not
 \ have any safeties for preventing dequeueing a value from an already empty
 \ bounded channel, nor does this wake up any tasks waiting to send on the
 \ bounded channel.
-: DEQUEUE-BCHAN ( chan -- x )
-  DUP BCHAN-QUEUE @ OVER BCHAN-DEQUEUE-INDEX @ CELLS + @
-  OVER BCHAN-QUEUE-COUNT @ 1- 2 PICK BCHAN-QUEUE-COUNT !
-  OVER BCHAN-DEQUEUE-INDEX @ 1+ 2 PICK BCHAN-QUEUE-SIZE @ MOD
-  ROT BCHAN-DEQUEUE-INDEX ! ;
+: dequeue-bchan ( chan -- x )
+  dup bchan-queue @ over bchan-dequeue-index @ cells + @
+  over bchan-queue-count @ 1- 2 pick bchan-queue-count !
+  over bchan-dequeue-index @ 1+ 2 pick bchan-queue-size @ mod
+  rot bchan-dequeue-index ! ;
 
 \ Internal - enqueue a value onto a bounded channel; note that this does not
 \ have any safeties for preventing enqueuing a value onto an already full
 \ bounded channel, nor does this wake up any tasks waiting to receiving on the
 \ bounded channel.
-: ENQUEUE-BCHAN ( x chan -- )
-  TUCK BCHAN-QUEUE @ 2 PICK BCHAN-ENQUEUE-INDEX @ CELLS + !
-  DUP BCHAN-QUEUE-COUNT @ 1+ 2 PICK BCHAN-QUEUE-COUNT !
-  DUP BCHAN-ENQUEUE-INDEX @ 1+ OVER BCHAN-QUEUE-SIZE @ MOD
-  SWAP BCHAN-ENQUEUE-INDEX ! ;
+: enqueue-bchan ( x chan -- )
+  tuck bchan-queue @ 2 pick bchan-enqueue-index @ cells + !
+  dup bchan-queue-count @ 1+ 2 pick bchan-queue-count !
+  dup bchan-enqueue-index @ 1+ over bchan-queue-size @ mod
+  swap bchan-enqueue-index ! ;
 
 \ Internal - peek a value from a bounded channel; note that this does not have
 \ any safeties for preventing peeking a value from an empty bounded channel.
-: DO-PEEK-BCHAN ( chan -- x )
-  DUP BCHAN-QUEUE @ SWAP BCHAN-DEQUEUE-INDEX @ CELLS + @ ;
+: do-peek-bchan ( chan -- x )
+  dup bchan-queue @ swap bchan-dequeue-index @ cells + @ ;
 
 \ Send a value on a bounded channel, waking up one task waiting to receive a
 \ value from the bounded channel, and waiting for a value to be read from the
 \ bounded channel if it is already full.
-: SEND-BCHAN ( x chan -- )
-  BEGIN DUP BCHAN-QUEUE-COUNT @ OVER BCHAN-QUEUE-SIZE @ >= WHILE
-    DUP BCHAN-SEND-COND @ WAIT-COND
-  REPEAT
-  SWAP OVER ENQUEUE-BCHAN BCHAN-RECV-COND @ SIGNAL-COND ;
+: send-bchan ( x chan -- )
+  begin dup bchan-queue-count @ over bchan-queue-size @ >= while
+    dup bchan-send-cond @ wait-cond
+  repeat
+  swap over enqueue-bchan bchan-recv-cond @ signal-cond ;
 
 \ Attempt to send a value on a bounded channel, waking up one task waiting to
 \ receive a value from the bounded channel, and returning FALSE if the bounded
 \ channel is already full.
-: TRY-SEND-BCHAN ( x chan -- success )
-  DUP BCHAN-QUEUE-COUNT @ OVER BCHAN-QUEUE-SIZE @ < IF
-    TUCK ENQUEUE-BCHAN BCHAN-RECV-COND @ SIGNAL-COND TRUE
-  ELSE
-    2DROP FALSE
-  THEN ;
+: try-send-bchan ( x chan -- success )
+  dup bchan-queue-count @ over bchan-queue-size @ < if
+    tuck enqueue-bchan bchan-recv-cond @ signal-cond true
+  else
+    2drop false
+  then ;
 
 \ Receive a value from a bounded channel, waking up one task waiting to send
 \ a value on the bounded channel, and waiting for a task to send a value on
 \ the bounded channel if it is empty.
-: RECV-BCHAN ( chan -- x )
-  BEGIN DUP BCHAN-QUEUE-COUNT @ 0= WHILE
-    DUP BCHAN-RECV-COND @ WAIT-COND
-  REPEAT
-  DUP DEQUEUE-BCHAN SWAP BCHAN-SEND-COND @ SIGNAL-COND ;
+: recv-bchan ( chan -- x )
+  begin dup bchan-queue-count @ 0= while
+    dup bchan-recv-cond @ wait-cond
+  repeat
+  dup dequeue-bchan swap bchan-send-cond @ signal-cond ;
 
 \ Receive a value from a bounded channel without dequeueing any values, waiting
 \ for a task to send a value on the bounded channel if it is empty.
-: PEEK-BCHAN ( chan -- x )
-  BEGIN DUP BCHAN-QUEUE-COUNT @ 0= WHILE
-    DUP BCHAN-RECV-COND @ WAIT-COND
-  REPEAT
-  DO-PEEK-BCHAN ;
+: peek-bchan ( chan -- x )
+  begin dup bchan-queue-count @ 0= while
+    dup bchan-recv-cond @ wait-cond
+  repeat
+  do-peek-bchan ;
 
 \ Attempt to receive a value from a bounded channel, waking up one task waiting
 \ to send a value on the bounded channel, and returning FALSE if the bounded
 \ channel is empty.
-: TRY-RECV-BCHAN ( chan -- x found )
-  DUP BCHAN-QUEUE-COUNT @ 0<> IF
-    DUP DEQUEUE-BCHAN SWAP BCHAN-SEND-COND @ SIGNAL-COND TRUE
-  ELSE
-    DROP 0 FALSE
-  THEN ;
+: try-recv-bchan ( chan -- x found )
+  dup bchan-queue-count @ 0<> if
+    dup dequeue-bchan swap bchan-send-cond @ signal-cond true
+  else
+    drop 0 false
+  then ;
 
 \ Attempt to receive a value from a bounded channel without dequeueing any
 \ values, returning FALSE if the bounded channel is empty.
-: TRY-PEEK-BCHAN ( chan -- x found )
-  DUP BCHAN-QUEUE-COUNT @ 0<> IF
-    DO-PEEK-BCHAN TRUE
-  ELSE
-    DROP 0 FALSE
-  THEN ;
+: try-peek-bchan ( chan -- x found )
+  dup bchan-queue-count @ 0<> if
+    do-peek-bchan true
+  else
+    drop 0 false
+  then ;
 
 \ Get the number of values queued in a bounded channel.
-: COUNT-BCHAN ( chan -- u ) BCHAN-QUEUE-COUNT @ ;
+: count-bchan ( chan -- u ) bchan-queue-count @ ;
 
 \ Get whether a bounded channel is empty.
-: EMPTY-BCHAN? ( chan -- empty ) BCHAN-QUEUE-COUNT @ 0 = ;
+: empty-bchan? ( chan -- empty ) bchan-queue-count @ 0 = ;
 
 \ Get whether a bounded channel is full.
-: FULL-BCHAN? ( chan -- full )
-  DUP BCHAN-QUEUE-COUNT @ SWAP BCHAN-QUEUE-SIZE @ = ;
+: full-bchan? ( chan -- full )
+  dup bchan-queue-count @ swap bchan-queue-size @ = ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

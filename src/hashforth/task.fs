@@ -27,477 +27,477 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT TASK-WORDLIST
+wordlist constant task-wordlist
 
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
+forth-wordlist task-wordlist 2 set-order
 
-FORTH-WORDLIST SET-CURRENT
+forth-wordlist set-current
 
 \ Allocate a user variable
-: USER ( "name" -- ) CREATE #USER @ CELLS , 1 #USER +! DOES> @ UP @ + ;
+: user ( "name" -- ) create #user @ cells , 1 #user +! does> @ up @ + ;
 
-TASK-WORDLIST SET-CURRENT
+task-wordlist set-current
 
-0 CONSTANT NO-WAIT
-1 CONSTANT WAIT-IN
-2 CONSTANT WAIT-OUT
-4 CONSTANT WAIT-PRI
-8 CONSTANT WAIT-TIME
+0 constant no-wait
+1 constant wait-in
+2 constant wait-out
+4 constant wait-pri
+8 constant wait-time
 
-VARIABLE FIRST-TASK
-VARIABLE NEXT-TASK
-VARIABLE CURRENT-TASK
-VARIABLE AWAKE-TASK-COUNT
+variable first-task
+variable next-task
+variable current-task
+variable awake-task-count
 
 \ Current data stack pointer
-USER TASK-DATA-STACK
+user task-data-stack
 
 \ Current return stack pointer
-USER TASK-RETURN-STACK
+user task-return-stack
 
 \ Current user space pointer
-USER TASK-HERE
+user task-here
 
 \ Current entry xt
-USER TASK-ENTRY
+user task-entry
 
 \ Current active value (< 1 inactive, >= 1 active)
-USER TASK-ACTIVE
+user task-active
 
 \ Data stack base
-USER TASK-SBASE
+user task-sbase
 
 \ Return stack base
-USER TASK-RBASE
+user task-rbase
 
 \ Task wait flags
-USER TASK-WAIT
+user task-wait
 
 \ Task wait file descriptor
-USER TASK-WAIT-FD
+user task-wait-fd
 
 \ Task wait time seconds
-USER TASK-WAIT-TIME-S
+user task-wait-time-s
 
 \ Task wait time nanoseconds
-USER TASK-WAIT-TIME-NS
+user task-wait-time-ns
 
-BEGIN-STRUCTURE TASK-HEADER-SIZE
-  FIELD: TASK-PREV
-  FIELD: TASK-NEXT
-  FIELD: TASK-UP
-END-STRUCTURE
+begin-structure task-header-size
+  field: task-prev
+  field: task-next
+  field: task-up
+end-structure
 
-BEGIN-STRUCTURE POLL-FD-SIZE
-  FIELD: POLL-FD
-  FIELD: POLL-EVENTS
-  FIELD: POLL-REVENTS
-END-STRUCTURE
+begin-structure poll-fd-size
+  field: poll-fd
+  field: poll-events
+  field: poll-revents
+end-structure
 
 \ Access a task's user variables
-: ACCESS-TASK ( xt task -- ) UP @ >R TASK-UP @ UP ! EXECUTE R> UP ! ;
+: access-task ( xt task -- ) up @ >r task-up @ up ! execute r> up ! ;
 
 \ Instantiate a new task allocated in the user space with the given data stack
 \ and return stack sizes in cells, the given user space size in bytes, the
 \ given local space size in cells, and the given entry point.
-: NEW-TASK
+: new-task
   ( data-stack-size return-stack-size user-size local-size entry -- task )
-  HERE TASK-HEADER-SIZE ALLOT
-  0 OVER TASK-PREV !
-  0 OVER TASK-NEXT !
-  HERE 4 ROLL DUP #USER @ CELLS < IF
-    DROP #USER @ CELLS
-  THEN
-  ALLOT OVER TASK-UP !
-  DUP TASK-UP @ 3 ROLL DUP #USER @ < IF
-    DROP #USER @
-  THEN
-  2DUP CELLS 0 FILL \ Fill all the user variables with zeros
-  CELLS + ['] TASK-HERE 2 PICK ACCESS-TASK !
-  TUCK ['] TASK-ENTRY SWAP ACCESS-TASK !
-  ROT CELLS ALLOT HERE ['] TASK-DATA-STACK 2 PICK ACCESS-TASK !
-  SWAP CELLS ALLOT HERE ['] TASK-RETURN-STACK 2 PICK ACCESS-TASK !
-  ['] TASK-RETURN-STACK OVER ACCESS-TASK @ ['] TASK-RBASE 2 PICK ACCESS-TASK !
-  ['] TASK-DATA-STACK OVER ACCESS-TASK @ ['] TASK-SBASE 2 PICK ACCESS-TASK !
-  0 ['] TASK-ACTIVE 2 PICK ACCESS-TASK !
-  0 ['] HANDLER 2 PICK ACCESS-TASK !
-  10 ['] BASE 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT-FD 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT-TIME-S 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT-TIME-NS 2 PICK ACCESS-TASK !
-  STDIN ['] INPUT-FD 2 PICK ACCESS-TASK !
-  STDOUT ['] OUTPUT-FD 2 PICK ACCESS-TASK !
-  STDERR ['] ERROR-FD 2 PICK ACCESS-TASK !
-  0 ['] READ-KEY 2 PICK ACCESS-TASK !
-  FALSE ['] READ-KEY? 2 PICK ACCESS-TASK !
-  HERE FORMAT-DIGIT-COUNT ALLOT
-  ['] FORMAT-DIGIT-BUFFER 2 PICK ACCESS-TASK ! ;
+  here task-header-size allot
+  0 over task-prev !
+  0 over task-next !
+  here 4 roll dup #user @ cells < if
+    drop #user @ cells
+  then
+  allot over task-up !
+  dup task-up @ 3 roll dup #user @ < if
+    drop #user @
+  then
+  2dup cells 0 fill \ Fill all the user variables with zeros
+  cells + ['] task-here 2 pick access-task !
+  tuck ['] task-entry swap access-task !
+  rot cells allot here ['] task-data-stack 2 pick access-task !
+  swap cells allot here ['] task-return-stack 2 pick access-task !
+  ['] task-return-stack over access-task @ ['] task-rbase 2 pick access-task !
+  ['] task-data-stack over access-task @ ['] task-sbase 2 pick access-task !
+  0 ['] task-active 2 pick access-task !
+  0 ['] handler 2 pick access-task !
+  10 ['] base 2 pick access-task !
+  0 ['] task-wait 2 pick access-task !
+  0 ['] task-wait-fd 2 pick access-task !
+  0 ['] task-wait-time-s 2 pick access-task !
+  0 ['] task-wait-time-ns 2 pick access-task !
+  stdin ['] input-fd 2 pick access-task !
+  stdout ['] output-fd 2 pick access-task !
+  stderr ['] error-fd 2 pick access-task !
+  0 ['] read-key 2 pick access-task !
+  false ['] read-key? 2 pick access-task !
+  here format-digit-count allot
+  ['] format-digit-buffer 2 pick access-task ! ;
 
 \ Not in a task!
-: X-NOT-IN-TASK SPACE ." not in a task" CR ;
+: x-not-in-task space ." not in a task" cr ;
 
 \ Get whether a task is currently running.
-: IN-TASK? ( -- flag ) CURRENT-TASK @ ;
+: in-task? ( -- flag ) current-task @ ;
 
 \ Internal word for actually activating a task.
-: (ACTIVATE-TASK) ( task -- )
-  FIRST-TASK @ IF
-    FIRST-TASK @ OVER TASK-NEXT !
-    FIRST-TASK @ TASK-PREV @ OVER TASK-PREV !
-    DUP FIRST-TASK @ TASK-PREV @ TASK-NEXT !
-    DUP FIRST-TASK @ TASK-PREV !
-    NEXT-TASK @ FIRST-TASK @ = IF
-      DUP NEXT-TASK !
-    THEN
-  ELSE
-    DUP DUP TASK-NEXT !
-    DUP DUP TASK-PREV !
-    DUP NEXT-TASK !
-  THEN
-  DUP FIRST-TASK !
-  ['] TASK-WAIT SWAP ACCESS-TASK @ NO-WAIT = IF
-    AWAKE-TASK-COUNT @ 1+ AWAKE-TASK-COUNT !
-  THEN ;
+: (activate-task) ( task -- )
+  first-task @ if
+    first-task @ over task-next !
+    first-task @ task-prev @ over task-prev !
+    dup first-task @ task-prev @ task-next !
+    dup first-task @ task-prev !
+    next-task @ first-task @ = if
+      dup next-task !
+    then
+  else
+    dup dup task-next !
+    dup dup task-prev !
+    dup next-task !
+  then
+  dup first-task !
+  ['] task-wait swap access-task @ no-wait = if
+    awake-task-count @ 1+ awake-task-count !
+  then ;
 
 \ Activate a task for execution.
-: ACTIVATE-TASK ( task -- )
-  ['] TASK-ACTIVE OVER ACCESS-TASK @ 1 + ['] TASK-ACTIVE 2 PICK ACCESS-TASK !
-  ['] TASK-ACTIVE OVER ACCESS-TASK @ 1 = IF (ACTIVATE-TASK) ELSE DROP THEN ;
+: activate-task ( task -- )
+  ['] task-active over access-task @ 1 + ['] task-active 2 pick access-task !
+  ['] task-active over access-task @ 1 = if (activate-task) else drop then ;
 
 \ Force the activation of a task.
-: FORCE-ACTIVATE-TASK ( task -- )
-  ['] TASK-ACTIVE OVER ACCESS-TASK @ 1 < IF
-    1 ['] TASK-ACTIVE 2 PICK ACCESS-TASK ! (ACTIVATE-TASK)
-  ELSE
-    DROP
-  THEN ;
+: force-activate-task ( task -- )
+  ['] task-active over access-task @ 1 < if
+    1 ['] task-active 2 pick access-task ! (activate-task)
+  else
+    drop
+  then ;
 
 \ Last task deactivated exception
-: X-LAST-TASK-DEACTIVATED ( -- ) SPACE ." last task deactivated" CR ;
+: x-last-task-deactivated ( -- ) space ." last task deactivated" cr ;
 
 \ Deactivate the last task.
-: DEACTIVATE-LAST-TASK ( task -- )
-  CURRENT-TASK @ = IF SP@ TASK-DATA-STACK ! RP@ TASK-RETURN-STACK ! THEN
-  0 FIRST-TASK !
-  0 NEXT-TASK !
-  0 CURRENT-TASK !
-  0 AWAKE-TASK-COUNT !
-  ['] X-LAST-TASK-DEACTIVATED ?RAISE ;
+: deactivate-last-task ( task -- )
+  current-task @ = if sp@ task-data-stack ! rp@ task-return-stack ! then
+  0 first-task !
+  0 next-task !
+  0 current-task !
+  0 awake-task-count !
+  ['] x-last-task-deactivated ?raise ;
 
 \ Internal word for actually deactivating tasks.
-: (DEACTIVATE-TASK) ( task -- )
-  DUP TASK-NEXT @ OVER <> IF
-    ['] TASK-WAIT OVER ACCESS-TASK @ NO-WAIT = IF
-      AWAKE-TASK-COUNT @ 1- AWAKE-TASK-COUNT !
-    THEN
-    DUP NEXT-TASK @ = IF
-      DUP TASK-NEXT @ NEXT-TASK !
-    THEN
-    DUP TASK-PREV @ OVER TASK-NEXT @ TASK-PREV !
-    DUP TASK-NEXT @ OVER TASK-PREV @ TASK-NEXT !
-    DUP FIRST-TASK @ = IF
-      DUP TASK-NEXT @ FIRST-TASK !
-    THEN
-    CURRENT-TASK @ = IF
-      SP@ TASK-DATA-STACK ! RP@ TASK-RETURN-STACK ! HERE TASK-HERE !
-      0 CURRENT-TASK !
-      PAUSE
-    THEN
-  ELSE
-    DEACTIVATE-LAST-TASK
-  THEN ;
+: (deactivate-task) ( task -- )
+  dup task-next @ over <> if
+    ['] task-wait over access-task @ no-wait = if
+      awake-task-count @ 1- awake-task-count !
+    then
+    dup next-task @ = if
+      dup task-next @ next-task !
+    then
+    dup task-prev @ over task-next @ task-prev !
+    dup task-next @ over task-prev @ task-next !
+    dup first-task @ = if
+      dup task-next @ first-task !
+    then
+    current-task @ = if
+      sp@ task-data-stack ! rp@ task-return-stack ! here task-here !
+      0 current-task !
+      pause
+    then
+  else
+    deactivate-last-task
+  then ;
 
 \ Deactivate a task (remove it from execution).
-: DEACTIVATE-TASK ( task -- )
-  ['] TASK-ACTIVE OVER ACCESS-TASK @ 1 - ['] TASK-ACTIVE 2 PICK ACCESS-TASK !
-  ['] TASK-ACTIVE OVER ACCESS-TASK @ 0 = IF (DEACTIVATE-TASK) ELSE DROP THEN ;
+: deactivate-task ( task -- )
+  ['] task-active over access-task @ 1 - ['] task-active 2 pick access-task !
+  ['] task-active over access-task @ 0 = if (deactivate-task) else drop then ;
 
 \ Force the deactivation of a task.
-: FORCE-DEACTIVATE-TASK ( task -- )
-  ['] TASK-ACTIVE OVER ACCESS-TASK @ 0 > IF
-    0 ['] TASK-ACTIVE 2 PICK ACCESS-TASK ! (DEACTIVATE-TASK)
-  ELSE
-    DROP
-  THEN ;
+: force-deactivate-task ( task -- )
+  ['] task-active over access-task @ 0 > if
+    0 ['] task-active 2 pick access-task ! (deactivate-task)
+  else
+    drop
+  then ;
 
 \ Services for multitasking
-VARIABLE SYS-POLL
-VARIABLE SYS-GET-MONOTONIC-TIME
-VARIABLE SYS-SET-SBASE
-VARIABLE SYS-SET-RBASE
+variable sys-poll
+variable sys-get-monotonic-time
+variable sys-set-sbase
+variable sys-set-rbase
 
 \ Poll on one or more file descriptors (a return value of -1 means success and
 \ a return value of 0 means error).
-: POLL ( fds nfds timeout-ms -- fds-ready -1|0 ) SYS-POLL @ SYS ;
+: poll ( fds nfds timeout-ms -- fds-ready -1|0 ) sys-poll @ sys ;
 
 \ Get monotonic time
-: GET-MONOTONIC-TIME ( -- s ns ) SYS-GET-MONOTONIC-TIME @ SYS ;
+: get-monotonic-time ( -- s ns ) sys-get-monotonic-time @ sys ;
 
 \ Set a system-wide SBASE for tracing purposes
-: SET-SBASE ( sbase -- ) SYS-SET-SBASE @ SYS ;
+: set-sbase ( sbase -- ) sys-set-sbase @ sys ;
 
 \ Set a system-wide RBASE for tracing purposes
-: SET-RBASE ( rbase -- ) SYS-SET-RBASE @ SYS ;
+: set-rbase ( rbase -- ) sys-set-rbase @ sys ;
 
 \ Set a task as waiting on reading a file descriptor.
-: SET-WAIT-IN ( fd -- )
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 - AWAKE-TASK-COUNT ! THEN
-  TASK-WAIT-FD ! TASK-WAIT @ WAIT-IN OR TASK-WAIT ! ;
+: set-wait-in ( fd -- )
+  task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
+  task-wait-fd ! task-wait @ wait-in or task-wait ! ;
 
 \ Set a task as not waiting on reading a file descriptor.
-: UNSET-WAIT-IN ( -- )
-  0 TASK-WAIT-FD ! WAIT-IN NOT TASK-WAIT @ AND TASK-WAIT !
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 + AWAKE-TASK-COUNT ! THEN ;
+: unset-wait-in ( -- )
+  0 task-wait-fd ! wait-in not task-wait @ and task-wait !
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
 
 \ Set a task as waiting on writing a file descriptor.
-: SET-WAIT-OUT ( fd -- )
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 - AWAKE-TASK-COUNT ! THEN
-  TASK-WAIT-FD ! TASK-WAIT @ WAIT-OUT OR TASK-WAIT ! ;
+: set-wait-out ( fd -- )
+  task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
+  task-wait-fd ! task-wait @ wait-out or task-wait ! ;
 
 \ Set a task as not waiting on writing a file descriptor.
-: UNSET-WAIT-OUT ( -- )
-  0 TASK-WAIT-FD ! WAIT-OUT NOT TASK-WAIT @ AND TASK-WAIT !
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 + AWAKE-TASK-COUNT ! THEN ;
+: unset-wait-out ( -- )
+  0 task-wait-fd ! wait-out not task-wait @ and task-wait !
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
 
 \ Set a task as waiting on reading priority data from a file descriptor.
-: SET-WAIT-PRI ( fd -- )
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 - AWAKE-TASK-COUNT ! THEN
-  TASK-WAIT-FD ! TASK-WAIT @ WAIT-PRI OR TASK-WAIT ! ;
+: set-wait-pri ( fd -- )
+  task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
+  task-wait-fd ! task-wait @ wait-pri or task-wait ! ;
 
 \ Set a task as not waiting on reading priority data from a file descriptor.
-: UNSET-WAIT-PRI ( -- )
-  0 TASK-WAIT-FD ! WAIT-PRI NOT TASK-WAIT @ AND TASK-WAIT !
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 + AWAKE-TASK-COUNT ! THEN ;
+: unset-wait-pri ( -- )
+  0 task-wait-fd ! wait-pri not task-wait @ and task-wait !
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
 
 \ Set a task as waiting for a given time.
-: SET-WAIT-TIME ( s ns -- )
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 - AWAKE-TASK-COUNT ! THEN
-  TASK-WAIT-TIME-NS ! TASK-WAIT-TIME-S !
-  TASK-WAIT @ WAIT-TIME OR TASK-WAIT ! ;
+: set-wait-time ( s ns -- )
+  task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
+  task-wait-time-ns ! task-wait-time-s !
+  task-wait @ wait-time or task-wait ! ;
 
 \ Set a task as not waiting on reading priority data from a file descriptor.
-: UNSET-WAIT-TIME ( -- )
-  0 TASK-WAIT-TIME-NS ! 0 TASK-WAIT-TIME-S !
-  WAIT-TIME NOT TASK-WAIT @ AND TASK-WAIT !
-  TASK-WAIT @ 0 = IF AWAKE-TASK-COUNT @ 1 + AWAKE-TASK-COUNT ! THEN ;
+: unset-wait-time ( -- )
+  0 task-wait-time-ns ! 0 task-wait-time-s !
+  wait-time not task-wait @ and task-wait !
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
 
 \ Subtract one time from another.
-: SUBTRACT-TIME ( s1 ns1 s2 ns2 -- s3 ns3 )
-  3 PICK 2 PICK > IF
-    2 PICK OVER >= IF
-      3 ROLL ROT - ROT ROT -
-    ELSE
-      3 ROLL ROT - 1- ROT 1000000000 + ROT -
-    THEN
-  ELSE 3 PICK 2 PICK = 3 PICK 2 PICK > AND IF
-    3 ROLL ROT 2DROP - 0 SWAP
-  ELSE 2DROP 2DROP 0 0 THEN THEN ;
+: subtract-time ( s1 ns1 s2 ns2 -- s3 ns3 )
+  3 pick 2 pick > if
+    2 pick over >= if
+      3 roll rot - rot rot -
+    else
+      3 roll rot - 1- rot 1000000000 + rot -
+    then
+  else 3 pick 2 pick = 3 pick 2 pick > and if
+    3 roll rot 2drop - 0 swap
+  else 2drop 2drop 0 0 then then ;
 
 \ Sleep until a set time.
-: SLEEP-UNTIL ( s ns -- )
-  2DUP GET-MONOTONIC-TIME SUBTRACT-TIME 0 <> SWAP 0 <> OR IF
-    2DUP SET-WAIT-TIME BEGIN
-      PAUSE 2DUP GET-MONOTONIC-TIME SUBTRACT-TIME 0 = SWAP 0 = AND
-    UNTIL
-    UNSET-WAIT-TIME
-  THEN
-  2DROP ;
+: sleep-until ( s ns -- )
+  2dup get-monotonic-time subtract-time 0 <> swap 0 <> or if
+    2dup set-wait-time begin
+      pause 2dup get-monotonic-time subtract-time 0 = swap 0 = and
+    until
+    unset-wait-time
+  then
+  2drop ;
 
 \ Sleep a given amount time.
-: SLEEP ( s ns -- ) GET-MONOTONIC-TIME TIME+ SLEEP-UNTIL ;
+: sleep ( s ns -- ) get-monotonic-time time+ sleep-until ;
 
 \ Get whether a wait is for POLLIN, POLLOUT, or POLLPRI.
-: WAIT-FD? ( wait -- flag )
-  DUP WAIT-IN AND OVER WAIT-OUT AND OR SWAP WAIT-PRI AND OR ;
+: wait-fd? ( wait -- flag )
+  dup wait-in and over wait-out and or swap wait-pri and or ;
 
 \ Get number of tasks that need to wait on file descriptors.
-: GET-FD-WAIT-COUNT ( -- )
-  FIRST-TASK @ 0 <> IF
-    0 FIRST-TASK @ BEGIN
-      ['] TASK-WAIT OVER ACCESS-TASK @ WAIT-FD? IF SWAP 1+ SWAP THEN
-      TASK-NEXT @
-    DUP FIRST-TASK @ = UNTIL
-    DROP
-  ELSE
+: get-fd-wait-count ( -- )
+  first-task @ 0 <> if
+    0 first-task @ begin
+      ['] task-wait over access-task @ wait-fd? if swap 1+ swap then
+      task-next @
+    dup first-task @ = until
+    drop
+  else
     0
-  THEN ;
+  then ;
 
 \ Get whether polling should sleep.
-: SLEEP? ( -- flag)
-  FIRST-TASK @ 0 <> IF
-    FIRST-TASK @ BEGIN
-      ['] TASK-WAIT OVER ACCESS-TASK @ WAIT-TIME AND IF DROP TRUE EXIT THEN
-      TASK-NEXT @
-    DUP FIRST-TASK @ = UNTIL
-    DROP FALSE
-  ELSE
-    FALSE
-  THEN ;
+: sleep? ( -- flag)
+  first-task @ 0 <> if
+    first-task @ begin
+      ['] task-wait over access-task @ wait-time and if drop true exit then
+      task-next @
+    dup first-task @ = until
+    drop false
+  else
+    false
+  then ;
 
 \ Get the first time available for sleeping and the task with that time, or
 \ 0 s 0 ns if no first time is available.
-: GET-FIRST-SLEEP-TIME ( -- s ns task | 0 0 first-task )
-  0 0 FIRST-TASK @ BEGIN
-    ['] TASK-WAIT OVER ACCESS-TASK @ WAIT-TIME AND IF
-      ROT ROT 2DROP
-      ['] TASK-WAIT-TIME-S OVER ACCESS-TASK @
-      ['] TASK-WAIT-TIME-NS 2 PICK ACCESS-TASK @
-      ROT TASK-NEXT @ TRUE
-    ELSE
-      TASK-NEXT @ DUP FIRST-TASK @ =
-    THEN
-  UNTIL ;
+: get-first-sleep-time ( -- s ns task | 0 0 first-task )
+  0 0 first-task @ begin
+    ['] task-wait over access-task @ wait-time and if
+      rot rot 2drop
+      ['] task-wait-time-s over access-task @
+      ['] task-wait-time-ns 2 pick access-task @
+      rot task-next @ true
+    else
+      task-next @ dup first-task @ =
+    then
+  until ;
 
 \ Get the minimum of two times.
-: MIN-TIME ( s1 ns1 s2 ns2 -- s3 ns3 )
-  3 PICK 2 PICK = IF
-    2 PICK OVER <= IF 2DROP
-    ELSE ROT DROP ROT DROP THEN
-  ELSE 3 PICK 2 PICK < IF 2DROP
-  ELSE ROT DROP ROT DROP THEN THEN ;
+: min-time ( s1 ns1 s2 ns2 -- s3 ns3 )
+  3 pick 2 pick = if
+    2 pick over <= if 2drop
+    else rot drop rot drop then
+  else 3 pick 2 pick < if 2drop
+  else rot drop rot drop then then ;
 
 \ Find the earliest sleep time.
-: FIND-EARLIEST-SLEEP-TIME ( s1 ns1 task -- s2 ns2 )
-  BEGIN
-    ['] TASK-WAIT OVER ACCESS-TASK @ WAIT-TIME AND IF
-      ROT ROT
-      ['] TASK-WAIT-TIME-S 3 PICK ACCESS-TASK @
-      ['] TASK-WAIT-TIME-NS 4 PICK ACCESS-TASK @ MIN-TIME
-      ROT
-    THEN
-  TASK-NEXT @ DUP FIRST-TASK @ = UNTIL
-  DROP ;
+: find-earliest-sleep-time ( s1 ns1 task -- s2 ns2 )
+  begin
+    ['] task-wait over access-task @ wait-time and if
+      rot rot
+      ['] task-wait-time-s 3 pick access-task @
+      ['] task-wait-time-ns 4 pick access-task @ min-time
+      rot
+    then
+  task-next @ dup first-task @ = until
+  drop ;
 
 \ Convert a time into milliseconds.
-: CONVERT-TIME-TO-MS ( s ns -- ms ) 1000000 / SWAP 1000 * + ;
+: convert-time-to-ms ( s ns -- ms ) 1000000 / swap 1000 * + ;
 
 \ Get the sleep time for polling.
-: GET-SLEEP-TIME ( -- )
-  SLEEP? IF
-    GET-FIRST-SLEEP-TIME
-    DUP FIRST-TASK @ <> IF FIND-EARLIEST-SLEEP-TIME ELSE DROP THEN
-    GET-MONOTONIC-TIME SUBTRACT-TIME CONVERT-TIME-TO-MS
-  ELSE
+: get-sleep-time ( -- )
+  sleep? if
+    get-first-sleep-time
+    dup first-task @ <> if find-earliest-sleep-time else drop then
+    get-monotonic-time subtract-time convert-time-to-ms
+  else
     -1
-  THEN ;
+  then ;
 
 \ Actually populate the polling file descriptors.
-: POPULATE-POLL-FDS ( poll-fds -- )
-  FIRST-TASK @ 0 <> IF
-    FIRST-TASK @ BEGIN
-      ['] TASK-WAIT OVER ACCESS-TASK @ WAIT-FD? IF
-        2DUP ['] TASK-WAIT-FD SWAP ACCESS-TASK @ SWAP POLL-FD !
-	2DUP ['] TASK-WAIT SWAP ACCESS-TASK @
-	WAIT-IN WAIT-OUT OR WAIT-PRI OR AND SWAP POLL-EVENTS !
-	OVER POLL-REVENTS 0 SWAP !
-	SWAP POLL-FD-SIZE + SWAP
-      THEN
-      TASK-NEXT @
-    DUP FIRST-TASK @ = UNTIL
-    2DROP
-  ELSE
-    DROP
-  THEN ;
+: populate-poll-fds ( poll-fds -- )
+  first-task @ 0 <> if
+    first-task @ begin
+      ['] task-wait over access-task @ wait-fd? if
+        2dup ['] task-wait-fd swap access-task @ swap poll-fd !
+	2dup ['] task-wait swap access-task @
+	wait-in wait-out or wait-pri or and swap poll-events !
+	over poll-revents 0 swap !
+	swap poll-fd-size + swap
+      then
+      task-next @
+    dup first-task @ = until
+    2drop
+  else
+    drop
+  then ;
 
 \ The function that sleeps the system when no tasks are awake.
-: DO-SLEEP ( -- )
-  BEGIN
-    AWAKE-TASK-COUNT @ 1 = IF
-      GET-FD-WAIT-COUNT HERE OVER POLL-FD-SIZE * ALLOT
-      DUP POPULATE-POLL-FDS OVER GET-SLEEP-TIME POLL POLL-FD-SIZE * NEGATE ALLOT
-    THEN
-    PAUSE
-  AGAIN ;
+: do-sleep ( -- )
+  begin
+    awake-task-count @ 1 = if
+      get-fd-wait-count here over poll-fd-size * allot
+      dup populate-poll-fds over get-sleep-time poll poll-fd-size * negate allot
+    then
+    pause
+  again ;
 
 \ Function to call on pause
-VARIABLE 'ON-PAUSE
+variable 'on-pause
 
 \ Pause count
-VARIABLE PAUSE-COUNT
+variable pause-count
 
 \ Actually handle pausing
-: (PAUSE) ( -- )
-  CURRENT-TASK @ IF
-    SP@ TASK-DATA-STACK !
-    RP@ TASK-RETURN-STACK !
-    HERE TASK-HERE !
-  THEN
-  NEXT-TASK @ IF
-    'ON-PAUSE @ ?DUP IF EXECUTE THEN
-    PAUSE-COUNT @ 1 + PAUSE-COUNT !
-    NEXT-TASK @ CURRENT-TASK !
-    NEXT-TASK @ TASK-NEXT @ NEXT-TASK !
-    CURRENT-TASK @ TASK-UP @ UP !
-    TASK-HERE @ HERE!
-    GET-TRACE >R FALSE SET-TRACE
-    TASK-SBASE @ SET-SBASE
-    TASK-RBASE @ SET-RBASE
-    TASK-DATA-STACK @ SP!
-    R>
-    TASK-RETURN-STACK @ RP!
-    SET-TRACE
-    TASK-SBASE @ SBASE !
-    TASK-RBASE @ RBASE !
-    TASK-ENTRY @ ?DUP IF
-      0 TASK-ENTRY !
-      TRY ?DUP IF
-        SINGLE-TASK-IO @ TRUE SINGLE-TASK-IO ! SWAP TRY IF BYE THEN
-	SINGLE-TASK-IO !
-      THEN
-      CURRENT-TASK @ FORCE-DEACTIVATE-TASK
-    THEN
-  THEN ;
+: (pause) ( -- )
+  current-task @ if
+    sp@ task-data-stack !
+    rp@ task-return-stack !
+    here task-here !
+  then
+  next-task @ if
+    'on-pause @ ?dup if execute then
+    pause-count @ 1 + pause-count !
+    next-task @ current-task !
+    next-task @ task-next @ next-task !
+    current-task @ task-up @ up !
+    task-here @ here!
+    get-trace >r false set-trace
+    task-sbase @ set-sbase
+    task-rbase @ set-rbase
+    task-data-stack @ sp!
+    r>
+    task-return-stack @ rp!
+    set-trace
+    task-sbase @ sbase !
+    task-rbase @ rbase !
+    task-entry @ ?dup if
+      0 task-entry !
+      try ?dup if
+        single-task-io @ true single-task-io ! swap try if bye then
+	single-task-io !
+      then
+      current-task @ force-deactivate-task
+    then
+  then ;
 
 \ Initialize multitasking
-: INIT-TASKS ( -- )
-  S" POLL" SYS-LOOKUP SYS-POLL !
-  S" GET-MONOTONIC-TIME" SYS-LOOKUP SYS-GET-MONOTONIC-TIME !
-  S" SET-SBASE" SYS-LOOKUP SYS-SET-SBASE !
-  S" SET-RBASE" SYS-LOOKUP SYS-SET-RBASE !
-  ['] (PAUSE) 'PAUSE ! ;
+: init-tasks ( -- )
+  s" POLL" sys-lookup sys-poll !
+  s" GET-MONOTONIC-TIME" sys-lookup sys-get-monotonic-time !
+  s" SET-SBASE" sys-lookup sys-set-sbase !
+  s" SET-RBASE" sys-lookup sys-set-rbase !
+  ['] (pause) 'pause ! ;
 
-INIT-TASKS
+init-tasks
 
 \ Instantiate a task for the main execution.
-: NEW-MAIN-TASK ( -- task )
-  HERE TASK-HEADER-SIZE ALLOT
-  0 OVER TASK-PREV !
-  0 OVER TASK-NEXT !
-  UP @ OVER TASK-UP !
-  HERE ['] TASK-HERE 2 PICK ACCESS-TASK !
-  SBASE @ ['] TASK-SBASE 2 PICK ACCESS-TASK !
-  RBASE @ ['] TASK-RBASE 2 PICK ACCESS-TASK !
-  0 ['] TASK-ACTIVE 2 PICK ACCESS-TASK !
-  0 ['] TASK-ENTRY 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT-FD 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT-TIME-S 2 PICK ACCESS-TASK !
-  0 ['] TASK-WAIT-TIME-NS 2 PICK ACCESS-TASK !
-  DUP ACTIVATE-TASK DUP CURRENT-TASK ! PAUSE ;
+: new-main-task ( -- task )
+  here task-header-size allot
+  0 over task-prev !
+  0 over task-next !
+  up @ over task-up !
+  here ['] task-here 2 pick access-task !
+  sbase @ ['] task-sbase 2 pick access-task !
+  rbase @ ['] task-rbase 2 pick access-task !
+  0 ['] task-active 2 pick access-task !
+  0 ['] task-entry 2 pick access-task !
+  0 ['] task-wait 2 pick access-task !
+  0 ['] task-wait-fd 2 pick access-task !
+  0 ['] task-wait-time-s 2 pick access-task !
+  0 ['] task-wait-time-ns 2 pick access-task !
+  dup activate-task dup current-task ! pause ;
 
-NEW-MAIN-TASK CONSTANT MAIN-TASK
+new-main-task constant main-task
 
 \ The task that sleeps the system when no tasks are awake.
-1024 1024 1024 CELLS 0 ' DO-SLEEP NEW-TASK CONSTANT SLEEP-TASK
-SLEEP-TASK ACTIVATE-TASK
+1024 1024 1024 cells 0 ' do-sleep new-task constant sleep-task
+sleep-task activate-task
 
 \ Abstracting getting the current task
-: CURRENT-TASK CURRENT-TASK @ ;
+: current-task current-task @ ;
 
 \ Abstracting getting the first task
-: FIRST-TASK FIRST-TASK @ ;
+: first-task first-task @ ;
 
 \ Abstracting getting the next task
-: NEXT-TASK NEXT-TASK @ ;
+: next-task next-task @ ;
 
 \ Abstracting getting the current number of pauses
-: PAUSE-COUNT PAUSE-COUNT @ ;
+: pause-count pause-count @ ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

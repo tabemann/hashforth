@@ -27,69 +27,69 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-FORTH-WORDLIST VECTOR-WORDLIST 2 SET-ORDER
+forth-wordlist vector-wordlist 2 set-order
 
-4 256 ALLOT-VECTOR CONSTANT MY-VECTOR
+4 256 allot-vector constant my-vector
 
-TRUE CONSTANT SUCCESS
-FALSE CONSTANT FAILURE
+true constant success
+false constant failure
 
-: DUMP-VECTOR ( vector -- )
-  >R ." < " 0 BEGIN DUP R@ COUNT-VECTOR < WHILE
-    [CHAR] " EMIT HERE 256 ALLOT OVER R@ GET-VECTOR DROP -256 ALLOT
-    HERE COUNT TYPE [CHAR] " EMIT SPACE 1 +
-  REPEAT
-  DROP ." > " R> DROP ;
+: dump-vector ( vector -- )
+  >r ." < " 0 begin dup r@ count-vector < while
+    [char] " emit here 256 allot over r@ get-vector drop -256 allot
+    here count type [char] " emit space 1 +
+  repeat
+  drop ." > " r> drop ;
 
-: PREPARE-BLOCK ( c-addr1 u c-addr2 -- )
-  SWAP 255 MIN SWAP 2DUP C! 1 + SWAP MOVE ;
+: prepare-block ( c-addr1 u c-addr2 -- )
+  swap 255 min swap 2dup c! 1 + swap move ;
 
-: PUSH-START-ENTRY ( success c-addr u vector -- )
-  ROT ROT 2DUP ." pushing-start " [CHAR] " EMIT TYPE [CHAR] " EMIT
-  HERE PREPARE-BLOCK HERE 256 ALLOT OVER PUSH-START-VECTOR -256 ALLOT
-  SPACE NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-VECTOR CR ;
+: push-start-entry ( success c-addr u vector -- )
+  rot rot 2dup ." pushing-start " [char] " emit type [char] " emit
+  here prepare-block here 256 allot over push-start-vector -256 allot
+  space not rot xor if ." success " else ." failure " then dump-vector cr ;
 
-: PUSH-END-ENTRY ( success c-addr u vector -- )
-  ROT ROT 2DUP ." pushing-end " [CHAR] " EMIT TYPE [CHAR] " EMIT
-  HERE PREPARE-BLOCK HERE 256 ALLOT OVER PUSH-END-VECTOR -256 ALLOT
-  SPACE NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-VECTOR CR ;
+: push-end-entry ( success c-addr u vector -- )
+  rot rot 2dup ." pushing-end " [char] " emit type [char] " emit
+  here prepare-block here 256 allot over push-end-vector -256 allot
+  space not rot xor if ." success " else ." failure " then dump-vector cr ;
 
-: POP-START-ENTRY ( success vector -- )
-  ." popping-start " HERE 256 ALLOT OVER POP-START-VECTOR -256 ALLOT
-  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
-  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-VECTOR CR ;
+: pop-start-entry ( success vector -- )
+  ." popping-start " here 256 allot over pop-start-vector -256 allot
+  dup if [char] " emit here count type [char] " emit space then
+  not rot xor if ." success " else ." failure " then dump-vector cr ;
   
-: POP-END-ENTRY ( success vector -- )
-  ." popping-end " HERE 256 ALLOT OVER POP-END-VECTOR -256 ALLOT
-  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
-  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-VECTOR CR ;
+: pop-end-entry ( success vector -- )
+  ." popping-end " here 256 allot over pop-end-vector -256 allot
+  dup if [char] " emit here count type [char] " emit space then
+  not rot xor if ." success " else ." failure " then dump-vector cr ;
 
-: PEEK-START-ENTRY ( success vector -- )
-  ." peeking-start " HERE 256 ALLOT OVER PEEK-START-VECTOR -256 ALLOT
-  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
-  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-VECTOR CR ;
+: peek-start-entry ( success vector -- )
+  ." peeking-start " here 256 allot over peek-start-vector -256 allot
+  dup if [char] " emit here count type [char] " emit space then
+  not rot xor if ." success " else ." failure " then dump-vector cr ;
   
-: PEEK-END-ENTRY ( success vector -- )
-  ." peeking-end " HERE 256 ALLOT OVER PEEK-END-VECTOR -256 ALLOT
-  DUP IF [CHAR] " EMIT HERE COUNT TYPE [CHAR] " EMIT SPACE THEN
-  NOT ROT XOR IF ." success " ELSE ." failure " THEN DUMP-VECTOR CR ;
+: peek-end-entry ( success vector -- )
+  ." peeking-end " here 256 allot over peek-end-vector -256 allot
+  dup if [char] " emit here count type [char] " emit space then
+  not rot xor if ." success " else ." failure " then dump-vector cr ;
 
-: VECTOR-TEST ( -- )
-  SUCCESS S" foo" MY-VECTOR PUSH-START-ENTRY
-  SUCCESS S" bar" MY-VECTOR PUSH-END-ENTRY
-  SUCCESS S" baz" MY-VECTOR PUSH-START-ENTRY
-  SUCCESS S" qux" MY-VECTOR PUSH-END-ENTRY
-  FAILURE S" foobar" MY-VECTOR PUSH-START-ENTRY
-  FAILURE S" foobaz" MY-VECTOR PUSH-END-ENTRY
-  SUCCESS MY-VECTOR PEEK-START-ENTRY
-  SUCCESS MY-VECTOR PEEK-END-ENTRY
-  SUCCESS MY-VECTOR POP-START-ENTRY
-  SUCCESS MY-VECTOR POP-END-ENTRY
-  SUCCESS MY-VECTOR POP-START-ENTRY
-  SUCCESS MY-VECTOR POP-END-ENTRY
-  FAILURE MY-VECTOR PEEK-START-ENTRY
-  FAILURE MY-VECTOR PEEK-END-ENTRY
-  FAILURE MY-VECTOR POP-START-ENTRY
-  FAILURE MY-VECTOR POP-END-ENTRY ;
+: vector-test ( -- )
+  success s" foo" my-vector push-start-entry
+  success s" bar" my-vector push-end-entry
+  success s" baz" my-vector push-start-entry
+  success s" qux" my-vector push-end-entry
+  failure s" foobar" my-vector push-start-entry
+  failure s" foobaz" my-vector push-end-entry
+  success my-vector peek-start-entry
+  success my-vector peek-end-entry
+  success my-vector pop-start-entry
+  success my-vector pop-end-entry
+  success my-vector pop-start-entry
+  success my-vector pop-end-entry
+  failure my-vector peek-start-entry
+  failure my-vector peek-end-entry
+  failure my-vector pop-start-entry
+  failure my-vector pop-end-entry ;
 
-VECTOR-TEST
+vector-test

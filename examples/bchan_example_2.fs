@@ -27,33 +27,33 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
+forth-wordlist task-wordlist 2 set-order
 
-100 2 NEW-BCHAN CONSTANT MY-BCHAN
+100 2 new-bchan constant my-bchan
 
-: SENDER
-  BEGIN
-    MY-BCHAN COUNT-BCHAN ." <" (.) ." > " 0 MY-BCHAN SEND-BCHAN
-  AGAIN ;
+: sender
+  begin
+    my-bchan count-bchan ." <" (.) ." > " 0 my-bchan send-bchan
+  again ;
 
-: RECEIVER
-  BEGIN
-    MY-BCHAN COUNT-BCHAN ." [" (.) ." ] " MY-BCHAN RECV-BCHAN DROP
-  AGAIN ;
+: receiver
+  begin
+    my-bchan count-bchan ." [" (.) ." ] " my-bchan recv-bchan drop
+  again ;
 
-: ON-PAUSE
-  BASE @ >R SINGLE-TASK-IO @ >R
-  16 BASE ! TRUE SINGLE-TASK-IO !
-  ." *" NEXT-TASK (.) ." * "
-  R> SINGLE-TASK-IO ! R> BASE ! ;
+: on-pause
+  base @ >r single-task-io @ >r
+  16 base ! true single-task-io !
+  ." *" next-task (.) ." * "
+  r> single-task-io ! r> base ! ;
 
-256 256 256 0 ' SENDER NEW-TASK CONSTANT SENDER-TASK
-256 256 256 0 ' RECEIVER NEW-TASK CONSTANT RECEIVER-TASK
+256 256 256 0 ' sender new-task constant sender-task
+256 256 256 0 ' receiver new-task constant receiver-task
 
-: DO-EXAMPLE
-  ['] ON-PAUSE 'ON-PAUSE !
-  SENDER-TASK ACTIVATE-TASK RECEIVER-TASK ACTIVATE-TASK
-  KEY DROP SENDER-TASK DEACTIVATE-TASK RECEIVER-TASK DEACTIVATE-TASK
-  0 'ON-PAUSE ! ;
+: do-example
+  ['] on-pause 'on-pause !
+  sender-task activate-task receiver-task activate-task
+  key drop sender-task deactivate-task receiver-task deactivate-task
+  0 'on-pause ! ;
 
-DO-EXAMPLE
+do-example

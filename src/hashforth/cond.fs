@@ -27,50 +27,50 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
-TASK-WORDLIST SET-CURRENT
+decimal
+forth-wordlist task-wordlist 2 set-order
+task-wordlist set-current
 
-BEGIN-STRUCTURE COND-SIZE
-  FIELD: COND-WAITING
-  FIELD: COND-WAITING-COUNT
-  FIELD: COND-WAITING-SIZE
-END-STRUCTURE
+begin-structure cond-size
+  field: cond-waiting
+  field: cond-waiting-count
+  field: cond-waiting-size
+end-structure
 
 \ Allocate a new condition variable with a specified waiting queue size.
-: NEW-COND ( waiting-size -- cond )
-  HERE COND-SIZE ALLOT
-  TUCK COND-WAITING-SIZE !
-  0 OVER COND-WAITING-COUNT !
-  DUP COND-WAITING-SIZE @ HERE SWAP CELLS ALLOT OVER COND-WAITING ! ;
+: new-cond ( waiting-size -- cond )
+  here cond-size allot
+  tuck cond-waiting-size !
+  0 over cond-waiting-count !
+  dup cond-waiting-size @ here swap cells allot over cond-waiting ! ;
 
 \ Wait on a condition variable.
-: WAIT-COND ( cond -- )
-  BEGIN DUP COND-WAITING-COUNT @ OVER COND-WAITING-SIZE @ = WHILE
-    PAUSE
-  REPEAT
-  DUP COND-WAITING @ OVER COND-WAITING-COUNT @ CELLS + CURRENT-TASK SWAP !
-  1 SWAP COND-WAITING-COUNT +!
-  CURRENT-TASK DEACTIVATE-TASK ;
+: wait-cond ( cond -- )
+  begin dup cond-waiting-count @ over cond-waiting-size @ = while
+    pause
+  repeat
+  dup cond-waiting @ over cond-waiting-count @ cells + current-task swap !
+  1 swap cond-waiting-count +!
+  current-task deactivate-task ;
 
 \ Signal a condition variable.
-: SIGNAL-COND ( cond -- )
-  DUP COND-WAITING-COUNT @ 0 > IF
-    DUP COND-WAITING @ @ ACTIVATE-TASK
-    DUP COND-WAITING @ CELL+ OVER COND-WAITING @
-    2 PICK COND-WAITING-COUNT @ 1 - CELLS MOVE
-    -1 SWAP COND-WAITING-COUNT +!
-  ELSE
-    DROP
-  THEN ;
+: signal-cond ( cond -- )
+  dup cond-waiting-count @ 0 > if
+    dup cond-waiting @ @ activate-task
+    dup cond-waiting @ cell+ over cond-waiting @
+    2 pick cond-waiting-count @ 1 - cells move
+    -1 swap cond-waiting-count +!
+  else
+    drop
+  then ;
 
 \ Broadcast on a condition variable.
-: BROADCAST-COND ( cond -- )
-  DUP COND-WAITING-COUNT @ 0 ?DO
-    DUP COND-WAITING @ I CELLS + @ ACTIVATE-TASK
-  LOOP
-  0 SWAP COND-WAITING-COUNT ! ;
+: broadcast-cond ( cond -- )
+  dup cond-waiting-count @ 0 ?do
+    dup cond-waiting @ i cells + @ activate-task
+  loop
+  0 swap cond-waiting-count ! ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

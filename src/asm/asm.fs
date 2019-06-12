@@ -27,512 +27,512 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
 \ REQUIRE buffer.fs
 
-WORDLIST CONSTANT HASHFORTH-WORDLIST
-WORDLIST CONSTANT HASHFORTH-ASM-WORDLIST
+wordlist constant hashforth-wordlist
+wordlist constant hashforth-asm-wordlist
 
-FORTH-WORDLIST BUFFER-WORDLIST HASHFORTH-WORDLIST 3 SET-ORDER
-HASHFORTH-WORDLIST SET-CURRENT
+forth-wordlist buffer-wordlist hashforth-wordlist 3 set-order
+hashforth-wordlist set-current
 
-VARIABLE HEADER-BUFFER
-VARIABLE CODE-BUFFER
-VARIABLE STORAGE-BUFFER
+variable header-buffer
+variable code-buffer
+variable storage-buffer
 
-0 CONSTANT CELL-16
-1 CONSTANT CELL-32
-2 CONSTANT CELL-64
+0 constant cell-16
+1 constant cell-32
+2 constant cell-64
 
-0 CONSTANT TOKEN-8-16
-1 CONSTANT TOKEN-16
-2 CONSTANT TOKEN-16-32
-3 CONSTANT TOKEN-32
+0 constant token-8-16
+1 constant token-16
+2 constant token-16-32
+3 constant token-32
 
-VARIABLE TARGET-CELL CELL-64 TARGET-CELL !
-VARIABLE TARGET-TOKEN TOKEN-32 TARGET-TOKEN !
-VARIABLE MEM-SIZE 0 MEM-SIZE !
-VARIABLE MAX-WORD-COUNT 0 MAX-WORD-COUNT !
-VARIABLE MAX-RETURN-STACK-COUNT 0 MAX-RETURN-STACK-COUNT !
+variable target-cell cell-64 target-cell !
+variable target-token token-32 target-token !
+variable mem-size 0 mem-size !
+variable max-word-count 0 max-word-count !
+variable max-return-stack-count 0 max-return-stack-count !
 
-: HEADER-8, ( value -- )
-  $FF AND HEADER-BUFFER @ APPEND-BYTE-BUFFER ;
+: header-8, ( value -- )
+  $ff and header-buffer @ append-byte-buffer ;
 
-: HEADER-16, ( value -- )
-  $FFFF AND HERE H! HERE 2 HEADER-BUFFER @ APPEND-BUFFER ;
+: header-16, ( value -- )
+  $ffff and here h! here 2 header-buffer @ append-buffer ;
 
-: HEADER-32, ( value -- )
-  $FFFFFFFF AND HERE W! HERE 4 HEADER-BUFFER @ APPEND-BUFFER ;
+: header-32, ( value -- )
+  $ffffffff and here w! here 4 header-buffer @ append-buffer ;
 
-: HEADER-64, ( value -- )
-  HERE ! HERE CELL-SIZE HEADER-BUFFER @ APPEND-BUFFER ;
+: header-64, ( value -- )
+  here ! here cell-size header-buffer @ append-buffer ;
 
-: HEADER, ( value -- )
-  TARGET-CELL @ CASE
-    CELL-16 OF HEADER-16, ENDOF
-    CELL-32 OF HEADER-32, ENDOF
-    CELL-64 OF HEADER-64, ENDOF
-  ENDCASE ;
+: header, ( value -- )
+  target-cell @ case
+    cell-16 of header-16, endof
+    cell-32 of header-32, endof
+    cell-64 of header-64, endof
+  endcase ;
 
-: HEADER-ARRAY, ( c-addr bytes -- ) HEADER-BUFFER @ APPEND-BUFFER ;
+: header-array, ( c-addr bytes -- ) header-buffer @ append-buffer ;
 
-: SET-DATA ( c-addr bytes -- ) CODE-BUFFER @ APPEND-BUFFER ;
+: set-data ( c-addr bytes -- ) code-buffer @ append-buffer ;
 
-: SET-FILL-DATA ( bytes c -- )
-  OVER ALLOCATE! DUP 3 PICK 3 ROLL FILL TUCK SWAP SET-DATA FREE! ;
+: set-fill-data ( bytes c -- )
+  over allocate! dup 3 pick 3 roll fill tuck swap set-data free! ;
 
-: SET-CELL-DATA ( x -- ) HERE ! HERE CELL-SIZE SET-DATA ;
+: set-cell-data ( x -- ) here ! here cell-size set-data ;
 
-VARIABLE NAME-TABLE-OFFSET
-VARIABLE INFO-TABLE-OFFSET
+variable name-table-offset
+variable info-table-offset
 
-BEGIN-STRUCTURE NAME-TABLE-ENTRY-SIZE
-  FIELD: NAME-OFFSET
-  FIELD: NAME-LENGTH
-END-STRUCTURE
+begin-structure name-table-entry-size
+  field: name-offset
+  field: name-length
+end-structure
 
-BEGIN-STRUCTURE INFO-TABLE-ENTRY-SIZE
-  FIELD: INFO-FLAGS
-  FIELD: INFO-NEXT
-END-STRUCTURE
+begin-structure info-table-entry-size
+  field: info-flags
+  field: info-next
+end-structure
 
-: INIT-ASM
+: init-asm
   ( cell-type token-type mem-size max-word-count max-return-stack-count -- )
-  HEADER-BUFFER @ IF
-    HEADER-BUFFER @ CLEAR-BUFFER
-  ELSE
-    65536 NEW-BUFFER HEADER-BUFFER !
-  THEN
-  CODE-BUFFER @ IF
-    CODE-BUFFER @ CLEAR-BUFFER
-  ELSE
-    1024 1024 * NEW-BUFFER CODE-BUFFER !
-  THEN
-  STORAGE-BUFFER @ IF
-    STORAGE-BUFFER @ CLEAR-BUFFER
-  ELSE
-    120988 2 * NEW-BUFFER STORAGE-BUFFER !
-  THEN
-  MAX-RETURN-STACK-COUNT ! MAX-WORD-COUNT ! MEM-SIZE ! TARGET-TOKEN !
-  TARGET-CELL !
-  TARGET-CELL @ HEADER-8, TARGET-TOKEN @ HEADER-8, MEM-SIZE @ HEADER,
-  MAX-WORD-COUNT @ HEADER, MAX-RETURN-STACK-COUNT @ HEADER,
-  MAX-WORD-COUNT @ NAME-TABLE-ENTRY-SIZE * 0 SET-FILL-DATA
-  MAX-WORD-COUNT @ INFO-TABLE-ENTRY-SIZE * 0 SET-FILL-DATA
-  0 NAME-TABLE-OFFSET !
-  MAX-WORD-COUNT @ NAME-TABLE-ENTRY-SIZE * INFO-TABLE-OFFSET ! ;
+  header-buffer @ if
+    header-buffer @ clear-buffer
+  else
+    65536 new-buffer header-buffer !
+  then
+  code-buffer @ if
+    code-buffer @ clear-buffer
+  else
+    1024 1024 * new-buffer code-buffer !
+  then
+  storage-buffer @ if
+    storage-buffer @ clear-buffer
+  else
+    120988 2 * new-buffer storage-buffer !
+  then
+  max-return-stack-count ! max-word-count ! mem-size ! target-token !
+  target-cell !
+  target-cell @ header-8, target-token @ header-8, mem-size @ header,
+  max-word-count @ header, max-return-stack-count @ header,
+  max-word-count @ name-table-entry-size * 0 set-fill-data
+  max-word-count @ info-table-entry-size * 0 set-fill-data
+  0 name-table-offset !
+  max-word-count @ name-table-entry-size * info-table-offset ! ;
 
-CELL-64 TOKEN-16-32 1024 1024 * 32 * 16384 1024 INIT-ASM
+cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
 
-: TARGET-CELL-SIZE ( -- bytes )
-  TARGET-CELL @ CASE
-    CELL-16 OF 2 ENDOF
-    CELL-32 OF 4 ENDOF
-    CELL-64 OF 8 ENDOF
-  ENDCASE ;
+: target-cell-size ( -- bytes )
+  target-cell @ case
+    cell-16 of 2 endof
+    cell-32 of 4 endof
+    cell-64 of 8 endof
+  endcase ;
 
-: TARGET-HALF-TOKEN-SIZE ( -- bytes )
-  TARGET-TOKEN @ CASE
-    TOKEN-8-16 OF 1 ENDOF
-    TOKEN-16 OF 2 ENDOF
-    TOKEN-16-32 OF 2 ENDOF
-    TOKEN-32 OF 4 ENDOF
-  ENDCASE ;
+: target-half-token-size ( -- bytes )
+  target-token @ case
+    token-8-16 of 1 endof
+    token-16 of 2 endof
+    token-16-32 of 2 endof
+    token-32 of 4 endof
+  endcase ;
 
-: TARGET-FULL-TOKEN-SIZE ( -- bytes )
-  TARGET-TOKEN @ CASE
-    TOKEN-8-16 OF 2 ENDOF
-    TOKEN-16 OF 2 ENDOF
-    TOKEN-16-32 OF 4 ENDOF
-    TOKEN-32 OF 4 ENDOF
-  ENDCASE ;
+: target-full-token-size ( -- bytes )
+  target-token @ case
+    token-8-16 of 2 endof
+    token-16 of 2 endof
+    token-16-32 of 4 endof
+    token-32 of 4 endof
+  endcase ;
 
-: TOKEN-8-16, ( token -- )
-  DUP $7F > IF
-    DUP $FF AND $80 OR CODE-BUFFER @ APPEND-BYTE-BUFFER
-    7 RSHIFT 1- $FF AND CODE-BUFFER @ APPEND-BYTE-BUFFER
-  ELSE
-    CODE-BUFFER @ APPEND-BYTE-BUFFER
-  THEN ;
+: token-8-16, ( token -- )
+  dup $7f > if
+    dup $ff and $80 or code-buffer @ append-byte-buffer
+    7 rshift 1- $ff and code-buffer @ append-byte-buffer
+  else
+    code-buffer @ append-byte-buffer
+  then ;
 
-: TOKEN-16, ( token -- )
-  $FFFF AND HERE H! HERE 2 CODE-BUFFER @ APPEND-BUFFER ;
+: token-16, ( token -- )
+  $ffff and here h! here 2 code-buffer @ append-buffer ;
 
-: TOKEN-16-32, ( token -- )
-  DUP $7FFF > IF
-    DUP $FFFF AND $8000 OR HERE H! HERE 2
-    CODE-BUFFER @ APPEND-BUFFER
-    15 RSHIFT 1- $FFFF AND HERE H! HERE 2
-    CODE-BUFFER @ APPEND-BUFFER
-  ELSE
-    HERE H! HERE 2 CODE-BUFFER @ APPEND-BUFFER
-  THEN ;
+: token-16-32, ( token -- )
+  dup $7fff > if
+    dup $ffff and $8000 or here h! here 2
+    code-buffer @ append-buffer
+    15 rshift 1- $ffff and here h! here 2
+    code-buffer @ append-buffer
+  else
+    here h! here 2 code-buffer @ append-buffer
+  then ;
 
-: TOKEN-32, ( token -- )
-  $FFFFFFFF AND HERE W! HERE 4 CODE-BUFFER @ APPEND-BUFFER ;
+: token-32, ( token -- )
+  $ffffffff and here w! here 4 code-buffer @ append-buffer ;
 
-: TOKEN, ( token -- )
+: token, ( token -- )
 \  cr ." compiling token: " dup .
-  TARGET-TOKEN @ CASE
-    TOKEN-8-16 OF TOKEN-8-16, ENDOF
-    TOKEN-16 OF TOKEN-16, ENDOF
-    TOKEN-16-32 OF TOKEN-16-32, ENDOF
-    TOKEN-32 OF TOKEN-32, ENDOF
-  ENDCASE ;
+  target-token @ case
+    token-8-16 of token-8-16, endof
+    token-16 of token-16, endof
+    token-16-32 of token-16-32, endof
+    token-32 of token-32, endof
+  endcase ;
 
-: ARG-16, ( value -- )
-  $FFFF AND HERE H! HERE 2 CODE-BUFFER @ APPEND-BUFFER ;
+: arg-16, ( value -- )
+  $ffff and here h! here 2 code-buffer @ append-buffer ;
 
-: ARG-32, ( value -- )
-  $FFFFFFFF AND HERE W! HERE 4 CODE-BUFFER @ APPEND-BUFFER ;
+: arg-32, ( value -- )
+  $ffffffff and here w! here 4 code-buffer @ append-buffer ;
 
-: ARG-64, ( value -- )
-  HERE ! HERE CELL-SIZE CODE-BUFFER @ APPEND-BUFFER ;
+: arg-64, ( value -- )
+  here ! here cell-size code-buffer @ append-buffer ;
 
-: ARG, ( value -- )
-  TARGET-CELL @ CASE
-    CELL-16 OF ARG-16, ENDOF
-    CELL-32 OF ARG-32, ENDOF
-    CELL-64 OF ARG-64, ENDOF
-  ENDCASE ;
+: arg, ( value -- )
+  target-cell @ case
+    cell-16 of arg-16, endof
+    cell-32 of arg-32, endof
+    cell-64 of arg-64, endof
+  endcase ;
 
-: SET-ARG-16 ( value offset -- )
-  SWAP $FFFF AND HERE H! HERE 2 ROT CODE-BUFFER @ WRITE-BUFFER ;
+: set-arg-16 ( value offset -- )
+  swap $ffff and here h! here 2 rot code-buffer @ write-buffer ;
 
-: SET-ARG-32 ( value offset -- )
-  SWAP $FFFFFFFF AND HERE W! HERE 4 ROT CODE-BUFFER @ WRITE-BUFFER ;
+: set-arg-32 ( value offset -- )
+  swap $ffffffff and here w! here 4 rot code-buffer @ write-buffer ;
 
-: SET-ARG-64 ( value offset -- )
-  SWAP HERE ! HERE CELL-SIZE ROT CODE-BUFFER @ WRITE-BUFFER ;
+: set-arg-64 ( value offset -- )
+  swap here ! here cell-size rot code-buffer @ write-buffer ;
 
-: SET-ARG ( value offset -- )
-  TARGET-CELL @ CASE
-    CELL-16 OF SET-ARG-16 ENDOF
-    CELL-32 OF SET-ARG-32 ENDOF
-    CELL-64 OF SET-ARG-64 ENDOF
-  ENDCASE ;
+: set-arg ( value offset -- )
+  target-cell @ case
+    cell-16 of set-arg-16 endof
+    cell-32 of set-arg-32 endof
+    cell-64 of set-arg-64 endof
+  endcase ;
 
-VARIABLE CURRENT-TOKEN 59 CURRENT-TOKEN !
+variable current-token 59 current-token !
 
-: NEXT-TOKEN ( -- token ) CURRENT-TOKEN @ DUP 1+ CURRENT-TOKEN ! ;
+: next-token ( -- token ) current-token @ dup 1+ current-token ! ;
 
-0 CONSTANT HEADERS-END
-1 CONSTANT COLON-WORD
-2 CONSTANT CREATE-WORD
+0 constant headers-end
+1 constant colon-word
+2 constant create-word
 
-: GET-REF ( -- ref ) CODE-BUFFER @ GET-BUFFER-LENGTH ;
+: get-ref ( -- ref ) code-buffer @ get-buffer-length ;
 
-: SET-NAME-INFO ( addr bytes token flags -- )
+: set-name-info ( addr bytes token flags -- )
 \   3 pick 3 pick type ." : " over (.) cr
-  GET-REF HERE NAME-OFFSET ! 2 PICK HERE NAME-LENGTH !
-  HERE NAME-TABLE-ENTRY-SIZE
-  3 PICK NAME-TABLE-ENTRY-SIZE * NAME-TABLE-OFFSET @ +
-  CODE-BUFFER @ WRITE-BUFFER
-  HERE INFO-FLAGS ! DUP DUP 0> IF 1- THEN HERE INFO-NEXT !
-  HERE INFO-TABLE-ENTRY-SIZE
-  ROT INFO-TABLE-ENTRY-SIZE * INFO-TABLE-OFFSET @ +
-  CODE-BUFFER @ WRITE-BUFFER
-  SET-DATA ;
+  get-ref here name-offset ! 2 pick here name-length !
+  here name-table-entry-size
+  3 pick name-table-entry-size * name-table-offset @ +
+  code-buffer @ write-buffer
+  here info-flags ! dup dup 0> if 1- then here info-next !
+  here info-table-entry-size
+  rot info-table-entry-size * info-table-offset @ +
+  code-buffer @ write-buffer
+  set-data ;
 
-: MAKE-COLON-WORD ( token name-addr name-length flags -- )
-  COLON-WORD HEADER-8, 3 PICK HEADER, OVER GET-REF + HEADER, 3 ROLL SWAP
-  SET-NAME-INFO ;
+: make-colon-word ( token name-addr name-length flags -- )
+  colon-word header-8, 3 pick header, over get-ref + header, 3 roll swap
+  set-name-info ;
 
-: MAKE-CREATE-WORD ( token name-addr name-length flags -- )
-  CREATE-WORD HEADER-8, 3 PICK HEADER, OVER GET-REF + HEADER, 3 ROLL SWAP
-  SET-NAME-INFO ;
+: make-create-word ( token name-addr name-length flags -- )
+  create-word header-8, 3 pick header, over get-ref + header, 3 roll swap
+  set-name-info ;
 
-: MAKE-CREATE-WORD-WITH-OFFSET ( token name-addr name-length flags offset -- )
-  CREATE-WORD HEADER-8, 4 PICK HEADER, HEADER, 3 ROLL SWAP
-  SET-NAME-INFO ;
+: make-create-word-with-offset ( token name-addr name-length flags offset -- )
+  create-word header-8, 4 pick header, header, 3 roll swap
+  set-name-info ;
 
-: END-HEADERS ( -- )
-  HEADERS-END HEADER-8, CODE-BUFFER @ GET-BUFFER-LENGTH HEADER, ;
+: end-headers ( -- )
+  headers-end header-8, code-buffer @ get-buffer-length header, ;
 
-: X-UNABLE-TO-OPEN SPACE ." unable to open file" CR ;
-: X-UNABLE-TO-WRITE SPACE ." unable to write to file" CR ;
+: x-unable-to-open space ." unable to open file" cr ;
+: x-unable-to-write space ." unable to write to file" cr ;
 
-256 NEW-BUFFER CONSTANT BACKUP-NAME-BUFFER
+256 new-buffer constant backup-name-buffer
 
-: GET-BACKUP-NAME ( name-addr name-length -- backup-addr backup-length )
-  0 BEGIN
-    BACKUP-NAME-BUFFER @ CLEAR-BUFFER
-    2 PICK 2 PICK BACKUP-NAME-BUFFER @ APPEND-BUFFER
-    [CHAR] . BACKUP-NAME-BUFFER @ APPEND-BYTE-BUFFER
-    DUP BASE @ >R 10 BASE ! FORMAT-UNSIGNED
-    BACKUP-NAME-BUFFER @ APPEND-BUFFER R> BASE !
-    BACKUP-NAME-BUFFER @ GET-BUFFER OPEN-RDONLY /444 OPEN 0 <> IF
-      CLOSE DROP 1 + FALSE
-    ELSE
-      2DROP 2DROP BACKUP-NAME-BUFFER @ GET-BUFFER  TRUE
-    THEN
-  UNTIL ;
+: get-backup-name ( name-addr name-length -- backup-addr backup-length )
+  0 begin
+    backup-name-buffer @ clear-buffer
+    2 pick 2 pick backup-name-buffer @ append-buffer
+    [char] . backup-name-buffer @ append-byte-buffer
+    dup base @ >r 10 base ! format-unsigned
+    backup-name-buffer @ append-buffer r> base !
+    backup-name-buffer @ get-buffer open-rdonly /444 open 0 <> if
+      close drop 1 + false
+    else
+      2drop 2drop backup-name-buffer @ get-buffer  true
+    then
+  until ;
 
-: BACKUP-FILE ( name-addr name-length -- )
-  1024 NEW-BUFFER 2 PICK 2 PICK 2 PICK READ-FILE-INTO-BUFFER 0 <> IF
-    ROT ROT GET-BACKUP-NAME
-    OPEN-WRONLY OPEN-CREAT OR OPEN-TRUNC OR /666 OPEN 0 <> IF
-      OVER GET-BUFFER 2 PICK WAIT-WRITE-FULL 0 <> IF
-        DROP CLOSE DROP DESTROY-BUFFER
-      ELSE
-        DROP DROP DESTROY-BUFFER ['] X-UNABLE-TO-WRITE ?RAISE
-      THEN
-    ELSE
-      DROP DESTROY-BUFFER ['] X-UNABLE-TO-OPEN ?RAISE
-    THEN
-  ELSE
-    DESTROY-BUFFER 2DROP
-  THEN ;
+: backup-file ( name-addr name-length -- )
+  1024 new-buffer 2 pick 2 pick 2 pick read-file-into-buffer 0 <> if
+    rot rot get-backup-name
+    open-wronly open-creat or open-trunc or /666 open 0 <> if
+      over get-buffer 2 pick wait-write-full 0 <> if
+        drop close drop destroy-buffer
+      else
+        drop drop destroy-buffer ['] x-unable-to-write ?raise
+      then
+    else
+      drop destroy-buffer ['] x-unable-to-open ?raise
+    then
+  else
+    destroy-buffer 2drop
+  then ;
 
-: WRITE-ASM-TO-FILE ( name-addr name-length -- )
-  2DUP BACKUP-FILE
-  END-HEADERS OPEN-WRONLY OPEN-CREAT OR OPEN-TRUNC OR /666 OPEN
-  AVERTS X-UNABLE-TO-OPEN
-  HEADER-BUFFER @ GET-BUFFER 2 PICK
-  WAIT-WRITE-FULL AVERTS X-UNABLE-TO-WRITE DROP
-  CODE-BUFFER @ GET-BUFFER 2 PICK
-  WAIT-WRITE-FULL AVERTS X-UNABLE-TO-WRITE DROP
-  STORAGE-BUFFER @ GET-BUFFER 2 PICK
-  WAIT-WRITE-FULL AVERTS X-UNABLE-TO-WRITE DROP
-  CLOSE DROP ;
+: write-asm-to-file ( name-addr name-length -- )
+  2dup backup-file
+  end-headers open-wronly open-creat or open-trunc or /666 open
+  averts x-unable-to-open
+  header-buffer @ get-buffer 2 pick
+  wait-write-full averts x-unable-to-write drop
+  code-buffer @ get-buffer 2 pick
+  wait-write-full averts x-unable-to-write drop
+  storage-buffer @ get-buffer 2 pick
+  wait-write-full averts x-unable-to-write drop
+  close drop ;
 
-: X-UNABLE-TO-READ SPACE ." unable to read file" CR ;
+: x-unable-to-read space ." unable to read file" cr ;
 
-: ADD-SOURCE-TO-STORAGE ( name-addr name-length -- )
-  1024 NEW-BUFFER ROT ROT 2 PICK READ-FILE-INTO-BUFFER 0 <> IF
-    DUP GET-BUFFER STORAGE-BUFFER @ APPEND-BUFFER
-  ELSE
-    DESTROY-BUFFER ['] X-UNABLE-TO-READ ?RAISE
-  THEN
-  STORAGE-BUFFER @ GET-BUFFER-LENGTH 0 > IF
-    STORAGE-BUFFER @ GET-BUFFER 1- + C@ NEWLINE <> IF
-      NEWLINE STORAGE-BUFFER @ APPEND-BYTE-BUFFER
-    THEN
-  THEN ;
+: add-source-to-storage ( name-addr name-length -- )
+  1024 new-buffer rot rot 2 pick read-file-into-buffer 0 <> if
+    dup get-buffer storage-buffer @ append-buffer
+  else
+    destroy-buffer ['] x-unable-to-read ?raise
+  then
+  storage-buffer @ get-buffer-length 0 > if
+    storage-buffer @ get-buffer 1- + c@ newline <> if
+      newline storage-buffer @ append-byte-buffer
+    then
+  then ;
 
-0 CONSTANT NO-FLAG
-1 CONSTANT IMMEDIATE-FLAG
-2 CONSTANT COMPILE-ONLY-FLAG
-4 CONSTANT HIDDEN-FLAG
+0 constant no-flag
+1 constant immediate-flag
+2 constant compile-only-flag
+4 constant hidden-flag
 
-: 3DUP ( x1 x2 x3 -- x1 x2 x3 x1 x2 x3 ) 2 PICK 2 PICK 2 PICK ;
+: 3dup ( x1 x2 x3 -- x1 x2 x3 x1 x2 x3 ) 2 pick 2 pick 2 pick ;
 
 \ : CREATE-COMPILE ( c-addr bytes token -- )
 \   OVER 1+ NEW-BUFFER [CHAR] . OVER APPEND-BYTE-BUFFER 3 ROLL 3 ROLL 2 PICK
 \   APPEND-BUFFER DUP GET-BUFFER CREATE-WITH-NAME SWAP , DESTROY-BUFFER
 \   DOES> @ TOKEN, ;
 
-: CREATE-COMPILE ( c-addr bytes token -- )
-  ROT ROT CREATE-WITH-NAME , DOES> @ TOKEN, ;
+: create-compile ( c-addr bytes token -- )
+  rot rot create-with-name , does> @ token, ;
 
-: CREATE-TOKEN-LIT ( c-addr bytes token -- )
-  OVER 1+ NEW-BUFFER [CHAR] & OVER APPEND-BYTE-BUFFER 3 ROLL 3 ROLL 2 PICK
-  APPEND-BUFFER DUP GET-BUFFER CREATE-WITH-NAME SWAP , DESTROY-BUFFER
-  DOES> 5 TOKEN, @ ARG, ;
+: create-token-lit ( c-addr bytes token -- )
+  over 1+ new-buffer [char] & over append-byte-buffer 3 roll 3 roll 2 pick
+  append-buffer dup get-buffer create-with-name swap , destroy-buffer
+  does> 5 token, @ arg, ;
 
-: CREATE-TOKEN ( c-addr bytes token -- )
-  OVER 1+ NEW-BUFFER [CHAR] ^ OVER APPEND-BYTE-BUFFER 3 ROLL 3 ROLL 2 PICK
-  APPEND-BUFFER DUP GET-BUFFER CREATE-WITH-NAME SWAP , DESTROY-BUFFER
-  DOES> @ ;
+: create-token ( c-addr bytes token -- )
+  over 1+ new-buffer [char] ^ over append-byte-buffer 3 roll 3 roll 2 pick
+  append-buffer dup get-buffer create-with-name swap , destroy-buffer
+  does> @ ;
 
-: CREATE-WORDS ( c-addr bytes token )
-  3DUP CREATE-COMPILE 3DUP CREATE-TOKEN-LIT CREATE-TOKEN ;
+: create-words ( c-addr bytes token )
+  3dup create-compile 3dup create-token-lit create-token ;
 
-: CREATE-TOKEN-AND-LIT-TOKEN ( c-addr bytes token )
-  3DUP CREATE-TOKEN-LIT CREATE-TOKEN ;
+: create-token-and-lit-token ( c-addr bytes token )
+  3dup create-token-lit create-token ;
 
-: PRIMITIVE ( "name" token -- )
-  PARSE-NAME ROT 3DUP CREATE-WORDS NO-FLAG SET-NAME-INFO ;
+: primitive ( "name" token -- )
+  parse-name rot 3dup create-words no-flag set-name-info ;
 
-: PRIMITIVE-IMMEDIATE ( "name" token -- )
-  PARSE-NAME ROT 3DUP CREATE-WORDS IMMEDIATE-FLAG SET-NAME-INFO ;
+: primitive-immediate ( "name" token -- )
+  parse-name rot 3dup create-words immediate-flag set-name-info ;
 
-: PRIMITIVE-COMPILE-ONLY ( "name" token -- )
-  PARSE-NAME ROT 3DUP CREATE-WORDS COMPILE-ONLY-FLAG SET-NAME-INFO ;
+: primitive-compile-only ( "name" token -- )
+  parse-name rot 3dup create-words compile-only-flag set-name-info ;
 
-: PRIMITIVE-IMMEDIATE-COMPILE-ONLY ( "name" token -- )
-  PARSE-NAME ROT 3DUP CREATE-WORDS IMMEDIATE-FLAG COMPILE-ONLY-FLAG OR
-  SET-NAME-INFO ;
+: primitive-immediate-compile-only ( "name" token -- )
+  parse-name rot 3dup create-words immediate-flag compile-only-flag or
+  set-name-info ;
 
-: VM FORTH-WORDLIST BUFFER-WORDLIST HASHFORTH-WORDLIST HASHFORTH-ASM-WORDLIST
-  4 SET-ORDER ; IMMEDIATE
+: vm forth-wordlist buffer-wordlist hashforth-wordlist hashforth-asm-wordlist
+  4 set-order ; immediate
 
-: NOT-VM HASHFORTH-ASM-WORDLIST HASHFORTH-WORDLIST BUFFER-WORDLIST
-  FORTH-WORDLIST 4 SET-ORDER ; IMMEDIATE
+: not-vm hashforth-asm-wordlist hashforth-wordlist buffer-wordlist
+  forth-wordlist 4 set-order ; immediate
 
-NOT-VM HASHFORTH-ASM-WORDLIST SET-CURRENT
+not-vm hashforth-asm-wordlist set-current
 
-: DEFINE-WORD ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT
-  NO-FLAG MAKE-COLON-WORD ;
+: define-word ( "name" -- )
+  parse-name next-token 3dup create-words rot rot
+  no-flag make-colon-word ;
 
-: DEFINE-WORD-IMMEDIATE ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  IMMEDIATE-FLAG MAKE-COLON-WORD ;
+: define-word-immediate ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  immediate-flag make-colon-word ;
 
-: DEFINE-WORD-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  COMPILE-ONLY-FLAG MAKE-COLON-WORD ;
+: define-word-compile-only ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  compile-only-flag make-colon-word ;
 
-: DEFINE-WORD-IMMEDIATE-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  IMMEDIATE-FLAG COMPILE-ONLY-FLAG OR MAKE-COLON-WORD ;
+: define-word-immediate-compile-only ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  immediate-flag compile-only-flag or make-colon-word ;
 
-: DEFINE-WORD-CREATED ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  NO-FLAG MAKE-CREATE-WORD ;
+: define-word-created ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  no-flag make-create-word ;
 
-: DEFINE-WORD-CREATED-IMMEDIATE ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  IMMEDIATE-FLAG MAKE-CREATE-WORD ;
+: define-word-created-immediate ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  immediate-flag make-create-word ;
 
-: DEFINE-WORD-CREATED-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  COMPILE-ONLY-FLAG MAKE-CREATE-WORD ;
+: define-word-created-compile-only ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  compile-only-flag make-create-word ;
 
-: DEFINE-WORD-CREATED-IMMEDIATE-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  IMMEDIATE-FLAG COMPILE-ONLY-FLAG OR MAKE-CREATE-WORD ;
+: define-word-created-immediate-compile-only ( "name" -- )
+  parse-name next-token 3dup create-words rot rot 
+  immediate-flag compile-only-flag or make-create-word ;
 
-: DEFINE-WORD-CREATED-WITH-OFFSET ( "name" offset -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-WORDS ROT ROT 
-  NO-FLAG 4 ROLL MAKE-CREATE-WORD-WITH-OFFSET ;
+: define-word-created-with-offset ( "name" offset -- )
+  parse-name next-token 3dup create-words rot rot 
+  no-flag 4 roll make-create-word-with-offset ;
 
-: NON-DEFINE-WORD ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  NO-FLAG MAKE-COLON-WORD ;
+: non-define-word ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  no-flag make-colon-word ;
 
-: NON-DEFINE-WORD-IMMEDIATE ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  IMMEDIATE-FLAG MAKE-COLON-WORD ;
+: non-define-word-immediate ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  immediate-flag make-colon-word ;
 
-: NON-DEFINE-WORD-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  COMPILE-ONLY-FLAG MAKE-COLON-WORD ;
+: non-define-word-compile-only ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  compile-only-flag make-colon-word ;
 
-: NON-DEFINE-WORD-IMMEDIATE-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  IMMEDIATE-FLAG COMPILE-ONLY-FLAG OR MAKE-COLON-WORD ;
+: non-define-word-immediate-compile-only ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  immediate-flag compile-only-flag or make-colon-word ;
 
-: NON-DEFINE-WORD-CREATED ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  NO-FLAG MAKE-CREATE-WORD ;
+: non-define-word-created ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  no-flag make-create-word ;
 
-: NON-DEFINE-WORD-CREATED-IMMEDIATE ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  IMMEDIATE-FLAG MAKE-CREATE-WORD ;
+: non-define-word-created-immediate ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  immediate-flag make-create-word ;
 
-: NON-DEFINE-WORD-CREATED-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  COMPILE-ONLY-FLAG MAKE-CREATE-WORD ;
+: non-define-word-created-compile-only ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  compile-only-flag make-create-word ;
 
-: NON-DEFINE-WORD-CREATED-IMMEDIATE-COMPILE-ONLY ( "name" -- )
-  PARSE-NAME NEXT-TOKEN 3DUP CREATE-TOKEN-AND-LIT-TOKEN ROT ROT 
-  IMMEDIATE-FLAG COMPILE-ONLY-FLAG OR MAKE-CREATE-WORD ;
+: non-define-word-created-immediate-compile-only ( "name" -- )
+  parse-name next-token 3dup create-token-and-lit-token rot rot 
+  immediate-flag compile-only-flag or make-create-word ;
 
-0 PRIMITIVE END
-1 PRIMITIVE NOP
-2 PRIMITIVE EXIT
-3 PRIMITIVE BRANCH
-4 PRIMITIVE 0BRANCH
-5 PRIMITIVE (LIT)
-6 PRIMITIVE (DATA)
-7 PRIMITIVE NEW-COLON
-8 PRIMITIVE NEW-CREATE
-9 PRIMITIVE SET-DOES>
-10 PRIMITIVE FINISH
-11 PRIMITIVE EXECUTE
-12 PRIMITIVE DROP
-13 PRIMITIVE DUP
-14 PRIMITIVE SWAP
-15 PRIMITIVE OVER
-16 PRIMITIVE ROT
-17 PRIMITIVE PICK
-18 PRIMITIVE ROLL
-19 PRIMITIVE @
-20 PRIMITIVE !
-21 PRIMITIVE C@
-22 PRIMITIVE C!
-23 PRIMITIVE =
-24 PRIMITIVE <>
-25 PRIMITIVE <
-26 PRIMITIVE >
-27 PRIMITIVE U<
-28 PRIMITIVE U>
-29 PRIMITIVE NOT
-30 PRIMITIVE AND
-31 PRIMITIVE OR
-32 PRIMITIVE XOR
-33 PRIMITIVE LSHIFT
-34 PRIMITIVE RSHIFT
-35 PRIMITIVE ARSHIFT
-36 PRIMITIVE +
-37 PRIMITIVE -
-38 PRIMITIVE *
-39 PRIMITIVE /
-40 PRIMITIVE MOD
-41 PRIMITIVE U/
-42 PRIMITIVE UMOD
-43 PRIMITIVE MUX
-44 PRIMITIVE /MUX
-45 PRIMITIVE R@
-46 PRIMITIVE >R
-47 PRIMITIVE R>
-48 PRIMITIVE SP@
-49 PRIMITIVE SP!
-50 PRIMITIVE RP@
-51 PRIMITIVE RP!
-52 PRIMITIVE >BODY
-53 PRIMITIVE H@
-54 PRIMITIVE H!
-55 PRIMITIVE W@
-56 PRIMITIVE W!
-57 PRIMITIVE SET-WORD-COUNT
-58 PRIMITIVE SYS
+0 primitive end
+1 primitive nop
+2 primitive exit
+3 primitive branch
+4 primitive 0branch
+5 primitive (lit)
+6 primitive (data)
+7 primitive new-colon
+8 primitive new-create
+9 primitive set-does>
+10 primitive finish
+11 primitive execute
+12 primitive drop
+13 primitive dup
+14 primitive swap
+15 primitive over
+16 primitive rot
+17 primitive pick
+18 primitive roll
+19 primitive @
+20 primitive !
+21 primitive c@
+22 primitive c!
+23 primitive =
+24 primitive <>
+25 primitive <
+26 primitive >
+27 primitive u<
+28 primitive u>
+29 primitive not
+30 primitive and
+31 primitive or
+32 primitive xor
+33 primitive lshift
+34 primitive rshift
+35 primitive arshift
+36 primitive +
+37 primitive -
+38 primitive *
+39 primitive /
+40 primitive mod
+41 primitive u/
+42 primitive umod
+43 primitive mux
+44 primitive /mux
+45 primitive r@
+46 primitive >r
+47 primitive r>
+48 primitive sp@
+49 primitive sp!
+50 primitive rp@
+51 primitive rp!
+52 primitive >body
+53 primitive h@
+54 primitive h!
+55 primitive w@
+56 primitive w!
+57 primitive set-word-count
+58 primitive sys
 
-NAME-TABLE-OFFSET @ DEFINE-WORD-CREATED-WITH-OFFSET NAME-TABLE
-INFO-TABLE-OFFSET @ DEFINE-WORD-CREATED-WITH-OFFSET INFO-TABLE
+name-table-offset @ define-word-created-with-offset name-table
+info-table-offset @ define-word-created-with-offset info-table
 
-: END-WORD ( -- ) VM EXIT END NOT-VM ;
+: end-word ( -- ) vm exit end not-vm ;
 
-: LIT ( x -- ) VM (LIT) NOT-VM ARG, ;
+: lit ( x -- ) vm (lit) not-vm arg, ;
 
-: BACK-REF ( "name" -- ) CREATE GET-REF , DOES> @ ;
+: back-ref ( "name" -- ) create get-ref , does> @ ;
 
-: +BRANCH-FORE ( "name" -- )
-  CREATE VM BRANCH NOT-VM GET-REF , 0 ARG, DOES> @ GET-REF SWAP SET-ARG ;
+: +branch-fore ( "name" -- )
+  create vm branch not-vm get-ref , 0 arg, does> @ get-ref swap set-arg ;
 
-: +0BRANCH-FORE ( "name" -- )
-  CREATE VM 0BRANCH NOT-VM GET-REF , 0 ARG, DOES> @ GET-REF SWAP SET-ARG ;
+: +0branch-fore ( "name" -- )
+  create vm 0branch not-vm get-ref , 0 arg, does> @ get-ref swap set-arg ;
 
-: +BRANCH-BACK ( x -- ) VM BRANCH NOT-VM ARG, ;
+: +branch-back ( x -- ) vm branch not-vm arg, ;
 
-: +0BRANCH-BACK ( x -- ) VM 0BRANCH NOT-VM ARG, ;
+: +0branch-back ( x -- ) vm 0branch not-vm arg, ;
 
-: +IF ( -- forward-ref ) VM 0BRANCH NOT-VM GET-REF 0 ARG, ;
+: +if ( -- forward-ref ) vm 0branch not-vm get-ref 0 arg, ;
 
-: +ELSE ( forward-ref -- forward-ref )
-  VM BRANCH NOT-VM GET-REF 0 ARG, SWAP GET-REF SWAP SET-ARG ;
+: +else ( forward-ref -- forward-ref )
+  vm branch not-vm get-ref 0 arg, swap get-ref swap set-arg ;
 
-: +THEN ( forward-ref -- ) GET-REF SWAP SET-ARG ;
+: +then ( forward-ref -- ) get-ref swap set-arg ;
 
-: +BEGIN ( -- backward-ref ) GET-REF ;
+: +begin ( -- backward-ref ) get-ref ;
 
-: +AGAIN ( backward-ref -- ) +BRANCH-BACK ;
+: +again ( backward-ref -- ) +branch-back ;
 
-: +UNTIL ( backward-ref -- ) +0BRANCH-BACK ;
+: +until ( backward-ref -- ) +0branch-back ;
 
-: +WHILE ( -- forward-ref ) VM 0BRANCH NOT-VM GET-REF 0 ARG, ;
+: +while ( -- forward-ref ) vm 0branch not-vm get-ref 0 arg, ;
 
-: +REPEAT ( backward-ref forward-ref -- )
-  SWAP +BRANCH-BACK GET-REF SWAP SET-ARG ;
+: +repeat ( backward-ref forward-ref -- )
+  swap +branch-back get-ref swap set-arg ;
 
-: +DATA ( c-addr bytes -- )
-  VM (DATA) NOT-VM DUP ARG, TUCK SET-DATA VM LIT NOT-VM ;
+: +data ( c-addr bytes -- )
+  vm (data) not-vm dup arg, tuck set-data vm lit not-vm ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

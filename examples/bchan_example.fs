@@ -27,31 +27,31 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
+forth-wordlist task-wordlist 2 set-order
 
-100 2 NEW-BCHAN CONSTANT MY-BCHAN
+100 2 new-bchan constant my-bchan
 
-: SENDER
-  PAUSE-COUNT 0 BEGIN
-    DUP MY-BCHAN SEND-BCHAN 1 +
-    DUP $1000 MOD 0 = IF
-      PAUSE-COUNT ROT OVER SWAP - $1000 SWAP / ." <" . DUP (.) ." > " SWAP
-    THEN
-  AGAIN ;
+: sender
+  pause-count 0 begin
+    dup my-bchan send-bchan 1 +
+    dup $1000 mod 0 = if
+      pause-count rot over swap - $1000 swap / ." <" . dup (.) ." > " swap
+    then
+  again ;
 
-: RECEIVER
-  PAUSE-COUNT 0 BEGIN
-    MY-BCHAN RECV-BCHAN DROP 1 +
-    DUP $1000 MOD 0 = IF
-      PAUSE-COUNT ROT OVER SWAP - $1000 SWAP / ." [" . DUP (.) ." ] " SWAP
-    THEN
-  AGAIN ;
+: receiver
+  pause-count 0 begin
+    my-bchan recv-bchan drop 1 +
+    dup $1000 mod 0 = if
+      pause-count rot over swap - $1000 swap / ." [" . dup (.) ." ] " swap
+    then
+  again ;
 
-256 256 256 0 ' SENDER NEW-TASK CONSTANT SENDER-TASK
-256 256 256 0 ' RECEIVER NEW-TASK CONSTANT RECEIVER-TASK
+256 256 256 0 ' sender new-task constant sender-task
+256 256 256 0 ' receiver new-task constant receiver-task
 
-SENDER-TASK ACTIVATE-TASK RECEIVER-TASK ACTIVATE-TASK
+sender-task activate-task receiver-task activate-task
 
-SLEEP-TASK DEACTIVATE-TASK MAIN-TASK DEACTIVATE-TASK
+sleep-task deactivate-task main-task deactivate-task
 
 \ KEY DROP SENDER-TASK DEACTIVATE-TASK RECEIVER-TASK DEACTIVATE-TASK

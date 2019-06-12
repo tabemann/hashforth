@@ -27,576 +27,576 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST 1 SET-ORDER
-FORTH-WORDLIST SET-CURRENT
+decimal
+forth-wordlist 1 set-order
+forth-wordlist set-current
 
-WORDLIST CONSTANT VECTOR-WORDLIST
-FORTH-WORDLIST VECTOR-WORDLIST 2 SET-ORDER
-VECTOR-WORDLIST SET-CURRENT
+wordlist constant vector-wordlist
+forth-wordlist vector-wordlist 2 set-order
+vector-wordlist set-current
 
-WORDLIST CONSTANT VECTOR-PRIVATE-WORDLIST
-FORTH-WORDLIST VECTOR-PRIVATE-WORDLIST VECTOR-WORDLIST
-LAMBDA-WORDLIST 4 SET-ORDER
-VECTOR-PRIVATE-WORDLIST SET-CURRENT
+wordlist constant vector-private-wordlist
+forth-wordlist vector-private-wordlist vector-wordlist
+lambda-wordlist 4 set-order
+vector-private-wordlist set-current
 
 \ The vector structure
-BEGIN-STRUCTURE VECTOR-SIZE
+begin-structure vector-size
   \ The vector flags
-  FIELD: VECTOR-FLAGS
+  field: vector-flags
   
   \ The vector circular buffer
-  FIELD: VECTOR-DATA
+  field: vector-data
 
   \ The number of entries in the vector
-  FIELD: VECTOR-COUNT
+  field: vector-count
 
   \ The maximum number of entries in the vector (without resizing)
-  FIELD: VECTOR-MAX-COUNT
+  field: vector-max-count
 
   \ The size of an entry in the vector
-  FIELD: VECTOR-ENTRY-SIZE
+  field: vector-entry-size
 
   \ The current start index in the circular buffer
-  FIELD: VECTOR-START-INDEX
+  field: vector-start-index
 
   \ The current end index in the circular buffer
-  FIELD: VECTOR-END-INDEX
+  field: vector-end-index
 
   \ The finalizer word
-  FIELD: VECTOR-FINALIZER
+  field: vector-finalizer
 
   \ THe extra finalizer argument
-  FIELD: VECTOR-FINALIZER-ARG
-END-STRUCTURE
+  field: vector-finalizer-arg
+end-structure
 
 \ The vector-is-allocated flag
-1 CONSTANT ALLOCATED-VECTOR
+1 constant allocated-vector
 
 \ Internal - get address of a block at an index in a vector.
-: GET-VECTOR-ENTRY ( index vector -- addr )
-  2DUP VECTOR-START-INDEX @ SWAP <= IF
-    DUP VECTOR-START-INDEX @ ROT 1 + - OVER VECTOR-MAX-COUNT @ +
-  ELSE
-    DUP VECTOR-START-INDEX @ ROT 1 + -
-  THEN
-  OVER VECTOR-ENTRY-SIZE @ * SWAP VECTOR-DATA @ + ;
+: get-vector-entry ( index vector -- addr )
+  2dup vector-start-index @ swap <= if
+    dup vector-start-index @ rot 1 + - over vector-max-count @ +
+  else
+    dup vector-start-index @ rot 1 + -
+  then
+  over vector-entry-size @ * swap vector-data @ + ;
 
 \ Carry out finalizing of an entry if there is a finalizer xt
-: DO-FINALIZE ( index vector -- )
-  DUP VECTOR-FINALIZER @ IF
-    TUCK GET-VECTOR-ENTRY OVER VECTOR-FINALIZER-ARG @ ROT
-    VECTOR-FINALIZER @ EXECUTE
-  ELSE
-    2DROP
-  THEN ;
+: do-finalize ( index vector -- )
+  dup vector-finalizer @ if
+    tuck get-vector-entry over vector-finalizer-arg @ rot
+    vector-finalizer @ execute
+  else
+    2drop
+  then ;
 
 \ Internal - wrap an index backward
-: WRAP-BACK ( index vector -- index )
-  SWAP 1- DUP 0 < IF SWAP VECTOR-MAX-COUNT @ + ELSE NIP THEN ;
+: wrap-back ( index vector -- index )
+  swap 1- dup 0 < if swap vector-max-count @ + else nip then ;
 
 \ Internal - get a block at an index in a vector.
-: GET-VECTOR ( addr index vector -- )
-  2DUP VECTOR-START-INDEX @ SWAP <= IF
-    DUP VECTOR-START-INDEX @ ROT 1 + - OVER VECTOR-MAX-COUNT @ +
-  ELSE
-    DUP VECTOR-START-INDEX @ ROT 1 + -
-  THEN
-  OVER VECTOR-ENTRY-SIZE @ * OVER VECTOR-DATA @ +
-  ROT ROT VECTOR-ENTRY-SIZE @ CMOVE ;
+: get-vector ( addr index vector -- )
+  2dup vector-start-index @ swap <= if
+    dup vector-start-index @ rot 1 + - over vector-max-count @ +
+  else
+    dup vector-start-index @ rot 1 + -
+  then
+  over vector-entry-size @ * over vector-data @ +
+  rot rot vector-entry-size @ cmove ;
 
 \ Internal - set a block at an index in a vector.
-: SET-VECTOR ( addr index vector -- )
-  2DUP VECTOR-START-INDEX @ SWAP < IF
-    DUP VECTOR-START-INDEX @ ROT 1 + - OVER VECTOR-MAX-COUNT @ +
-  ELSE
-    DUP VECTOR-START-INDEX @ ROT 1 + -
-  THEN
-  OVER VECTOR-ENTRY-SIZE @ * OVER VECTOR-DATA @ +
-  ROT SWAP ROT VECTOR-ENTRY-SIZE @ CMOVE ;
+: set-vector ( addr index vector -- )
+  2dup vector-start-index @ swap < if
+    dup vector-start-index @ rot 1 + - over vector-max-count @ +
+  else
+    dup vector-start-index @ rot 1 + -
+  then
+  over vector-entry-size @ * over vector-data @ +
+  rot swap rot vector-entry-size @ cmove ;
 
 \ Internal - push a block onto the start of a vector.
-: PUSH-START-VECTOR ( addr vector -- )
-  TUCK VECTOR-DATA @ 2 PICK VECTOR-START-INDEX @
-  3 PICK VECTOR-ENTRY-SIZE @ * + 2 PICK VECTOR-ENTRY-SIZE @ CMOVE
-  DUP VECTOR-COUNT @ 1+ OVER VECTOR-COUNT !
-  DUP VECTOR-START-INDEX @ 1+ OVER VECTOR-MAX-COUNT @ MOD
-  SWAP VECTOR-START-INDEX ! ;
+: push-start-vector ( addr vector -- )
+  tuck vector-data @ 2 pick vector-start-index @
+  3 pick vector-entry-size @ * + 2 pick vector-entry-size @ cmove
+  dup vector-count @ 1+ over vector-count !
+  dup vector-start-index @ 1+ over vector-max-count @ mod
+  swap vector-start-index ! ;
 
 \ Internal - pop a block from the start of a vector.
-: POP-START-VECTOR ( addr vector -- )
-  DUP VECTOR-START-INDEX @ OVER WRAP-BACK OVER VECTOR-START-INDEX !
-  DUP VECTOR-DATA @ OVER VECTOR-START-INDEX @
-  2 PICK VECTOR-ENTRY-SIZE @ * + ROT 2 PICK VECTOR-ENTRY-SIZE @ CMOVE
-  DUP VECTOR-COUNT @ 1- SWAP VECTOR-COUNT ! ;
+: pop-start-vector ( addr vector -- )
+  dup vector-start-index @ over wrap-back over vector-start-index !
+  dup vector-data @ over vector-start-index @
+  2 pick vector-entry-size @ * + rot 2 pick vector-entry-size @ cmove
+  dup vector-count @ 1- swap vector-count ! ;
 
 \ Internal - drop a block from the start of a vector.
-: DROP-START-VECTOR ( vector -- )
-  DUP VECTOR-START-INDEX @ OVER WRAP-BACK OVER VECTOR-START-INDEX !
-  DUP VECTOR-COUNT @ 1- SWAP VECTOR-COUNT ! ;
+: drop-start-vector ( vector -- )
+  dup vector-start-index @ over wrap-back over vector-start-index !
+  dup vector-count @ 1- swap vector-count ! ;
 
 \ Internal - peek a block from the start a vector.
-: PEEK-START-VECTOR ( addr vector -- )
-  DUP VECTOR-DATA @ OVER VECTOR-START-INDEX @ 2 PICK WRAP-BACK
-  2 PICK VECTOR-ENTRY-SIZE @ * + ROT ROT VECTOR-ENTRY-SIZE @ CMOVE ;
+: peek-start-vector ( addr vector -- )
+  dup vector-data @ over vector-start-index @ 2 pick wrap-back
+  2 pick vector-entry-size @ * + rot rot vector-entry-size @ cmove ;
 
 \ Internal - push a block onto the start of a vector.
-: PUSH-END-VECTOR ( addr vector -- )
-  DUP VECTOR-END-INDEX @ OVER WRAP-BACK OVER VECTOR-END-INDEX !
-  TUCK VECTOR-DATA @ 2 PICK VECTOR-END-INDEX @
-  3 PICK VECTOR-ENTRY-SIZE @ * + 2 PICK VECTOR-ENTRY-SIZE @ CMOVE
-  DUP VECTOR-COUNT @ 1+ SWAP VECTOR-COUNT ! ;
+: push-end-vector ( addr vector -- )
+  dup vector-end-index @ over wrap-back over vector-end-index !
+  tuck vector-data @ 2 pick vector-end-index @
+  3 pick vector-entry-size @ * + 2 pick vector-entry-size @ cmove
+  dup vector-count @ 1+ swap vector-count ! ;
 
 \ Internal - pop a block from the end of a vector.
-: POP-END-VECTOR ( addr vector -- )
-  DUP VECTOR-DATA @ OVER VECTOR-END-INDEX @
-  2 PICK VECTOR-ENTRY-SIZE @ * + ROT 2 PICK VECTOR-ENTRY-SIZE @ CMOVE
-  DUP VECTOR-COUNT @ 1- OVER VECTOR-COUNT !
-  DUP VECTOR-END-INDEX @ 1+ OVER VECTOR-MAX-COUNT @ MOD
-  SWAP VECTOR-END-INDEX ! ;
+: pop-end-vector ( addr vector -- )
+  dup vector-data @ over vector-end-index @
+  2 pick vector-entry-size @ * + rot 2 pick vector-entry-size @ cmove
+  dup vector-count @ 1- over vector-count !
+  dup vector-end-index @ 1+ over vector-max-count @ mod
+  swap vector-end-index ! ;
 
 \ Internal - drop a block from the end of a vector.
-: DROP-END-VECTOR ( vector -- )
-  DUP VECTOR-COUNT @ 1- OVER VECTOR-COUNT !
-  DUP VECTOR-END-INDEX @ 1+ OVER VECTOR-MAX-COUNT @ MOD
-  SWAP VECTOR-END-INDEX ! ;
+: drop-end-vector ( vector -- )
+  dup vector-count @ 1- over vector-count !
+  dup vector-end-index @ 1+ over vector-max-count @ mod
+  swap vector-end-index ! ;
 
 \ Internal - peek a block from the end a vector.
-: PEEK-END-VECTOR ( addr vector -- )
-  DUP VECTOR-DATA @ OVER VECTOR-END-INDEX @
-  2 PICK VECTOR-ENTRY-SIZE @ * + ROT ROT VECTOR-ENTRY-SIZE @ CMOVE ;
+: peek-end-vector ( addr vector -- )
+  dup vector-data @ over vector-end-index @
+  2 pick vector-entry-size @ * + rot rot vector-entry-size @ cmove ;
 
 \ Prepend a vector to another vector
-: PREPEND-VECTOR ( source-vector dest-vector -- )
-  OVER VECTOR-ENTRY-SIZE @ HERE SWAP ALLOT
-  2 PICK VECTOR-COUNT @ 0 ?DO
-    DUP 3 PICK VECTOR-COUNT @ 1 - I - 4 PICK GET-VECTOR
-    DUP 2 PICK PUSH-START-VECTOR
-  LOOP
-  OVER VECTOR-ENTRY-SIZE @ NEGATE ALLOT
-  2DROP DROP ;
+: prepend-vector ( source-vector dest-vector -- )
+  over vector-entry-size @ here swap allot
+  2 pick vector-count @ 0 ?do
+    dup 3 pick vector-count @ 1 - i - 4 pick get-vector
+    dup 2 pick push-start-vector
+  loop
+  over vector-entry-size @ negate allot
+  2drop drop ;
 
 \ Append a vector to another vector
-: APPEND-VECTOR ( source-vector dest-vector -- )
-  OVER VECTOR-ENTRY-SIZE @ HERE SWAP ALLOT
-  2 PICK VECTOR-COUNT @ 0 ?DO
-    DUP I 4 PICK GET-VECTOR
-    DUP 2 PICK PUSH-END-VECTOR
-  LOOP
-  OVER VECTOR-ENTRY-SIZE @ NEGATE ALLOT
-  2DROP DROP ;
+: append-vector ( source-vector dest-vector -- )
+  over vector-entry-size @ here swap allot
+  2 pick vector-count @ 0 ?do
+    dup i 4 pick get-vector
+    dup 2 pick push-end-vector
+  loop
+  over vector-entry-size @ negate allot
+  2drop drop ;
   
 \ Expand a vector
-: EXPAND-VECTOR ( vector -- success )
-  HERE VECTOR-SIZE ALLOT
-  0 OVER VECTOR-FLAGS !
-  0 OVER VECTOR-COUNT !
-  OVER VECTOR-MAX-COUNT @ 2 * OVER VECTOR-MAX-COUNT !
-  OVER VECTOR-ENTRY-SIZE @ OVER VECTOR-ENTRY-SIZE !
-  0 OVER VECTOR-START-INDEX !
-  0 OVER VECTOR-END-INDEX !
-  0 OVER VECTOR-FINALIZER !
-  0 OVER VECTOR-FINALIZER-ARG !
-  DUP VECTOR-MAX-COUNT @ OVER VECTOR-ENTRY-SIZE @ * ALLOCATE IF
-    OVER VECTOR-DATA !
-    2DUP APPEND-VECTOR
-    DUP VECTOR-START-INDEX @ 2 PICK VECTOR-START-INDEX !
-    DUP VECTOR-END-INDEX @ 2 PICK VECTOR-END-INDEX !
-    DUP VECTOR-MAX-COUNT @ 2 PICK VECTOR-MAX-COUNT !
-    OVER VECTOR-DATA @ FREE! VECTOR-DATA @ SWAP VECTOR-DATA !
-    VECTOR-SIZE NEGATE ALLOT TRUE
-  ELSE
-    2DROP DROP VECTOR-SIZE NEGATE ALLOT FALSE
-  THEN ;
+: expand-vector ( vector -- success )
+  here vector-size allot
+  0 over vector-flags !
+  0 over vector-count !
+  over vector-max-count @ 2 * over vector-max-count !
+  over vector-entry-size @ over vector-entry-size !
+  0 over vector-start-index !
+  0 over vector-end-index !
+  0 over vector-finalizer !
+  0 over vector-finalizer-arg !
+  dup vector-max-count @ over vector-entry-size @ * allocate if
+    over vector-data !
+    2dup append-vector
+    dup vector-start-index @ 2 pick vector-start-index !
+    dup vector-end-index @ 2 pick vector-end-index !
+    dup vector-max-count @ 2 pick vector-max-count !
+    over vector-data @ free! vector-data @ swap vector-data !
+    vector-size negate allot true
+  else
+    2drop drop vector-size negate allot false
+  then ;
 
 \ Expand a vector to fit multiple entries
-: EXPAND-MULTIPLE ( count vector -- success )
-  DUP VECTOR-MAX-COUNT @ 2 PICK < IF
-    DUP VECTOR-FLAGS @ ALLOCATED-VECTOR AND IF
-      HERE VECTOR-SIZE ALLOT
-      0 OVER VECTOR-FLAGS !
-      0 OVER VECTOR-COUNT !
-      ROT 2 PICK VECTOR-MAX-COUNT @ 2 * MAX OVER VECTOR-MAX-COUNT !
-      OVER VECTOR-ENTRY-SIZE @ OVER VECTOR-ENTRY-SIZE !
-      0 OVER VECTOR-START-INDEX !
-      0 OVER VECTOR-END-INDEX !
-      0 OVER VECTOR-FINALIZER !
-      0 OVER VECTOR-FINALIZER-ARG !
-      DUP VECTOR-MAX-COUNT @ OVER VECTOR-ENTRY-SIZE @ * ALLOCATE IF
-	OVER VECTOR-DATA !
-	2DUP APPEND-VECTOR
-	DUP VECTOR-START-INDEX @ 2 PICK VECTOR-START-INDEX !
-	DUP VECTOR-END-INDEX @ 2 PICK VECTOR-END-INDEX !
-	DUP VECTOR-MAX-COUNT @ 2 PICK VECTOR-MAX-COUNT !
-	OVER VECTOR-DATA @ FREE! VECTOR-DATA @ SWAP VECTOR-DATA !
-	VECTOR-SIZE NEGATE ALLOT TRUE
-      ELSE
-	2DROP DROP VECTOR-SIZE NEGATE ALLOT FALSE
-      THEN
-    ELSE
-      2DROP FALSE
-    THEN
-  ELSE
-    2DROP TRUE
-  THEN ;
+: expand-multiple ( count vector -- success )
+  dup vector-max-count @ 2 pick < if
+    dup vector-flags @ allocated-vector and if
+      here vector-size allot
+      0 over vector-flags !
+      0 over vector-count !
+      rot 2 pick vector-max-count @ 2 * max over vector-max-count !
+      over vector-entry-size @ over vector-entry-size !
+      0 over vector-start-index !
+      0 over vector-end-index !
+      0 over vector-finalizer !
+      0 over vector-finalizer-arg !
+      dup vector-max-count @ over vector-entry-size @ * allocate if
+	over vector-data !
+	2dup append-vector
+	dup vector-start-index @ 2 pick vector-start-index !
+	dup vector-end-index @ 2 pick vector-end-index !
+	dup vector-max-count @ 2 pick vector-max-count !
+	over vector-data @ free! vector-data @ swap vector-data !
+	vector-size negate allot true
+      else
+	2drop drop vector-size negate allot false
+      then
+    else
+      2drop false
+    then
+  else
+    2drop true
+  then ;
 
-VECTOR-WORDLIST SET-CURRENT
+vector-wordlist set-current
 
 \ Print out the internal values of a vector.
-: VECTOR. ( vector -- )
-  CR ." VECTOR-DATA: " DUP VECTOR-DATA @ .
-  CR ." VECTOR-FLAGS: " DUP VECTOR-FLAGS @ .
-  CR ." VECTOR-COUNT: " DUP VECTOR-COUNT @ .
-  CR ." VECTOR-MAX-COUNT: " DUP VECTOR-MAX-COUNT @ .
-  CR ." VECTOR-ENTRY-SIZE: " DUP VECTOR-ENTRY-SIZE @ .
-  CR ." VECTOR-START-INDEX: " DUP VECTOR-START-INDEX @ .
-  CR ." VECTOR-END-INDEX: " VECTOR-END-INDEX @ .
-  CR ." VECTOR-FINALIZER: " VECTOR-FINALIZER @ .
-  CR ." VECTOR-FINALIZER-ARG: " VECTOR-FINALIZER-ARG @ . CR ;
+: vector. ( vector -- )
+  cr ." vector-data: " dup vector-data @ .
+  cr ." vector-flags: " dup vector-flags @ .
+  cr ." vector-count: " dup vector-count @ .
+  cr ." vector-max-count: " dup vector-max-count @ .
+  cr ." vector-entry-size: " dup vector-entry-size @ .
+  cr ." vector-start-index: " dup vector-start-index @ .
+  cr ." vector-end-index: " vector-end-index @ .
+  cr ." vector-finalizer: " vector-finalizer @ .
+  cr ." vector-finalizer-arg: " vector-finalizer-arg @ . cr ;
 
 \ Vector is not allocated exception
-: X-VECTOR-NOT-ALLOCATED ( -- ) SPACE ." vector is not allocated" CR ;
+: x-vector-not-allocated ( -- ) space ." vector is not allocated" cr ;
 
 \ Allot a new vector with the specified entry count and entry size.
-: ALLOT-VECTOR ( entry-count entry-size -- vector )
-  HERE VECTOR-SIZE ALLOT
-  2 PICK OVER VECTOR-MAX-COUNT !
-  0 OVER VECTOR-FLAGS !
-  0 OVER VECTOR-COUNT !
-  0 OVER VECTOR-START-INDEX !
-  0 OVER VECTOR-END-INDEX !
-  0 OVER VECTOR-FINALIZER !
-  0 OVER VECTOR-FINALIZER-ARG !
-  HERE 3 ROLL 3 PICK * ALLOT OVER VECTOR-DATA !
-  TUCK VECTOR-ENTRY-SIZE ! ;
+: allot-vector ( entry-count entry-size -- vector )
+  here vector-size allot
+  2 pick over vector-max-count !
+  0 over vector-flags !
+  0 over vector-count !
+  0 over vector-start-index !
+  0 over vector-end-index !
+  0 over vector-finalizer !
+  0 over vector-finalizer-arg !
+  here 3 roll 3 pick * allot over vector-data !
+  tuck vector-entry-size ! ;
 
 \ Allocate a new vector with the specified entry count and entry size.
-: ALLOCATE-VECTOR ( entry-count entry-size -- vector )
-  VECTOR-SIZE ALLOCATE!
-  2 PICK OVER VECTOR-MAX-COUNT !
-  ALLOCATED-VECTOR OVER VECTOR-FLAGS !
-  0 OVER VECTOR-COUNT !
-  0 OVER VECTOR-START-INDEX !
-  0 OVER VECTOR-END-INDEX !
-  0 OVER VECTOR-FINALIZER !
-  0 OVER VECTOR-FINALIZER-ARG !
-  ROT 2 PICK * ALLOCATE! OVER VECTOR-DATA !
-  TUCK VECTOR-ENTRY-SIZE ! ;
+: allocate-vector ( entry-count entry-size -- vector )
+  vector-size allocate!
+  2 pick over vector-max-count !
+  allocated-vector over vector-flags !
+  0 over vector-count !
+  0 over vector-start-index !
+  0 over vector-end-index !
+  0 over vector-finalizer !
+  0 over vector-finalizer-arg !
+  rot 2 pick * allocate! over vector-data !
+  tuck vector-entry-size ! ;
 
 \ Set a finalizer
-: SET-VECTOR-FINALIZER ( finalizer finalizer-arg map -- )
-  TUCK VECTOR-FINALIZER-ARG ! VECTOR-FINALIZER ! ;
+: set-vector-finalizer ( finalizer finalizer-arg map -- )
+  tuck vector-finalizer-arg ! vector-finalizer ! ;
 
 \ Destroy an allocated vector.
-: DESTROY-VECTOR ( vector -- )
-  DUP VECTOR-FLAGS @ ALLOCATED-VECTOR = AVERTS X-VECTOR-NOT-ALLOCATED
-  DUP VECTOR-DATA @ FREE! FREE! ;
+: destroy-vector ( vector -- )
+  dup vector-flags @ allocated-vector = averts x-vector-not-allocated
+  dup vector-data @ free! free! ;
 
 \ Clear a vector.
-: CLEAR-VECTOR ( vector -- )
-  0 OVER VECTOR-START-INDEX ! 0 OVER VECTOR-END-INDEX ! 0 SWAP VECTOR-COUNT ! ;
+: clear-vector ( vector -- )
+  0 over vector-start-index ! 0 over vector-end-index ! 0 swap vector-count ! ;
 
 \ Get the number of blocks queued in a vector.
-: COUNT-VECTOR ( vector -- u ) VECTOR-COUNT @ ;
+: count-vector ( vector -- u ) vector-count @ ;
 
 \ Get whether a vector is empty.
-: EMPTY-VECTOR? ( vector -- empty ) VECTOR-COUNT @ 0 = ;
+: empty-vector? ( vector -- empty ) vector-count @ 0 = ;
 
 \ Get whether a vector is full.
-: FULL-VECTOR? ( vector -- full )
-  DUP VECTOR-COUNT @ SWAP VECTOR-MAX-COUNT @ = ;
+: full-vector? ( vector -- full )
+  dup vector-count @ swap vector-max-count @ = ;
 
 \ Vector is not composed of cells exception
-: X-NON-CELL-VECTOR ( -- ) SPACE ." non-cell vector" CR ;
+: x-non-cell-vector ( -- ) space ." non-cell vector" cr ;
 
 \ Vector is not composed of double cells exception
-: X-NON-2CELL-VECTOR ( -- ) SPACE ." non-double cell vector" CR ;
+: x-non-2cell-vector ( -- ) space ." non-double cell vector" cr ;
 
 \ Evaluate an xt for the address of each member of a vector from left to right;
 \ note that the internal state is hidden from the xt, so the xt can
 \ transparently access the outside stack
-: ITER-LEFT-VECTOR ( xt vector -- )
-  0 BEGIN
-    DUP 2 PICK COUNT-VECTOR < IF
-      2DUP SWAP GET-VECTOR-ENTRY SWAP >R SWAP >R SWAP >R R@ EXECUTE R> R> R> 1 +
-      FALSE
-    ELSE
-      DROP 2DROP TRUE
-    THEN
-  UNTIL ;
+: iter-left-vector ( xt vector -- )
+  0 begin
+    dup 2 pick count-vector < if
+      2dup swap get-vector-entry swap >r swap >r swap >r r@ execute r> r> r> 1 +
+      false
+    else
+      drop 2drop true
+    then
+  until ;
 
 \ Evaluate an xt for the address of each member of a vector from right to left;
 \ note that the internal state is hidden from the xt, so the xt can
 \ transparently access the outside stack
-: ITER-RIGHT-VECTOR ( xt vector -- )
-  DUP COUNT-VECTOR 1 - BEGIN
-    DUP 0 >= IF
-      2DUP SWAP GET-VECTOR-ENTRY SWAP >R SWAP >R SWAP >R R@ EXECUTE R> R> R> 1 -
-      FALSE
-    ELSE
-      DROP 2DROP TRUE
-    THEN
-  UNTIL ;
+: iter-right-vector ( xt vector -- )
+  dup count-vector 1 - begin
+    dup 0 >= if
+      2dup swap get-vector-entry swap >r swap >r swap >r r@ execute r> r> r> 1 -
+      false
+    else
+      drop 2drop true
+    then
+  until ;
 
 \ Evaluate an xt for the cell of each member of a vector from left to right;
 \ note that the internal state is hidden from the xt, so the xt can
-\ transparently access the outstack
-: ITER-LEFT-VECTOR-CELL ( xt vector -- )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR DROP ;
+\ transparently access the outside stack
+: iter-left-vector-cell ( xt vector -- )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  [: @ swap dup >r execute r> ;] swap iter-left-vector drop ;
 
 \ Evaluate an xt for the cell of each member of a vector from right to left;
 \ note that the internal state is hidden from the xt, so the xt can
-\ transparently access the outstack
-: ITER-RIGHT-VECTOR-CELL ( xt vector -- )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  [: @ SWAP DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR DROP ;
+\ transparently access the outside stack
+: iter-right-vector-cell ( xt vector -- )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  [: @ swap dup >r execute r> ;] swap iter-right-vector drop ;
 
 \ Evaluate an xt for the double cell of each member of a vector from left to
 \ right; note that the internal state is hidden from the xt, so the xt can
-\ transparently access the outstack
-: ITER-LEFT-VECTOR-2CELL ( xt vector -- )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-LEFT-VECTOR DROP ;
+\ transparently access the outside stack
+: iter-left-vector-2cell ( xt vector -- )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  [: 2@ rot dup >r execute r> ;] swap iter-left-vector drop ;
 
 \ Evaluate an xt for the double cell of each member of a vector from right to
 \ left; note that the internal state is hidden from the xt, so the xt can
-\ transparently access the outstack
-: ITER-RIGHT-VECTOR-2CELL ( xt vector -- )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  [: 2@ ROT DUP >R EXECUTE R> ;] SWAP ITER-RIGHT-VECTOR DROP ;
+\ transparently access the outside stack
+: iter-right-vector-2cell ( xt vector -- )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  [: 2@ rot dup >r execute r> ;] swap iter-right-vector drop ;
 
 \ Get a block at an index in a vector and return whether it was successful.
-: GET-VECTOR ( addr index vector -- success )
-  2DUP COUNT-VECTOR < IF GET-VECTOR TRUE ELSE 2DROP DROP FALSE THEN ;
+: get-vector ( addr index vector -- success )
+  2dup count-vector < if get-vector true else 2drop drop false then ;
 
 \ Get a cell at an index in a vector and return whether it was successful.
-: GET-VECTOR-CELL ( index vector -- value found )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT DUP >R ROT ROT GET-VECTOR IF
-    R> @ TRUE
-  ELSE
-    R> DROP 0 FALSE
-  THEN
-  -1 CELLS ALLOT ;
+: get-vector-cell ( index vector -- value found )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot dup >r rot rot get-vector if
+    r> @ true
+  else
+    r> drop 0 false
+  then
+  -1 cells allot ;
 
 \ Get a double cell at an index in a vector and return whether it was
 \ successful.
-: GET-VECTOR-2CELL ( index vector -- value1 value2 found )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  HERE 2 CELLS ALLOT DUP >R ROT ROT GET-VECTOR IF
-    R> 2@ TRUE
-  ELSE
-    R> DROP 0 0 FALSE
-  THEN
-  -2 CELLS ALLOT ;
+: get-vector-2cell ( index vector -- value1 value2 found )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  here 2 cells allot dup >r rot rot get-vector if
+    r> 2@ true
+  else
+    r> drop 0 0 false
+  then
+  -2 cells allot ;
 
 \ Set a block at an index in a vector and return whether it was successful.
-: SET-VECTOR ( addr index vector -- success )
-  2DUP COUNT-VECTOR < IF
-    2DUP DO-FINALIZE SET-VECTOR TRUE
-  ELSE
-    2DROP DROP FALSE
-  THEN ;
+: set-vector ( addr index vector -- success )
+  2dup count-vector < if
+    2dup do-finalize set-vector true
+  else
+    2drop drop false
+  then ;
 
 \ Set a cell at an index in a vector and return whether it was successful.
-: SET-VECTOR-CELL ( value index vector -- success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  ROT HERE 1 CELLS ALLOT TUCK ! ROT ROT SET-VECTOR -1 CELLS ALLOT ;
+: set-vector-cell ( value index vector -- success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  rot here 1 cells allot tuck ! rot rot set-vector -1 cells allot ;
 
 \ Set a double cell at an index in a vector and return whether it was
 \ successful.
-: SET-VECTOR-2CELL ( value1 value2 index vector -- success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  >R >R HERE ROT ROT 2 PICK 2! 2 CELLS ALLOT
-  R> R> SET-VECTOR -2 CELLS ALLOT ;
+: set-vector-2cell ( value1 value2 index vector -- success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  >r >r here rot rot 2 pick 2! 2 cells allot
+  r> r> set-vector -2 cells allot ;
 
 \ Push a block onto the start of a vector and return whether it was successful.
-: PUSH-START-VECTOR ( addr vector -- success )
-  DUP FULL-VECTOR? NOT IF
-    PUSH-START-VECTOR TRUE
-  ELSE
-    DUP VECTOR-FLAGS @ ALLOCATED-VECTOR AND IF
-      DUP EXPAND-VECTOR IF
-	PUSH-START-VECTOR TRUE
-      ELSE
-	2DROP FALSE
-      THEN
-    ELSE
-      2DROP FALSE
-    THEN
-  THEN ;
+: push-start-vector ( addr vector -- success )
+  dup full-vector? not if
+    push-start-vector true
+  else
+    dup vector-flags @ allocated-vector and if
+      dup expand-vector if
+	push-start-vector true
+      else
+	2drop false
+      then
+    else
+      2drop false
+    then
+  then ;
 
 \ Push a cell onto the start of a vector and return whether it was successful.
-: PUSH-START-VECTOR-CELL ( value vector -- success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT ROT OVER ! SWAP PUSH-START-VECTOR -1 CELLS ALLOT ;
+: push-start-vector-cell ( value vector -- success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot rot over ! swap push-start-vector -1 cells allot ;
 
 \ Push a double cell onto the start of a vector and return whether it was
 \ successful.
-: PUSH-START-VECTOR-2CELL ( value1 value2 vector -- success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  ROT ROT HERE DUP >R 2 CELLS ALLOT 2! R> SWAP PUSH-START-VECTOR
-  -2 CELLS ALLOT ;
+: push-start-vector-2cell ( value1 value2 vector -- success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  rot rot here dup >r 2 cells allot 2! r> swap push-start-vector
+  -2 cells allot ;
 
 \ Pop a block from the start of a vector and return whether it was successful.
-: POP-START-VECTOR ( addr vector -- success )
-  DUP EMPTY-VECTOR? NOT IF POP-START-VECTOR TRUE ELSE 2DROP FALSE THEN ;
+: pop-start-vector ( addr vector -- success )
+  dup empty-vector? not if pop-start-vector true else 2drop false then ;
 
 \ Pop a cell from the start of a vector and return whether it was successful.
-: POP-START-VECTOR-CELL ( vector -- value success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT TUCK SWAP POP-START-VECTOR IF @ TRUE ELSE DROP 0 FALSE THEN
-  -1 CELLS ALLOT ;
+: pop-start-vector-cell ( vector -- value success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot tuck swap pop-start-vector if @ true else drop 0 false then
+  -1 cells allot ;
 
 \ Pop a double cell from the start of a vector and return whether it was
 \ successful.
-: POP-START-VECTOR-2CELL ( vector -- value1 value2 success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  HERE 2 CELLS ALLOT TUCK SWAP POP-START-VECTOR IF
-    2@ TRUE
-  ELSE
-    DROP 0 0 FALSE
-  THEN
-  -2 CELLS ALLOT ;
+: pop-start-vector-2cell ( vector -- value1 value2 success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  here 2 cells allot tuck swap pop-start-vector if
+    2@ true
+  else
+    drop 0 0 false
+  then
+  -2 cells allot ;
 
 \ Drop a block from the start of a vector and return whether it was successful.
-: DROP-START-VECTOR ( vector -- success )
-  DUP EMPTY-VECTOR? NOT IF
-    0 OVER DO-FINALIZE DROP-START-VECTOR TRUE
-  ELSE
-    DROP FALSE
-  THEN ;
+: drop-start-vector ( vector -- success )
+  dup empty-vector? not if
+    0 over do-finalize drop-start-vector true
+  else
+    drop false
+  then ;
 
 \ Peek a block from the start of a vector and return whether it was successful.
-: PEEK-START-VECTOR ( addr vector -- success )
-  DUP EMPTY-VECTOR? NOT IF PEEK-START-VECTOR TRUE ELSE 2DROP FALSE THEN ;
+: peek-start-vector ( addr vector -- success )
+  dup empty-vector? not if peek-start-vector true else 2drop false then ;
 
 \ Peek a cell from the start of a vector and return whether it was successful.
-: PEEK-START-VECTOR-CELL ( vector -- value success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT TUCK SWAP PEEK-START-VECTOR
-  IF @ TRUE ELSE DROP 0 FALSE THEN
-  -1 CELLS ALLOT ;
+: peek-start-vector-cell ( vector -- value success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot tuck swap peek-start-vector
+  if @ true else drop 0 false then
+  -1 cells allot ;
 
 \ Peek a double cell from the start of a vector and return whether it was
 \ successful.
-: PEEK-START-VECTOR-2CELL ( vector -- value1 value2 success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  HERE 2 CELLS ALLOT TUCK SWAP PEEK-START-VECTOR IF
-    2@ TRUE
-  ELSE
-    DROP 0 0 FALSE
-  THEN
-  -2 CELLS ALLOT ;
+: peek-start-vector-2cell ( vector -- value1 value2 success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  here 2 cells allot tuck swap peek-start-vector if
+    2@ true
+  else
+    drop 0 0 false
+  then
+  -2 cells allot ;
 
 \ Push a block onto the end of a vector and return whether it was successful.
-: PUSH-END-VECTOR ( addr vector -- success )
-  DUP FULL-VECTOR? NOT IF
-    PUSH-END-VECTOR TRUE
-  ELSE
-    DUP VECTOR-FLAGS @ ALLOCATED-VECTOR AND IF
-      DUP EXPAND-VECTOR IF
-	PUSH-END-VECTOR TRUE
-      ELSE
-	2DROP FALSE
-      THEN
-    ELSE
-      2DROP FALSE
-    THEN
-  THEN ;
+: push-end-vector ( addr vector -- success )
+  dup full-vector? not if
+    push-end-vector true
+  else
+    dup vector-flags @ allocated-vector and if
+      dup expand-vector if
+	push-end-vector true
+      else
+	2drop false
+      then
+    else
+      2drop false
+    then
+  then ;
 
 \ Push a cell onto the end of a vector and return whether it was successful.
-: PUSH-END-VECTOR-CELL ( value vector -- success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT ROT OVER ! SWAP PUSH-END-VECTOR -1 CELLS ALLOT ;
+: push-end-vector-cell ( value vector -- success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot rot over ! swap push-end-vector -1 cells allot ;
 
 \ Push a double cell onto the end of a vector and return whether it was
 \ successful.
-: PUSH-END-VECTOR-2CELL ( value1 value2 vector -- success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  ROT ROT HERE DUP >R 2 CELLS ALLOT 2! R> SWAP PUSH-END-VECTOR
-  -2 CELLS ALLOT ;
+: push-end-vector-2cell ( value1 value2 vector -- success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  rot rot here dup >r 2 cells allot 2! r> swap push-end-vector
+  -2 cells allot ;
 
 \ Pop a block from the end of a vector and return whether it was successful.
-: POP-END-VECTOR ( addr vector -- success )
-  DUP EMPTY-VECTOR? NOT IF POP-END-VECTOR TRUE ELSE 2DROP FALSE THEN ;
+: pop-end-vector ( addr vector -- success )
+  dup empty-vector? not if pop-end-vector true else 2drop false then ;
 
 \ Pop a cell from the end of a vector and return whether it was successful.
-: POP-END-VECTOR-CELL ( vector -- value success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT TUCK SWAP POP-END-VECTOR IF @ TRUE ELSE DROP 0 FALSE THEN
-  -1 CELLS ALLOT ;
+: pop-end-vector-cell ( vector -- value success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot tuck swap pop-end-vector if @ true else drop 0 false then
+  -1 cells allot ;
 
 \ Pop a double cell from the end of a vector and return whether it was
 \ successful.
-: POP-END-VECTOR-2CELL ( vector -- value1 value2 success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  HERE 2 CELLS ALLOT TUCK SWAP POP-END-VECTOR IF
-    2@ TRUE
-  ELSE
-    DROP 0 0 FALSE
-  THEN
-  -2 CELLS ALLOT ;
+: pop-end-vector-2cell ( vector -- value1 value2 success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  here 2 cells allot tuck swap pop-end-vector if
+    2@ true
+  else
+    drop 0 0 false
+  then
+  -2 cells allot ;
 
 \ Drop a block from the end of a vector and return whether it was successful.
-: DROP-END-VECTOR ( vector -- success )
-  DUP EMPTY-VECTOR? NOT IF
-    DUP COUNT-VECTOR 1 - OVER DO-FINALIZE DROP-END-VECTOR TRUE
-  ELSE
-    DROP FALSE
-  THEN ;
+: drop-end-vector ( vector -- success )
+  dup empty-vector? not if
+    dup count-vector 1 - over do-finalize drop-end-vector true
+  else
+    drop false
+  then ;
 
 \ Peek a block from the end of a vector and return whether it was successful.
-: PEEK-END-VECTOR ( addr vector -- success )
-  DUP EMPTY-VECTOR? NOT IF PEEK-END-VECTOR TRUE ELSE 2DROP FALSE THEN ;
+: peek-end-vector ( addr vector -- success )
+  dup empty-vector? not if peek-end-vector true else 2drop false then ;
 
 \ Peek a cell from the end of a vector and return whether it was successful.
-: PEEK-END-VECTOR-CELL ( vector -- value success )
-  DUP VECTOR-ENTRY-SIZE @ 1 CELLS = AVERTS X-NON-CELL-VECTOR
-  HERE 1 CELLS ALLOT TUCK SWAP PEEK-END-VECTOR IF @ TRUE ELSE DROP 0 FALSE THEN
-  -1 CELLS ALLOT ;
+: peek-end-vector-cell ( vector -- value success )
+  dup vector-entry-size @ 1 cells = averts x-non-cell-vector
+  here 1 cells allot tuck swap peek-end-vector if @ true else drop 0 false then
+  -1 cells allot ;
 
 \ Peek a double cell from the end of a vector and return whether it was
 \ successful.
-: PEEK-END-VECTOR-2CELL ( vector -- value1 value2 success )
-  DUP VECTOR-ENTRY-SIZE @ 2 CELLS = AVERTS X-NON-2CELL-VECTOR
-  HERE 2 CELLS ALLOT TUCK SWAP PEEK-END-VECTOR IF
-    2@ TRUE
-  ELSE
-    DROP 0 0 FALSE
-  THEN
-  -2 CELLS ALLOT ;
+: peek-end-vector-2cell ( vector -- value1 value2 success )
+  dup vector-entry-size @ 2 cells = averts x-non-2cell-vector
+  here 2 cells allot tuck swap peek-end-vector if
+    2@ true
+  else
+    drop 0 0 false
+  then
+  -2 cells allot ;
 
 \ Mismatched entry sizes exception
-: X-ENTRY-SIZE-MISMATCH ( -- ) SPACE ." vector entry size mismatch" CR ;
+: x-entry-size-mismatch ( -- ) space ." vector entry size mismatch" cr ;
 
 \ Prepend a vector to another vector
-: PREPEND-VECTOR ( source-vector dest-vector -- success )
-  OVER VECTOR-ENTRY-SIZE @ OVER VECTOR-ENTRY-SIZE @ =
-  AVERTS X-ENTRY-SIZE-MISMATCH
-  OVER VECTOR-COUNT @ OVER VECTOR-COUNT @ + OVER EXPAND-MULTIPLE IF
-    PREPEND-VECTOR TRUE
-  ELSE
-    2DROP FALSE
-  THEN ;
+: prepend-vector ( source-vector dest-vector -- success )
+  over vector-entry-size @ over vector-entry-size @ =
+  averts x-entry-size-mismatch
+  over vector-count @ over vector-count @ + over expand-multiple if
+    prepend-vector true
+  else
+    2drop false
+  then ;
 
 \ Append a vector to another vector
-: APPEND-VECTOR ( source-vector dest-vector -- success )
-  OVER VECTOR-ENTRY-SIZE @ OVER VECTOR-ENTRY-SIZE @ =
-  AVERTS X-ENTRY-SIZE-MISMATCH
-  OVER VECTOR-COUNT @ OVER VECTOR-COUNT @ + OVER EXPAND-MULTIPLE IF
-    APPEND-VECTOR TRUE
-  ELSE
-    2DROP FALSE
-  THEN ;
+: append-vector ( source-vector dest-vector -- success )
+  over vector-entry-size @ over vector-entry-size @ =
+  averts x-entry-size-mismatch
+  over vector-count @ over vector-count @ + over expand-multiple if
+    append-vector true
+  else
+    2drop false
+  then ;
 
 \ Get vector entry size.
-: GET-VECTOR-ENTRY-SIZE ( vector -- u ) VECTOR-ENTRY-SIZE @ ;
+: get-vector-entry-size ( vector -- u ) vector-entry-size @ ;
 
 \ Get vector maximum count.
-: GET-VECTOR-MAX-COUNT ( vector -- u ) VECTOR-MAX-COUNT @ ;
+: get-vector-max-count ( vector -- u ) vector-max-count @ ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order

@@ -27,89 +27,89 @@
 \ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 \ POSSIBILITY OF SUCH DAMAGE.
 
-GET-ORDER GET-CURRENT BASE @
+get-order get-current base @
 
-DECIMAL
-FORTH-WORDLIST TASK-WORDLIST 2 SET-ORDER
-TASK-WORDLIST SET-CURRENT
+decimal
+forth-wordlist task-wordlist 2 set-order
+task-wordlist set-current
 
-BEGIN-STRUCTURE VARBCHAN-SIZE
-  FIELD: VARBCHAN-BUFBCHAN
-  FIELD: VARBCHAN-SEND-MUTEX
-  FIELD: VARBCHAN-RECV-MUTEX
-END-STRUCTURE
+begin-structure varbchan-size
+  field: varbchan-bufbchan
+  field: varbchan-send-mutex
+  field: varbchan-recv-mutex
+end-structure
 
-BEGIN-STRUCTURE VARBCHAN-HEADER-SIZE
-  FIELD: VARBCHAN-REMAIN-SIZE
-END-STRUCTURE
+begin-structure varbchan-header-size
+  field: varbchan-remain-size
+end-structure
 
 \ Create a new variable-sized bounded channel, with the specified queue size,
 \ entry size, condition variable queue size, send mutex queue size, and
 \ receive mutex queue size.
-: NEW-VARBCHAN
+: new-varbchan
   ( queue-size entry-size cond-size send-mutex-size recv-mutex-size -- chan )
-  HERE VARBCHAN-SIZE ALLOT
-  TUCK SWAP NEW-MUTEX SWAP VARBCHAN-RECV-MUTEX !
-  TUCK SWAP NEW-MUTEX SWAP VARBCHAN-SEND-MUTEX !
-  3 ROLL 3 ROLL VARBCHAN-HEADER-SIZE + 3 ROLL
-  NEW-BUFBCHAN OVER VARBCHAN-BUFBCHAN ! ;
+  here varbchan-size allot
+  tuck swap new-mutex swap varbchan-recv-mutex !
+  tuck swap new-mutex swap varbchan-send-mutex !
+  3 roll 3 roll varbchan-header-size + 3 roll
+  new-bufbchan over varbchan-bufbchan ! ;
 
 \ Get the size of the next packet.
-: GET-NEXT-VARBCHAN-SIZE ( chan -- bytes )
-  HERE SWAP VARBCHAN-BUFBCHAN @ PEEK-BUFBCHAN
-  HERE VARBCHAN-REMAIN-SIZE @ ;
+: get-next-varbchan-size ( chan -- bytes )
+  here swap varbchan-bufbchan @ peek-bufbchan
+  here varbchan-remain-size @ ;
 
 \ Get the maximum number of bytes to send per packet.
-: GET-VARBCHAN-MAX-DATA-SIZE ( chan -- bytes )
-  VARBCHAN-BUFBCHAN @ GET-BUFBCHAN-ENTRY-SIZE VARBCHAN-HEADER-SIZE - ;
+: get-varbchan-max-data-size ( chan -- bytes )
+  varbchan-bufbchan @ get-bufbchan-entry-size varbchan-header-size - ;
 
 \ Get the number of bytes to send per packet.
-: GET-VARBCHAN-DATA-SIZE ( bytes1 chan -- bytes2 )
-  GET-VARBCHAN-MAX-DATA-SIZE SWAP MIN ;
+: get-varbchan-data-size ( bytes1 chan -- bytes2 )
+  get-varbchan-max-data-size swap min ;
 
 \ Advance HERE pointer
-: ADVANCE-HERE ( chan -- )
-  VARBCHAN-BUFBCHAN @ GET-BUFBCHAN-ENTRY-SIZE ALLOT ;
+: advance-here ( chan -- )
+  varbchan-bufbchan @ get-bufbchan-entry-size allot ;
 
 \ Retract HERE pointer
-: RETRACT-HERE ( chan -- )
-  VARBCHAN-BUFBCHAN @ GET-BUFBCHAN-ENTRY-SIZE NEGATE ALLOT ;
+: retract-here ( chan -- )
+  varbchan-bufbchan @ get-bufbchan-entry-size negate allot ;
 
 \ Actually send a packet.
-: (SEND-VARBCHAN) ( addr bytes chan -- )
-  OVER 0 ?DO
-    OVER HERE VARBCHAN-REMAIN-SIZE !
-    2DUP GET-VARBCHAN-DATA-SIZE >R
-    2 PICK HERE VARBCHAN-HEADER-SIZE + R@ CMOVE
-    ROT R@ + ROT R> - ROT
-    HERE OVER VARBCHAN-BUFBCHAN @ 2 PICK ADVANCE-HERE SEND-BUFBCHAN
-    DUP RETRACT-HERE
-  DUP GET-VARBCHAN-MAX-DATA-SIZE +LOOP
-  DROP 2DROP ;
+: (send-varbchan) ( addr bytes chan -- )
+  over 0 ?do
+    over here varbchan-remain-size !
+    2dup get-varbchan-data-size >r
+    2 pick here varbchan-header-size + r@ cmove
+    rot r@ + rot r> - rot
+    here over varbchan-bufbchan @ 2 pick advance-here send-bufbchan
+    dup retract-here
+  dup get-varbchan-max-data-size +loop
+  drop 2drop ;
 
 \ Send a packet.
-: SEND-VARBCHAN ( addr bytes chan -- )
-  DUP VARBCHAN-SEND-MUTEX @ ['] (SEND-VARBCHAN) WITH-MUTEX ;
+: send-varbchan ( addr bytes chan -- )
+  dup varbchan-send-mutex @ ['] (send-varbchan) with-mutex ;
 
 \ Actually receive a packet
-: (RECV-VARBCHAN) ( addr bytes1 chan -- bytes2 )
-  0 >R BEGIN
-    OVER 0 > IF
-      HERE OVER VARBCHAN-BUFBCHAN @ 2 PICK ADVANCE-HERE RECV-BUFBCHAN
-      DUP RETRACT-HERE
-      HERE VARBCHAN-HEADER-SIZE + 3 PICK
-      HERE VARBCHAN-REMAIN-SIZE @ 3 PICK GET-VARBCHAN-DATA-SIZE
-      4 PICK MIN >R R@ CMOVE ROT R@ + ROT R@ - ROT R> R> + >R
-      HERE VARBCHAN-REMAIN-SIZE @ OVER GET-VARBCHAN-MAX-DATA-SIZE <=
-    ELSE
-      HERE OVER VARBCHAN-BUFBCHAN @ RECV-BUFBCHAN
-      HERE VARBCHAN-REMAIN-SIZE @ OVER GET-VARBCHAN-MAX-DATA-SIZE <=
-    THEN
-  UNTIL
-  2DROP DROP R> ;
+: (recv-varbchan) ( addr bytes1 chan -- bytes2 )
+  0 >r begin
+    over 0 > if
+      here over varbchan-bufbchan @ 2 pick advance-here recv-bufbchan
+      dup retract-here
+      here varbchan-header-size + 3 pick
+      here varbchan-remain-size @ 3 pick get-varbchan-data-size
+      4 pick min >r r@ cmove rot r@ + rot r@ - rot r> r> + >r
+      here varbchan-remain-size @ over get-varbchan-max-data-size <=
+    else
+      here over varbchan-bufbchan @ recv-bufbchan
+      here varbchan-remain-size @ over get-varbchan-max-data-size <=
+    then
+  until
+  2drop drop r> ;
 
 \ Receive a packet.
-: RECV-VARBCHAN ( addr bytes1 chan -- bytes2 )
-  DUP VARBCHAN-RECV-MUTEX @ ['] (RECV-VARBCHAN) WITH-MUTEX ;
+: recv-varbchan ( addr bytes1 chan -- bytes2 )
+  dup varbchan-recv-mutex @ ['] (recv-varbchan) with-mutex ;
 
-BASE ! SET-CURRENT SET-ORDER
+base ! set-current set-order
