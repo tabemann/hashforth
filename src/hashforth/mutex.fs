@@ -34,19 +34,41 @@ forth-wordlist task-wordlist 2 set-order
 task-wordlist set-current
 
 begin-structure mutex-size
+  field: mutex-flags
   field: mutex-held
   field: mutex-waiting
   field: mutex-waiting-count
   field: mutex-waiting-size
 end-structure
 
-\ Allocate a new mutex variable with a specified waiting queue size.
-: new-mutex ( waiting-size -- mutex )
+\ Mutex is allocated flags
+1 constant allocated-mutex
+
+\ Allot a new mutex variable with a specified waiting queue size.
+: allot-mutex ( waiting-size -- mutex )
   here mutex-size allot
   tuck mutex-waiting-size !
+  0 over mutex-flags !
   0 over mutex-waiting-count !
   0 over mutex-held !
   dup mutex-waiting-size @ here swap cells allot over mutex-waiting ! ;
+
+\ Allocate a new mutex variable with a specified waiting queue size.
+: allocate-mutex ( waiting-size -- mutex )
+  mutex-size allocate!
+  tuck mutex-waiting-size !
+  allocated-mutex over mutex-flags !
+  0 over mutex-waiting-count !
+  0 over mutex-held !
+  dup mutex-waiting-size @ cells allocate! over mutex-waiting ! ;
+
+\ Mutex is not allocated exception
+: x-mutex-not-allocated ( -- ) space ." mutex is not allocated" cr ;
+
+\ Destroy a mutex
+: destroy-mutex ( mutex -- )
+  dup mutex-flags @ allocated-mutex and averts x-mutex-not-allocated
+  dup mutex-waiting @ free! free! ;
 
 \ Lock a mutex.
 : lock-mutex ( mutex -- )

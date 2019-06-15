@@ -34,6 +34,7 @@ forth-wordlist task-wordlist 2 set-order
 task-wordlist set-current
 
 begin-structure varbchan-size
+  field: varbchan-flags
   field: varbchan-bufbchan
   field: varbchan-send-mutex
   field: varbchan-recv-mutex
@@ -43,18 +44,44 @@ begin-structure varbchan-header-size
   field: varbchan-remain-size
 end-structure
 
-\ Create a new variable-sized bounded channel, with the specified queue size,
+\ Variable-sized bounded channel is allocated flag
+1 constant allocated-varbchan
+
+\ Allot a new variable-sized bounded channel, with the specified queue size,
 \ entry size, condition variable queue size, send mutex queue size, and
 \ receive mutex queue size.
-: new-varbchan
+: allot-varbchan
   ( queue-size entry-size cond-size send-mutex-size recv-mutex-size -- chan )
   here varbchan-size allot
-  tuck swap new-mutex swap varbchan-recv-mutex !
-  tuck swap new-mutex swap varbchan-send-mutex !
+  0 over varbchan-flags !
+  tuck swap allot-mutex swap varbchan-recv-mutex !
+  tuck swap allot-mutex swap varbchan-send-mutex !
   3 roll 3 roll varbchan-header-size + 3 roll
-  new-bufbchan over varbchan-bufbchan ! ;
+  allot-bufbchan over varbchan-bufbchan ! ;
 
-\ Get the size of the next packet.
+\ Allocate a new variable-sized bounded channel, with the specified queue size,
+\ entry size, condition variable queue size, send mutex queue size, and
+\ receive mutex queue size.
+: allocate-varbchan
+  ( queue-size entry-size cond-size send-mutex-size recv-mutex-size -- chan )
+  varbchan-size allocate!
+  allocated-varbchan over varbchan-flags !
+  tuck swap allocate-mutex swap varbchan-recv-mutex !
+  tuck swap allocate-mutex swap varbchan-send-mutex !
+  3 roll 3 roll varbchan-header-size + 3 roll
+  allocate-bufbchan over varbchan-bufbchan ! ;
+
+\ Variable-sized bounded channel is not allocated exception
+: x-varbchan-not-allocated ( -- ) space ." varbchan is not allocated" cr ;
+
+\ Destroy a variable-sized bounded channel
+: destroy-varbchan ( chan -- )
+  dup varbchan-flags @ allocated-varbchan and averts x-varbchan-not-allocated
+  dup varbchan-send-mutex @ destroy-mutex
+  dup varbchan-recv-mutex @ destroy-mutex
+  dup varbchan-bufbchan @ destroy-bufbchan
+  free! ;
+
 : get-next-varbchan-size ( chan -- bytes )
   here swap varbchan-bufbchan @ peek-bufbchan
   here varbchan-remain-size @ ;

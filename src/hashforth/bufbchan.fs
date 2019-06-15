@@ -34,6 +34,7 @@ forth-wordlist task-wordlist 2 set-order
 task-wordlist set-current
 
 begin-structure bufbchan-size
+  field: bufbchan-flags
   field: bufbchan-recv-cond
   field: bufbchan-send-cond
   field: bufbchan-queue
@@ -44,8 +45,12 @@ begin-structure bufbchan-size
   field: bufbchan-dequeue-index
 end-structure
 
+\ Bounded channel is allocated flag
+1 constant allocated-bufbchan
+
 \ Print out the internal values of a bounded channel.
 : bufbchan. ( chan -- )
+  cr ." bufbchan-flags: " dup bufbchan-flags @ .
   cr ." bufbchan-recv-cond: " dup bufbchan-recv-cond @ .
   cr ." bufbchan-send-cond: " dup bufbchan-send-cond @ .
   cr ." bufbchan-queue: " dup bufbchan-queue @ .
@@ -55,18 +60,44 @@ end-structure
   cr ." bufbchan-enqueue-index: " dup bufbchan-enqueue-index @ .
   cr ." bufbchan-dequeue-index: " bufbchan-dequeue-index @ . cr ;
 
-\ Create a new bounded channel with the specified queue size, entry size, and
+\ Allot a new bounded channel with the specified queue size, entry size, and
 \ condition variable queue size.
-: new-bufbchan ( queue-size entry-size cond-size -- chan )
+: allot-bufbchan ( queue-size entry-size cond-size -- chan )
   here bufbchan-size allot
   3 pick over bufbchan-queue-size !
+  0 over bufbchan-flags !
   0 over bufbchan-queue-count !
   0 over bufbchan-enqueue-index !
   0 over bufbchan-dequeue-index !
   here 4 roll 4 pick * allot over bufbchan-queue !
-  over new-cond over bufbchan-recv-cond !
-  swap new-cond over bufbchan-send-cond !
+  over allot-cond over bufbchan-recv-cond !
+  swap allot-cond over bufbchan-send-cond !
   tuck bufbchan-entry-size ! ;
+
+\ Allocate a new bounded channel with the specified queue size, entry size, and
+\ condition variable queue size.
+: allocate-bufbchan ( queue-size entry-size cond-size -- chan )
+  bufbchan-size allocate!
+  3 pick over bufbchan-queue-size !
+  allocated-bufbchan over bufbchan-flags !
+  0 over bufbchan-queue-count !
+  0 over bufbchan-enqueue-index !
+  0 over bufbchan-dequeue-index !
+  3 roll 3 pick * allocate! over bufbchan-queue !
+  over allocate-cond over bufbchan-recv-cond !
+  swap allocate-cond over bufbchan-send-cond !
+  tuck bufbchan-entry-size ! ;
+
+\ Bounded channel is not allocated exception
+: x-bufbchan-not-allocated ( -- ) space ." bufbchan is not allocated" cr ;
+
+\ Destroy a bounded channel
+: destroy-bufbchan ( chan -- )
+  dup bufbchan-flags @ allocated-bufbchan and averts x-bufbchan-not-allocated
+  dup bufbchan-send-cond @ destroy-cond
+  dup bufbchan-recv-cond @ destroy-cond
+  dup bufbchan-queue @ free!
+  free! ;
 
 \ Internal - dequeue a packet from a bounded channel; note that this does not
 \ have any safeties for preventing dequeueing a value from an already empty

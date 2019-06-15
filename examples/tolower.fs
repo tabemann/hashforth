@@ -137,10 +137,10 @@ c"-data c"-length 2constant c"-constant
 
 \ Convert a file into having lowercase identifiers
 : to-lower-file ( path-addr path-bytes -- )
-  to-lower-buffer-size new-buffer
+  to-lower-buffer-size allocate-buffer
   2 pick 2 pick 2 pick read-file-into-buffer averts x-file-loading-failure
   dup get-buffer to-lower
-  filename-buffer-size new-buffer
+  filename-buffer-size allocate-buffer
   3 pick 3 pick 2 pick append-buffer
   s" .tolower" 2 pick append-buffer
   over get-buffer 2 pick get-buffer save-file

@@ -35,7 +35,7 @@ forth-wordlist set-current
 
 : sleeper begin 0 500000000 sleep ." * " again ;
 
-256 256 256 0 ' sleeper new-task constant sleeper-task
+256 256 512 0 ' sleeper allot-task constant sleeper-task
 sleeper-task activate-task key drop sleeper-task deactivate-task
 
 base ! set-current set-order

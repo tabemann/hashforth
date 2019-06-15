@@ -299,7 +299,7 @@ variable first-included-item
 \ Load Forth code from a file.
 : included ( c-addr bytes -- )
   2dup check-include-item
-  included-buffer-size new-buffer
+  included-buffer-size allocate-buffer
   rot rot 2 pick read-file-into-buffer averts x-code-loading-failure
   dup get-buffer evaluate destroy-buffer ;
 

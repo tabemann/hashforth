@@ -1618,6 +1618,7 @@ s" src/hashforth/startup.fs" add-source-to-storage
 s" src/hashforth/lambda.fs" add-source-to-storage
 s" src/hashforth/task.fs" add-source-to-storage
 s" src/hashforth/allocate.fs" add-source-to-storage
+s" src/hashforth/allocate_task.fs" add-source-to-storage
 s" src/hashforth/buffer.fs" add-source-to-storage
 s" src/hashforth/io.fs" add-source-to-storage
 s" src/hashforth/cond.fs" add-source-to-storage

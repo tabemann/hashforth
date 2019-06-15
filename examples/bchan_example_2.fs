@@ -47,8 +47,8 @@ forth-wordlist task-wordlist 2 set-order
   ." *" next-task (.) ." * "
   r> single-task-io ! r> base ! ;
 
-256 256 256 0 ' sender new-task constant sender-task
-256 256 256 0 ' receiver new-task constant receiver-task
+256 256 512 0 ' sender allot-task constant sender-task
+256 256 512 0 ' receiver allot-task constant receiver-task
 
 : do-example
   ['] on-pause 'on-pause !

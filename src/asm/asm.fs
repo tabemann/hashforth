@@ -60,6 +60,8 @@ variable mem-size 0 mem-size !
 variable max-word-count 0 max-word-count !
 variable max-return-stack-count 0 max-return-stack-count !
 
+: allocate-buffer new-buffer ;
+
 : header-8, ( value -- )
   $ff and header-buffer @ append-byte-buffer ;
 
@@ -106,17 +108,17 @@ end-structure
   header-buffer @ if
     header-buffer @ clear-buffer
   else
-    65536 new-buffer header-buffer !
+    65536 allocate-buffer header-buffer !
   then
   code-buffer @ if
     code-buffer @ clear-buffer
   else
-    1024 1024 * new-buffer code-buffer !
+    1024 1024 * allocate-buffer code-buffer !
   then
   storage-buffer @ if
     storage-buffer @ clear-buffer
   else
-    120988 2 * new-buffer storage-buffer !
+    120988 2 * allocate-buffer storage-buffer !
   then
   max-return-stack-count ! max-word-count ! mem-size ! target-token !
   target-cell !
@@ -257,7 +259,7 @@ variable current-token 59 current-token !
 : x-unable-to-open space ." unable to open file" cr ;
 : x-unable-to-write space ." unable to write to file" cr ;
 
-256 new-buffer constant backup-name-buffer
+256 allocate-buffer constant backup-name-buffer
 
 : get-backup-name ( name-addr name-length -- backup-addr backup-length )
   0 begin
@@ -274,7 +276,7 @@ variable current-token 59 current-token !
   until ;
 
 : backup-file ( name-addr name-length -- )
-  1024 new-buffer 2 pick 2 pick 2 pick read-file-into-buffer 0 <> if
+  1024 allocate-buffer 2 pick 2 pick 2 pick read-file-into-buffer 0 <> if
     rot rot get-backup-name
     open-wronly open-creat or open-trunc or /666 open 0 <> if
       over get-buffer 2 pick wait-write-full 0 <> if
@@ -304,7 +306,7 @@ variable current-token 59 current-token !
 : x-unable-to-read space ." unable to read file" cr ;
 
 : add-source-to-storage ( name-addr name-length -- )
-  1024 new-buffer rot rot 2 pick read-file-into-buffer 0 <> if
+  1024 allocate-buffer rot rot 2 pick read-file-into-buffer 0 <> if
     dup get-buffer storage-buffer @ append-buffer
   else
     destroy-buffer ['] x-unable-to-read ?raise
@@ -331,12 +333,12 @@ variable current-token 59 current-token !
   rot rot create-with-name , does> @ token, ;
 
 : create-token-lit ( c-addr bytes token -- )
-  over 1+ new-buffer [char] & over append-byte-buffer 3 roll 3 roll 2 pick
+  over 1+ allocate-buffer [char] & over append-byte-buffer 3 roll 3 roll 2 pick
   append-buffer dup get-buffer create-with-name swap , destroy-buffer
   does> 5 token, @ arg, ;
 
 : create-token ( c-addr bytes token -- )
-  over 1+ new-buffer [char] ^ over append-byte-buffer 3 roll 3 roll 2 pick
+  over 1+ allocate-buffer [char] ^ over append-byte-buffer 3 roll 3 roll 2 pick
   append-buffer dup get-buffer create-with-name swap , destroy-buffer
   does> @ ;
 

@@ -34,6 +34,7 @@ forth-wordlist task-wordlist 2 set-order
 task-wordlist set-current
 
 begin-structure bchan-size
+  field: bchan-flags
   field: bchan-recv-cond
   field: bchan-send-cond
   field: bchan-queue
@@ -43,8 +44,12 @@ begin-structure bchan-size
   field: bchan-dequeue-index
 end-structure
 
+\ Bounded channel allocated flag
+1 constant allocated-bchan
+
 \ Print out the internal values of a bounded channel.
 : bchan. ( chan -- )
+  cr ." bchan-flags: " dup bchan-flags @ .
   cr ." bchan-recv-cond: " dup bchan-recv-cond @ .
   cr ." bchan-send-cond: " dup bchan-send-cond @ .
   cr ." bchan-queue: " dup bchan-queue @ .
@@ -53,18 +58,44 @@ end-structure
   cr ." bchan-enqueue-index: " bchan-enqueue-index @ .
   cr ." bchan-dequeue-index: " bchan-dequeue-index @ . cr ;
 
-\ Create a new bounded channel with the specified queue size and condition
+\ Allot a new bounded channel with the specified queue size and condition
 \ variable queue size.
-: new-bchan ( queue-size cond-size -- chan )
+: allot-bchan ( queue-size cond-size -- chan )
   swap
   here bchan-size allot
   2dup bchan-queue-size !
+  0 over bchan-flags !
   0 over bchan-queue-count !
   0 over bchan-enqueue-index !
   0 over bchan-dequeue-index !
   here rot cells allot over bchan-queue !
-  over new-cond over bchan-recv-cond !
-  swap new-cond over bchan-send-cond ! ;
+  over allot-cond over bchan-recv-cond !
+  swap allot-cond over bchan-send-cond ! ;
+
+\ Allocate a new bounded channel with the specified queue size and condition
+\ variable queue size.
+: allocate-bchan ( queue-size cond-size -- chan )
+  swap
+  bchan-size allocate!
+  2dup bchan-queue-size !
+  allocated-bchan over bchan-flags !
+  0 over bchan-queue-count !
+  0 over bchan-enqueue-index !
+  0 over bchan-dequeue-index !
+  swap cells allocate! over bchan-queue !
+  over allocate-cond over bchan-recv-cond !
+  swap allocate-cond over bchan-send-cond ! ;
+
+\ Bounded channel is not allocated exception
+: x-bchan-not-allocated ( -- ) space ." bchan not allocated" cr ;
+
+\ Destroy a bounded channel
+: destroy-bchan ( chan -- )
+  dup bchan-flags @ allocated-bchan and averts x-bchan-not-allocated
+  dup bchan-send-cond @ destroy-cond
+  dup bchan-recv-cond @ destroy-cond
+  dup bchan-queue @ free!
+  free! ;
 
 \ Internal - dequeue a value from a bounded channel; note that this does not
 \ have any safeties for preventing dequeueing a value from an already empty

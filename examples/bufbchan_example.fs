@@ -41,7 +41,7 @@ forth-wordlist task-wordlist 2 set-order
   parse-string 256 1 cells - min dup here ! swap here cell+ rot cmove
   here my-bufbchan send-bufbchan pause ; immediate
 
-256 256 512 0 ' receiver new-task constant receiver-task
+256 256 768 0 ' receiver allot-task constant receiver-task
 
 receiver-task activate-task
 

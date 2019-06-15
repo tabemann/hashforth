@@ -34,17 +34,38 @@ forth-wordlist task-wordlist 2 set-order
 task-wordlist set-current
 
 begin-structure cond-size
+  field: cond-flags
   field: cond-waiting
   field: cond-waiting-count
   field: cond-waiting-size
 end-structure
 
-\ Allocate a new condition variable with a specified waiting queue size.
-: new-cond ( waiting-size -- cond )
+\ Condition variable is allocated flag
+1 constant allocated-cond
+
+\ Allot a new condition variable with a specified waiting queue size.
+: allot-cond ( waiting-size -- cond )
   here cond-size allot
+  0 over cond-flags !
   tuck cond-waiting-size !
   0 over cond-waiting-count !
   dup cond-waiting-size @ here swap cells allot over cond-waiting ! ;
+
+\ Allocate a new condition variable with a specified waiting queue size.
+: allocate-cond ( waiting-size -- cond )
+  cond-size allocate!
+  allocated-cond over cond-flags !
+  tuck cond-waiting-size !
+  0 over cond-waiting-count !
+  dup cond-waiting-size @ cells allocate! over cond-waiting ! ;
+
+\ Condition variable is not allocated exception
+: x-cond-not-allocated ( -- ) space ." cond is not allocated" cr ;
+
+\ Destroy a condition variable
+: destroy-cond ( cond -- )
+  dup cond-flags @ allocated-cond and averts x-cond-not-allocated
+  dup cond-waiting @ free! free! ;
 
 \ Wait on a condition variable.
 : wait-cond ( cond -- )

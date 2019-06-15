@@ -39,7 +39,7 @@ forth-wordlist task-wordlist 2 set-order
 : display" ( "ccc<quote>" -- )
   parse-string my-varbchan send-varbchan pause ; immediate
 
-256 256 512 0 ' receiver new-task constant receiver-task
+256 256 768 0 ' receiver allot-task constant receiver-task
 
 receiver-task activate-task
 

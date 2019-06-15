@@ -236,7 +236,7 @@ init-world
   next-world @ current-world @ next-world ! current-world ! ;
 
 \ Display execution of cycles until key is pressed
-: display-cycles ( u -- )
+: display-cycles ( -- )
   hide-cursor 0 0 go-to-coord erase-down erase-end-of-line save-cursor
   begin key? not while
     restore-cursor cycle-world [ canvas ] literal draw

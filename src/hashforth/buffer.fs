@@ -43,11 +43,13 @@ begin-structure buffer-size
   field: buffer-data-size
 end-structure
 
-: new-buffer ( init-bytes -- buffer )
+: allocate-buffer ( init-bytes -- buffer )
   buffer-size allocate!
   over allocate! over buffer-data !
   tuck buffer-data-size !
   0 over buffer-data-count ! ;
+
+: new-buffer allocate-buffer ;
 
 : destroy-buffer ( buffer -- ) dup buffer-data @ free! free! ;
 

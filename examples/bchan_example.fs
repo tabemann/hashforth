@@ -47,8 +47,8 @@ forth-wordlist task-wordlist 2 set-order
     then
   again ;
 
-256 256 256 0 ' sender new-task constant sender-task
-256 256 256 0 ' receiver new-task constant receiver-task
+256 256 512 0 ' sender allot-task constant sender-task
+256 256 512 0 ' receiver allot-task constant receiver-task
 
 sender-task activate-task receiver-task activate-task
 

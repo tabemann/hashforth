@@ -67,6 +67,9 @@ user task-here
 \ Current entry xt
 user task-entry
 
+\ Current task flags
+user task-flags
+
 \ Current active value (< 1 inactive, >= 1 active)
 user task-active
 
@@ -88,9 +91,15 @@ user task-wait-time-s
 \ Task wait time nanoseconds
 user task-wait-time-ns
 
+\ Task header structure
 begin-structure task-header-size
+  \ Previous task
   field: task-prev
+
+  \ Next task
   field: task-next
+
+  \ Task user pointer
   field: task-up
 end-structure
 
@@ -100,13 +109,16 @@ begin-structure poll-fd-size
   field: poll-revents
 end-structure
 
+\ Allocated task flag
+1 constant allocated-task
+
 \ Access a task's user variables
 : access-task ( xt task -- ) up @ >r task-up @ up ! execute r> up ! ;
 
 \ Instantiate a new task allocated in the user space with the given data stack
 \ and return stack sizes in cells, the given user space size in bytes, the
 \ given local space size in cells, and the given entry point.
-: new-task
+: allot-task
   ( data-stack-size return-stack-size user-size local-size entry -- task )
   here task-header-size allot
   0 over task-prev !
@@ -126,6 +138,7 @@ end-structure
   ['] task-return-stack over access-task @ ['] task-rbase 2 pick access-task !
   ['] task-data-stack over access-task @ ['] task-sbase 2 pick access-task !
   0 ['] task-active 2 pick access-task !
+  0 ['] task-flags 2 pick access-task !
   0 ['] handler 2 pick access-task !
   10 ['] base 2 pick access-task !
   0 ['] task-wait 2 pick access-task !
@@ -141,7 +154,7 @@ end-structure
   ['] format-digit-buffer 2 pick access-task ! ;
 
 \ Not in a task!
-: x-not-in-task space ." not in a task" cr ;
+: x-not-in-task ( -- ) space ." not in a task" cr ;
 
 \ Get whether a task is currently running.
 : in-task? ( -- flag ) current-task @ ;
@@ -466,7 +479,7 @@ variable pause-count
 init-tasks
 
 \ Instantiate a task for the main execution.
-: new-main-task ( -- task )
+: allot-main-task ( -- task )
   here task-header-size allot
   0 over task-prev !
   0 over task-next !
@@ -482,10 +495,10 @@ init-tasks
   0 ['] task-wait-time-ns 2 pick access-task !
   dup activate-task dup current-task ! pause ;
 
-new-main-task constant main-task
+allot-main-task constant main-task
 
 \ The task that sleeps the system when no tasks are awake.
-1024 1024 1024 cells 0 ' do-sleep new-task constant sleep-task
+1024 1024 1024 cells 0 ' do-sleep allot-task constant sleep-task
 sleep-task activate-task
 
 \ Abstracting getting the current task
