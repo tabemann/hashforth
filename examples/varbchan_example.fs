@@ -29,7 +29,7 @@
 
 forth-wordlist task-wordlist 2 set-order
 
-2 8 2 2 2 new-varbchan constant my-varbchan
+2 8 2 2 2 allot-varbchan constant my-varbchan
 
 : receiver
   begin

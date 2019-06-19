@@ -536,6 +536,7 @@ define-word .s ( -- )
   +else
     char [ lit emit char - lit emit char - lit emit char ] lit emit
   +then
+  space
 end-word
 
 \ The size of the saved exception string
@@ -1629,5 +1630,7 @@ s" src/hashforth/varbchan.fs" add-source-to-storage
 s" src/hashforth/vector.fs" add-source-to-storage
 s" src/hashforth/intmap.fs" add-source-to-storage
 s" src/hashforth/map.fs" add-source-to-storage
+s" src/hashforth/bufchan.fs" add-source-to-storage
+s" src/hashforth/varchan.fs" add-source-to-storage
 s" src/hashforth/line.fs" add-source-to-storage
 s" src/hashforth/ready.fs" add-source-to-storage

@@ -29,31 +29,20 @@
 
 forth-wordlist task-wordlist 2 set-order
 
-100 2 allot-bchan constant my-bchan
-
-: sender
-  begin
-    my-bchan count-bchan ." <" (.) ." > " 0 my-bchan send-bchan
-  again ;
+2 8 2 2 2 allocate-varchan constant my-varchan
 
 : receiver
   begin
-    my-bchan count-bchan ." [" (.) ." ] " my-bchan recv-bchan drop
+    my-varchan allocate-recv-varchan 2dup type cr drop free!
   again ;
 
-: on-pause
-  base @ >r single-task-io @ >r
-  16 base ! true single-task-io !
-  ." *" next-task (.) ." * "
-  r> single-task-io ! r> base ! ;
+: display" ( "ccc<quote>" -- )
+  parse-string my-varchan send-varchan pause ; immediate
 
-256 256 512 0 ' sender allot-task constant sender-task
-256 256 512 0 ' receiver allot-task constant receiver-task
+256 256 768 0 ' receiver allot-task constant receiver-task
 
-: do-example
-  ['] on-pause 'on-pause !
-  sender-task activate-task receiver-task activate-task
-  key drop sender-task deactivate-task receiver-task deactivate-task
-  0 'on-pause ! ;
+receiver-task activate-task
 
-do-example
+display" this is an example!"
+display" this is another example!"
+pause

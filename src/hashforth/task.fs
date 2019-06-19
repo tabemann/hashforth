@@ -35,7 +35,7 @@ forth-wordlist set-current
 
 wordlist constant task-wordlist
 
-forth-wordlist task-wordlist 2 set-order
+forth-wordlist lambda-wordlist task-wordlist 3 set-order
 
 forth-wordlist set-current
 

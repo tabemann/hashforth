@@ -29,7 +29,7 @@
 
 forth-wordlist task-wordlist 2 set-order
 
-2 256 2 new-bufbchan constant my-bufbchan
+2 256 2 allot-bufbchan constant my-bufbchan
 
 : receiver
   begin

@@ -29,7 +29,7 @@
 
 forth-wordlist task-wordlist 2 set-order
 
-100 2 new-bchan constant my-bchan
+100 2 allot-bchan constant my-bchan
 
 : sender
   pause-count 0 begin

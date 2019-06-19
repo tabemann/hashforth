@@ -179,7 +179,7 @@ end-structure
   dup bufbchan-queue-count @ 0<> if
     do-peek-bufbchan true
   else
-    2drop 0 false
+    2drop false
   then ;
 
 \ Get the number of values queued in a bounded channel.

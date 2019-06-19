@@ -30,7 +30,7 @@
 get-order get-current base @
 
 decimal
-forth-wordlist task-wordlist 2 set-order
+forth-wordlist task-wordlist lambda-wordlist 3 set-order
 task-wordlist set-current
 
 begin-structure cond-size
