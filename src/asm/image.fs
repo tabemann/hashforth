@@ -254,6 +254,14 @@ end-word
 \ The handler user variable
 define-word-user handler
 
+\ Global exception handler
+define-word-created 'global-handler
+0 set-cell-data
+
+\ Global bye handler
+define-word-created 'global-bye-handler
+0 set-cell-data
+
 \ Execute an xt, returning either zero if no exception takes place, or an
 \ exception value if an exception has taken place
 define-word try ( xt -- exception | 0 )
@@ -264,6 +272,7 @@ end-word
 \ should be an xt, since uncaught exception values are normally executed as an
 \ xt
 define-word ?raise ( xt | 0 -- xt | 0 )
+  dup +if 'global-handler @ ?dup +if execute +then +then
   ?dup +if handler @ rp! r> handler ! r> swap >r sp! drop r> +then
 end-word
 
@@ -701,7 +710,10 @@ define-word (accept) ( c-addr bytes -- bytes-read )
 end-word
 
 \ The implementation of the BYE word, invoking the BYE service
-define-word (bye) ( -- ) sys-bye @ sys end-word
+define-word (bye) ( -- )
+  'global-bye-handler @ ?dup +if execute +then
+  sys-bye @ sys
+end-word
 
 \ The PAUSE hook
 define-word-created 'pause
@@ -835,22 +847,42 @@ end-word
 
 \ Get the flags for a word (an xt)
 define-word word>flags ( xt -- flags )
-  2 lit cells * info-table + @
+  4 lit cells * info-table + @
 end-word
 
 \ Set the flags for a word (an xt)
 define-word flags>word ( flags xt -- )
-  2 lit cells * info-table + !
+  4 lit cells * info-table + !
 end-word
 
 \ Get the next word for a word (an xt), or zero if there is no next word
 define-word word>next ( xt1 -- xt2 )
-  2 lit cells * info-table + cell+ @
+  4 lit cells * info-table + cell+ @
 end-word
 
 \ Set the next word for a word (an xt), or zero if there is no next word
 define-word next>word ( xt1 xt2 -- )
-  2 lit cells * info-table + cell+ !
+  4 lit cells * info-table + cell+ !
+end-word
+
+\ Get the starting address for a word (an xt)
+define-word word>start ( xt1 -- xt2 )
+  4 lit cells * info-table + 2 lit cells + @
+end-word
+
+\ Set the starting address for a word (an xt)
+define-word start>word ( xt1 xt2 -- )
+  4 lit cells * info-table + 2 lit cells + !
+end-word
+
+\ Get the ending address for a word (an xt)
+define-word word>end ( xt1 -- xt2 )
+  4 lit cells * info-table + 3 lit cells + @
+end-word
+
+\ Set the ending address for a word (an xt)
+define-word end>word ( xt1 xt2 -- )
+  4 lit cells * info-table + 3 lit cells + !
 end-word
 
 \ Get the name for a word (an xt)
@@ -1218,6 +1250,7 @@ non-define-word : ( -- )
     allocate-string +true state ! here new-colon dup 3 lit roll 3 lit roll rot
 \    S" compiling: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
     name>word hidden-flag lit over flags>word dup latestxt-value !
+    here latestxt-value @ start>word
     get-current wordlist>first over next>word
     get-current first>wordlist
   +else
@@ -1229,6 +1262,8 @@ end-word
 \ pushing the xt for the word onto the data stack
 define-word :noname ( -- xt )
   true state ! here new-colon dup latestxt-value !
+  here latestxt-value @ start>word
+  0 lit 0 lit latestxt-value @ name>word
 end-word
 
 \ Create a CREATEd word with the specified name, setting the word to have a data
@@ -1275,6 +1310,7 @@ end-word
 non-define-word-immediate-compile-only ; ( -- )
   latestxt +if
     &exit compile, &end compile,
+    here latestxt end>word
     latestxt word>flags hidden-flag lit not and latestxt flags>word
     latestxt finish
     +false state !
@@ -1578,6 +1614,15 @@ define-word relocate-name-table ( end-token -- )
   2drop
 end-word
 
+\ Relocate the info table upon loading
+define-word relocate-info-table ( end-token -- )
+  0 lit +begin 2dup >= +while
+    name-table over 4 lit cells * 2 lit cells + info-table + +!
+    name-table over 4 lit cells * 3 lit cells + info-table + +! 1 lit +
+  +repeat
+  2drop
+end-word
+
 \ Exception-protected boot actions
 define-word boot-protected ( -- )
   lookup-sys name-table set-name-table
@@ -1606,7 +1651,9 @@ define-word boot ( storage storage-size here -- )
   input-buffer input ! 0 lit input-buffer# ! 0 lit input# !
   stdin input-fd ! stdout output-fd ! stderr error-fd !
   0 lit read-key ! +false read-key? !
+  &boot latestxt-value !
   &boot relocate-name-table
+  &boot relocate-info-table
   &boot wordlist-array 0 lit cells + ! &boot-protected try 0 lit <> +if
     s" error" +data output-fd @ write 2drop bye
   +else

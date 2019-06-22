@@ -145,8 +145,8 @@ variable 'prepare-read
     2 pick 2 pick 2 pick write dup true = if
       drop swap drop swap drop swap drop true true
     else 1 = if
-      false
-    else
+      drop false
+    else bye
       2drop 2drop 0 false true
     then then
   until

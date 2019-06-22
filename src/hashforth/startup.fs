@@ -236,3 +236,41 @@
 \ Drop a given number of cells in addition to the count except for the cell
 \ directly beneath the count
 : nips ( x*u1 x1 u1 -- x1 ) swap >r 1- drops r> ;
+
+\ Search for the word an address is in
+: find-word-by-address ( addr -- xt found )
+  latestxt begin
+    dup 0 > if
+      dup word>start 0 <> if
+	dup word>start 2 pick <= over word>end 3 pick > and if
+	  nip true true
+	else
+	  1 - false
+	then
+      else
+	1 - false
+      then
+    else
+      2drop 0 false true
+    then
+  until ;
+
+\ Actually display a backtrace
+: do-backtrace ( -- )
+  rp@ begin dup rbase @ < while
+    dup @ dup find-word-by-address if
+      cr swap ." $" 16 base. ." ("
+      word>name over 0 <> if type else 2drop ." <anonymous>" then ." )"
+    else
+      drop cr ." $" 16 base. ." (???)"
+    then
+    cell+
+  repeat
+  drop ;
+
+\ Display a backtrace
+: backtrace ( -- )
+  single-task-io @ true single-task-io ! do-backtrace single-task-io ! ;
+
+' backtrace 'global-handler !
+' backtrace 'global-bye-handler !

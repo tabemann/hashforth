@@ -218,7 +218,7 @@ init-world
     1 begin dup [ world-height 1 - ] literal < while
       2dup cycle-cell 1 +
     repeat
-    drop 1 +
+    drop 1 + pause
   repeat
   drop
   1 begin dup [ world-width 1 - ] literal < while

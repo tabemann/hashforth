@@ -101,6 +101,8 @@ end-structure
 begin-structure info-table-entry-size
   field: info-flags
   field: info-next
+  field: info-start
+  field: info-end
 end-structure
 
 : init-asm
@@ -236,14 +238,25 @@ variable current-token 59 current-token !
   3 pick name-table-entry-size * name-table-offset @ +
   code-buffer @ write-buffer
   here info-flags ! dup dup 0> if 1- then here info-next !
+  0 here info-start ! 0 here info-end !
   here info-table-entry-size
   rot info-table-entry-size * info-table-offset @ +
   code-buffer @ write-buffer
   set-data ;
 
+: set-start ( offset token -- )
+  swap here !
+  here 1 cells rot info-table-entry-size * info-table-offset @ + info-start
+  code-buffer @ write-buffer ;
+
+: set-end ( offset token -- )
+  swap here !
+  here 1 cells rot info-table-entry-size * info-table-offset @ + info-end
+  code-buffer @ write-buffer ;
+
 : make-colon-word ( token name-addr name-length flags -- )
-  colon-word header-8, 3 pick header, over get-ref + header, 3 roll swap
-  set-name-info ;
+  colon-word header-8, 3 pick header, over get-ref + dup >r header, 3 roll swap
+  over >r set-name-info r> r> swap set-start ;
 
 : make-create-word ( token name-addr name-length flags -- )
   create-word header-8, 3 pick header, over get-ref + header, 3 roll swap
@@ -500,7 +513,7 @@ not-vm hashforth-asm-wordlist set-current
 name-table-offset @ define-word-created-with-offset name-table
 info-table-offset @ define-word-created-with-offset info-table
 
-: end-word ( -- ) vm exit end not-vm ;
+: end-word ( -- ) vm exit end not-vm get-ref current-token @ 1 - set-end ;
 
 : lit ( x -- ) vm (lit) not-vm arg, ;
 
