@@ -210,8 +210,10 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_ADJUST_INT_MASK (27)
 #define HF_SYS_GET_INT_HANDLER_MASK (28)
 #define HF_SYS_SET_INT_HANDLER_MASK (29)
+#define HF_SYS_GET_PROTECT_STACKS (30)
+#define HF_SYS_SET_PROTECT_STACKS (31)
 
-#define HF_MAX_STD_SERVICES (30)
+#define HF_MAX_STD_SERVICES (32)
 
 #else /* WITH_SYS_ALLOCATE */
 
@@ -248,8 +250,10 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_ADJUST_INT_MASK (30)
 #define HF_SYS_GET_INT_HANDLER_MASK (31)
 #define HF_SYS_SET_INT_HANDLER_MASK (32)
+#define HF_SYS_GET_PROTECT_STACKS (33)
+#define HF_SYS_SET_PROTECT_STACKS (34)
 
-#define HF_MAX_STD_SERVICES (33)
+#define HF_MAX_STD_SERVICES (35)
 
 #endif /* WITH_SYS_ALLOCATE */
 
@@ -315,13 +319,11 @@ struct hf_global_t {
   hf_word_t* current_word;
   hf_token_t* ip;
   hf_cell_t* data_stack;
-#ifdef STACK_TRACE
   hf_cell_t* data_stack_base;
   hf_cell_t* old_data_stack_base;
-#endif
   hf_token_t** return_stack;
-#ifdef TRACE
   hf_token_t** return_stack_base;
+#ifdef TRACE
   hf_name_t* name_table;
 #endif
   hf_cell_t trace;
@@ -329,6 +331,7 @@ struct hf_global_t {
   hf_cell_t int_flags;
   hf_cell_t int_handler[HF_INT_COUNT];
   hf_cell_t int_handler_mask[HF_INT_COUNT];
+  hf_cell_t protect_stacks;
 };
 
 #endif /* HF_TYPES_H */

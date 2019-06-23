@@ -46,13 +46,11 @@ void hf_init(hf_global_t* global) {
   global->current_word = NULL;
   global->ip = NULL;
   global->data_stack = NULL;
-#ifdef STACK_TRACE
   global->data_stack_base = NULL;
   global->old_data_stack_base = NULL;
-#endif
   global->return_stack = NULL;
-#ifdef TRACE
   global->return_stack_base = NULL;
+#ifdef TRACE
   global->name_table = NULL;
 #endif
   global->std_services = NULL;
@@ -72,6 +70,7 @@ void hf_init(hf_global_t* global) {
     global->int_handler[i] = 0;
     global->int_handler_mask[i] = 1 << i;
   }
+  global->protect_stacks = HF_TRUE;
 }
 
 /* Recover from a signal */
@@ -131,11 +130,11 @@ void hf_inner(hf_global_t* global) {
 		 global->name_table[token].name_length);
 	  name_copy[global->name_table[token].name_length] = 0;
 	  fprintf(stderr, "executing token: %lld name: %s data stack: %lld",
-		 (uint64_t)token, name_copy, (uint64_t)global->data_stack);
+		  (uint64_t)token, name_copy, (uint64_t)global->data_stack);
 	  free(name_copy);
 	} else {
 	  fprintf(stderr, "executing token: %lld <no name> data stack: %lld",
-		 (uint64_t)token, (uint64_t)global->data_stack);
+		  (uint64_t)token, (uint64_t)global->data_stack);
 	}
 #ifdef STACK_TRACE
 	fprintf(stderr, " [");
@@ -205,6 +204,14 @@ void hf_inner_and_recover(hf_global_t* global) {
 	    hf_cell_t token = global->int_handler[index];
 	    hf_word_t* word = global->words + token;
 	    global->current_word = word;
+	    if(global->protect_stacks) {
+	      if(global->data_stack > global->data_stack_base) {
+		global->data_stack = global->data_stack_base;
+	      }
+	      if(global->return_stack > global->return_stack_base) {
+		global->return_stack = global->return_stack_base;;
+	      }
+	    }
 	    word->primitive(global);
 	  }
 	}

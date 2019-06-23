@@ -146,6 +146,12 @@ void hf_sys_get_int_handler_mask(hf_global_t* global);
 /* Set an interrupt handler mask */
 void hf_sys_set_int_handler_mask(hf_global_t* global);
 
+/* Get protect stacks flag service */
+void hf_sys_get_protect_stacks(hf_global_t* global);
+
+/* Set protect stacks flag service */
+void hf_sys_set_protect_stacks(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -236,6 +242,12 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      user_space_current);
   hf_register_service(global, HF_SYS_SET_INT_HANDLER_MASK,
 		      "SET-INT-HANDLER-MASK", hf_sys_set_int_handler_mask,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_GET_PROTECT_STACKS,
+		      "GET-PROTECT-STACKS", hf_sys_get_protect_stacks,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_SET_PROTECT_STACKS,
+		      "SET-PROTECT-STACKS", hf_sys_set_protect_stacks,
 		      user_space_current);
 }
 
@@ -548,35 +560,23 @@ void hf_sys_set_trace(hf_global_t* global) {
 
 /* GET-SBASE service */
 void hf_sys_get_sbase(hf_global_t* global) {
-#ifdef STACK_TRACE
   *(--global->data_stack) = (hf_cell_t)global->data_stack_base;
-#else
-  *(--global->data_stack) = 0;
-#endif
 }
 
 /* SET-SBASE service */
 void hf_sys_set_sbase(hf_global_t* global) {
-#ifdef STACK_TRACE
   global->old_data_stack_base = global->data_stack_base;
   global->data_stack_base = (hf_cell_t*)(*global->data_stack++);
-#endif
 }
 
 /* GET-RBASE service */
 void hf_sys_get_rbase(hf_global_t* global) {
-#ifdef TRACE
   *(--global->data_stack) = (hf_cell_t)global->return_stack_base;
-#else
-  *(--global->data_stack) = 0;
-#endif
 }
 
 /* SET-RBASE service */
 void hf_sys_set_rbase(hf_global_t* global) {
-#ifdef TRACE
   global->return_stack_base = (hf_token_t**)(*global->data_stack++);
-#endif
 }
 
 /* GET-NAME-TABLE service */
@@ -706,4 +706,14 @@ void hf_sys_set_int_handler_mask(hf_global_t* global) {
   if(index < HF_INT_COUNT) {
     global->int_handler_mask[index] = handler_mask;
   }
+}
+
+/* Get protect stacks flag service */
+void hf_sys_get_protect_stacks(hf_global_t* global) {
+  *(--global->data_stack) = global->protect_stacks;
+}
+
+/* Set protect stacks flag service */
+void hf_sys_set_protect_stacks(hf_global_t* global) {
+  global->protect_stacks = *global->data_stack++;
 }

@@ -756,9 +756,7 @@ void hf_prim_load_sp(hf_global_t* global) {
 /* SP! primitive */
 void hf_prim_store_sp(hf_global_t* global) {
   global->data_stack = (hf_cell_t*)(*global->data_stack);
-#ifdef STACK_TRACE
   global->old_data_stack_base = global->data_stack_base;
-#endif
 }
 
 /* RP@ primitive */

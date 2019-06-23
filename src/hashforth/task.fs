@@ -245,6 +245,7 @@ variable sys-poll
 variable sys-get-monotonic-time
 variable sys-set-sbase
 variable sys-set-rbase
+variable sys-set-protect-stacks
 
 \ Poll on one or more file descriptors (a return value of -1 means success and
 \ a return value of 0 means error).
@@ -258,6 +259,9 @@ variable sys-set-rbase
 
 \ Set a system-wide RBASE for tracing purposes
 : set-rbase ( rbase -- ) sys-set-rbase @ sys ;
+
+\ Set whether to protect the stacks on interrupt handling
+: set-protect-stacks ( flag -- ) sys-set-protect-stacks @ sys ;
 
 \ Set a task as waiting on reading a file descriptor.
 : set-wait-in ( fd -- )
@@ -450,6 +454,7 @@ variable pause-count
     current-task @ task-up @ up !
     task-here @ here!
     get-trace >r false set-trace
+    false set-protect-stacks
     task-sbase @ set-sbase
     task-rbase @ set-rbase
     task-data-stack @ sp!
@@ -458,6 +463,7 @@ variable pause-count
     set-trace
     task-sbase @ sbase !
     task-rbase @ rbase !
+    true set-protect-stacks
     task-entry @ ?dup if
       0 task-entry !
       try ?dup if
@@ -474,6 +480,7 @@ variable pause-count
   s" GET-MONOTONIC-TIME" sys-lookup sys-get-monotonic-time !
   s" SET-SBASE" sys-lookup sys-set-sbase !
   s" SET-RBASE" sys-lookup sys-set-rbase !
+  s" SET-PROTECT-STACKS" sys-lookup sys-set-protect-stacks !
   ['] (pause) 'pause ! ;
 
 init-tasks
