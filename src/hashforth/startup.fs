@@ -309,19 +309,49 @@
 : x-bus ( -- ) space ." bus error" cr ;
 
 \ Segfault handler
-: handle-segv ( -- ) segv-int unmask-int ['] x-segv ?raise ;
+: handle-segv ( -- )
+  rp@ handler @ < rp@ rbase @ < and if
+    segv-int unmask-int ['] x-segv ?raise
+  else
+    segv-int unmask-int space ." <no stacktrace>" x-segv
+    ['] outer try if s" error " output-fd @ write 2drop then bye
+  then ;
 
 \ Invalid token handler
-: handle-token ( -- ) token-int unmask-int ['] x-token ?raise ;
+: handle-token ( -- )
+  rp@ handler @ < rp@ rbase @ < and if
+    token-int unmask-int ['] x-token ?raise
+  else
+    token-int unmask-int space ." <no stacktrace>" x-token
+    ['] outer try if s" error " output-fd @ write 2drop then bye
+  then ;
 
 \ Divide by zero handler
-: handle-divzero ( -- ) divzero-int unmask-int ['] x-divzero ?raise ;
+: handle-divzero ( -- )
+  rp@ handler @ < rp@ rbase @ < and if
+    divzero-int unmask-int ['] x-divzero ?raise
+  else
+    divzero-int unmask-int space ." <no stacktrace>" x-divzero
+    ['] outer try if s" error " output-fd @ write 2drop then bye
+  then ;
 
 \ Illegal instruction handler
-: handle-illegal ( -- ) illegal-int unmask-int ['] x-illegal ?raise ;
+: handle-illegal ( -- )
+    rp@ handler @ < rp@ rbase @ < and if
+    illegal-int unmask-int ['] x-illegal ?raise
+  else
+    illegal-int unmask-int space ." <no stacktrace>" x-illegal
+    ['] outer try if s" error " output-fd @ write 2drop then bye
+  then ;
 
 \ Bus error handler
-: handle-bus ( -- ) bus-int unmask-int ['] x-bus ?raise ;
+: handle-bus ( -- )
+  rp@ handler @ < rp@ rbase @ < and if
+    bus-int unmask-int ['] x-bus ?raise
+  else
+    bus-int unmask-int space ." <no stacktrace>" x-bus
+    ['] outer try if s" error " output-fd @ write 2drop then bye
+  then ;
 
 \ Set interrupt handlers
 ' handle-segv segv-int set-int-handler

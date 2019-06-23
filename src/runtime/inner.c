@@ -209,7 +209,7 @@ void hf_inner_and_recover(hf_global_t* global) {
 		global->data_stack = global->data_stack_base;
 	      }
 	      if(global->return_stack > global->return_stack_base) {
-		global->return_stack = global->return_stack_base;;
+		global->return_stack = global->return_stack_base;
 	      }
 	    }
 	    word->primitive(global);
