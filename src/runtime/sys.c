@@ -125,6 +125,27 @@ void hf_sys_cleanup_terminal(hf_global_t* global);
 /* Get the terminal size */
 void hf_sys_get_terminal_size(hf_global_t* global);
 
+/* Get an interrupt handler */
+void hf_sys_get_int_handler(hf_global_t* global);
+
+/* Set an interrupt handler */
+void hf_sys_set_int_handler(hf_global_t* global);
+
+/* Get the interrupt mask */
+void hf_sys_get_int_mask(hf_global_t* global);
+
+/* Set the interrupt mask */
+void hf_sys_set_int_mask(hf_global_t* global);
+
+/* Adjust the interrupt mask */
+void hf_sys_adjust_int_mask(hf_global_t* global);
+
+/* Get an interrupt handler mask */
+void hf_sys_get_int_handler_mask(hf_global_t* global);
+
+/* Set an interrupt handler mask */
+void hf_sys_set_int_handler_mask(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -200,6 +221,22 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
 		      hf_sys_cleanup_terminal, user_space_current);
   hf_register_service(global, HF_SYS_GET_TERMINAL_SIZE, "GET-TERMINAL-SIZE",
 		      hf_sys_get_terminal_size, user_space_current);
+  hf_register_service(global, HF_SYS_GET_INT_HANDLER, "GET-INT-HANDLER",
+		      hf_sys_get_int_handler, user_space_current);
+  hf_register_service(global, HF_SYS_SET_INT_HANDLER, "SET-INT-HANDLER",
+		      hf_sys_set_int_handler, user_space_current);
+  hf_register_service(global, HF_SYS_GET_INT_MASK, "GET-INT-MASK",
+		      hf_sys_get_int_mask, user_space_current);
+  hf_register_service(global, HF_SYS_SET_INT_MASK, "SET-INT-MASK",
+		      hf_sys_set_int_mask, user_space_current);
+  hf_register_service(global, HF_SYS_ADJUST_INT_MASK, "ADJUST-INT-MASK",
+		      hf_sys_adjust_int_mask, user_space_current);
+  hf_register_service(global, HF_SYS_GET_INT_HANDLER_MASK,
+		      "GET-INT-HANDLER-MASK", hf_sys_get_int_handler_mask,
+		      user_space_current);
+  hf_register_service(global, HF_SYS_SET_INT_HANDLER_MASK,
+		      "SET-INT-HANDLER-MASK", hf_sys_set_int_handler_mask,
+		      user_space_current);
 }
 
 /* LOOKUP service */
@@ -612,5 +649,61 @@ void hf_sys_get_terminal_size(hf_global_t* global) {
     *(--global->data_stack) = 0;
     *(--global->data_stack) = 0;
     *(--global->data_stack) = HF_FALSE;
+  }
+}
+
+/* Get an interrupt handler */
+void hf_sys_get_int_handler(hf_global_t* global) {
+  hf_cell_t index = *global->data_stack;
+  if(index < HF_INT_COUNT) {
+    *global->data_stack = global->int_handler[index];
+  } else {
+    *global->data_stack = 0;
+  }
+}
+
+/* Set an interrupt handler */
+void hf_sys_set_int_handler(hf_global_t* global) {
+  hf_cell_t index = *global->data_stack++;
+  hf_cell_t handler = *global->data_stack++;
+  if(index < HF_INT_COUNT) {
+    global->int_handler[index] = handler;
+  }
+}
+
+/* Get the interrupt mask */
+void hf_sys_get_int_mask(hf_global_t* global) {
+  *(--global->data_stack) = global->int_mask;
+}
+
+/* Set the interrupt mask */
+void hf_sys_set_int_mask(hf_global_t* global) {
+  hf_cell_t mask = *global->data_stack++;
+  global->int_mask = mask;
+}
+
+/* Adjust the interrupt mask */
+void hf_sys_adjust_int_mask(hf_global_t* global) {
+  hf_cell_t or_mask = *global->data_stack++;
+  hf_cell_t and_mask = *global->data_stack++;
+  global->int_mask = (global->int_mask & and_mask) | or_mask;
+}
+
+/* Get an interrupt handler mask */
+void hf_sys_get_int_handler_mask(hf_global_t* global) {
+  hf_cell_t index = *global->data_stack;
+  if(index < HF_INT_COUNT) {
+    *global->data_stack = global->int_handler_mask[index];
+  } else {
+    *global->data_stack = 0;
+  }
+}
+
+/* Set an interrupt handler mask */
+void hf_sys_set_int_handler_mask(hf_global_t* global) {
+  hf_cell_t index = *global->data_stack++;
+  hf_cell_t handler_mask = *global->data_stack++;
+  if(index < HF_INT_COUNT) {
+    global->int_handler_mask[index] = handler_mask;
   }
 }

@@ -31,6 +31,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <signal.h>
+#include <setjmp.h>
 #include "hf/common.h"
 #include "hf/inner.h"
 
@@ -64,11 +66,43 @@ void hf_init(hf_global_t* global) {
 #else
   global->trace = HF_FALSE;
 #endif
+  global->int_mask = 0;
+  global->int_flags = 0;
+  for(int i = 0; i < HF_INT_COUNT; i++) {
+    global->int_handler[i] = 0;
+    global->int_handler_mask[i] = 1 << i;
+  }
+}
+
+/* Recover from a signal */
+void hf_recover_signal(int signum, siginfo_t* info, void* extra) {
+  switch(signum) {
+  case SIGSEGV:
+  case SIGFPE:
+  case SIGILL:
+  case SIGBUS:
+    siglongjmp(hf_recover, signum);
+    break;
+  default:
+    break;
+  }
+}
+
+/* Set an interrupt */
+void hf_set_int(hf_global_t* global, hf_cell_t interrupt, hf_cell_t required) {
+  hf_cell_t flag = 1 << interrupt;
+  if(required && ((global->int_mask & flag) ||
+		  !global->int_handler[interrupt])) {
+    fprintf(stderr, "Masked required exception %lld\n", (uint64_t)interrupt);
+    exit(1);
+  }
+  global->int_flags |= flag;
+  global->int_mask |= global->int_handler_mask[interrupt];
 }
 
 /* The inner interpreter */
 void hf_inner(hf_global_t* global) {
-  while(global->ip) {
+  while(!global->int_flags) {
     hf_full_token_t token = *global->ip++;
 #ifdef TOKEN_8_16
     if(token & 0x80) {
@@ -134,8 +168,59 @@ void hf_inner(hf_global_t* global) {
 #endif
       word->primitive(global);
     } else {
-      fprintf(stderr, "Invalid token!: %d\n", (int)token);
-      exit(1);
+      hf_set_int(global, HF_INT_TOKEN, HF_TRUE);
+    }
+  }
+}
+
+/* Set a signal handler */
+void hf_set_signal_handler(int signum) {
+  struct sigaction act;
+  act.sa_sigaction = hf_recover_signal;
+  sigemptyset(&act.sa_mask);
+  act.sa_flags = SA_SIGINFO;
+  sigaction(signum, &act, NULL);
+}
+
+/* Handle interrupts and execute the inner loop */
+void hf_inner_and_recover(hf_global_t* global) {
+  while(HF_TRUE) {
+    int result = sigsetjmp(hf_recover, 1);
+    if(!result) {
+      hf_set_signal_handler(SIGSEGV);
+      hf_set_signal_handler(SIGFPE);
+      hf_set_signal_handler(SIGILL);
+      hf_set_signal_handler(SIGBUS);
+      while(HF_TRUE) {
+	hf_inner(global);
+	if(global->int_flags) {
+	  hf_cell_t index = 0;
+	  hf_cell_t flags = global->int_flags;
+	  while(!(flags & 1)) {
+	    index++;
+	    flags = flags >> 1;
+	  }
+	  global->int_flags &= ~(1 << index);
+	  if(global->int_handler[index]) {
+	    hf_cell_t token = global->int_handler[index];
+	    hf_word_t* word = global->words + token;
+	    global->current_word = word;
+	    word->primitive(global);
+	  }
+	}
+      }
+    } else {
+      if(result == SIGSEGV) {
+	hf_set_int(global, HF_INT_SEGV, HF_TRUE);
+      } else if(result == SIGFPE) {
+	hf_set_int(global, HF_INT_DIVZERO, HF_TRUE);
+      } else if(result == SIGILL) {
+	hf_set_int(global, HF_INT_ILLEGAL, HF_TRUE);
+      } else if(result == SIGBUS) {
+	hf_set_int(global, HF_INT_BUS, HF_TRUE);
+      } else {
+	fprintf(stderr, "Invalid interrupt!\n");
+      }
     }
   }
 }
@@ -150,7 +235,7 @@ void hf_boot(hf_global_t* global) {
     word = global->words + global->word_count - 1;
     global->current_word = word;
     word->primitive(global);
-    hf_inner(global);
+    hf_inner_and_recover(global);
   } else {
     fprintf(stderr, "No tokens registered!\n");
     exit(1);

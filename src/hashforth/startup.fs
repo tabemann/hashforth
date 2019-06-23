@@ -274,3 +274,58 @@
 
 ' backtrace 'global-handler !
 ' backtrace 'global-bye-handler !
+
+\ Unmask interrupt
+: unmask-int ( int -- ) 1 swap lshift not 0 adjust-int-mask ;
+
+\ Segfault interrupt
+0 constant segv-int
+
+\ Invalid token interrupt
+1 constant token-int
+
+\ Divide by zero interrupt
+2 constant divzero-int
+
+\ Illegal instruction interrupt
+3 constant illegal-int
+
+\ Bus error interrupt
+4 constant bus-int
+
+\ Segfault exception
+: x-segv ( -- ) space ." segmentation fault" cr ;
+
+\ Invalid token exception
+: x-token ( -- ) space ." invalid token" cr ;
+
+\ Divide by zero exception
+: x-divzero ( -- ) space ." divide by zero" cr ;
+
+\ Illegal instruction exception
+: x-illegal ( -- ) space ." illegal instruction" cr ;
+
+\ Bus error exception
+: x-bus ( -- ) space ." bus error" cr ;
+
+\ Segfault handler
+: handle-segv ( -- ) segv-int unmask-int ['] x-segv ?raise ;
+
+\ Invalid token handler
+: handle-token ( -- ) token-int unmask-int ['] x-token ?raise ;
+
+\ Divide by zero handler
+: handle-divzero ( -- ) divzero-int unmask-int ['] x-divzero ?raise ;
+
+\ Illegal instruction handler
+: handle-illegal ( -- ) illegal-int unmask-int ['] x-illegal ?raise ;
+
+\ Bus error handler
+: handle-bus ( -- ) bus-int unmask-int ['] x-bus ?raise ;
+
+\ Set interrupt handlers
+' handle-segv segv-int set-int-handler
+' handle-token token-int set-int-handler
+' handle-divzero divzero-int set-int-handler
+' handle-illegal illegal-int set-int-handler
+' handle-bus bus-int set-int-handler

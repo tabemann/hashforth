@@ -371,6 +371,34 @@ define-word-created sys-set-trace
 define-word-created sys-set-name-table
 0 set-cell-data
 
+\ Get interrupt handler service ID
+define-word-created sys-get-int-handler
+0 set-cell-data
+
+\ Set interrupt handler service ID
+define-word-created sys-set-int-handler
+0 set-cell-data
+
+\ Get interrupt mask service ID
+define-word-created sys-get-int-mask
+0 set-cell-data
+
+\ Set interrupt mask service ID
+define-word-created sys-set-int-mask
+0 set-cell-data
+
+\ Adjust interrupt mask service ID
+define-word-created sys-adjust-int-mask
+0 set-cell-data
+
+\ Get interrupt handler mask service ID
+define-word-created sys-get-int-handler-mask
+0 set-cell-data
+
+\ Set interrupt handler mask service ID
+define-word-created sys-set-int-handler-mask
+0 set-cell-data
+
 \ Look up a number of services
 define-word lookup-sys ( -- )
   s" READ" +data sys-lookup sys-read !
@@ -381,6 +409,14 @@ define-word lookup-sys ( -- )
   s" GET-TRACE" +data sys-lookup sys-get-trace !
   s" SET-TRACE" +data sys-lookup sys-set-trace !
   s" SET-NAME-TABLE" +data sys-lookup sys-set-name-table !
+  s" SET-NAME-TABLE" +data sys-lookup sys-set-name-table !
+  s" GET-INT-HANDLER" +data sys-lookup sys-get-int-handler !
+  s" SET-INT-HANDLER" +data sys-lookup sys-set-int-handler !
+  s" GET-INT-MASK" +data sys-lookup sys-get-int-mask !
+  s" SET-INT-MASK" +data sys-lookup sys-set-int-mask !
+  s" ADJUST-INT-MASK" +data sys-lookup sys-adjust-int-mask !
+  s" GET-INT-HANDLER-MASK" +data sys-lookup sys-get-int-handler-mask !
+  s" SET-INT-HANDLER-MASK" +data sys-lookup sys-set-int-handler-mask !
 end-word
 
 \ Read a file descriptor (a return value of -1 means success, a return value of
@@ -417,6 +453,31 @@ define-word set-trace ( trace-flag -- ) sys-set-trace @ sys end-word
 
 \ Set the name table
 define-word set-name-table ( addr -- ) sys-set-name-table @ sys end-word
+
+\ Get an interrupt handler
+define-word get-int-handler ( index -- xt ) sys-get-int-handler @ sys end-word
+
+\ Set an interrupt handler
+define-word set-int-handler ( xt index -- ) sys-set-int-handler @ sys end-word
+
+\ Get an interrupt mask
+define-word get-int-mask ( -- mask ) sys-get-int-mask @ sys end-word
+
+\ Set an interrupt mask
+define-word set-int-mask ( -- mask ) sys-set-int-mask @ sys end-word
+
+\ Adjust an interrupt mask
+define-word adjust-int-mask ( and or -- ) sys-adjust-int-mask @ sys end-word
+
+\ Get an interrupt handler mask
+define-word get-int-handler-mask ( index -- mask )
+  sys-get-int-handler-mask @ sys
+end-word
+
+\ Set an interrupt handler mask
+define-word set-int-handler-mask ( mask index -- )
+  sys-set-int-handler-mask @ sys
+end-word
 
 \ Whether to treat IO as single-tasking.
 define-word-created single-task-io
@@ -1654,8 +1715,8 @@ define-word boot ( storage storage-size here -- )
   &boot latestxt-value !
   &boot relocate-name-table
   &boot relocate-info-table
-  &boot wordlist-array 0 lit cells + ! &boot-protected try 0 lit <> +if
-    s" error" +data output-fd @ write 2drop bye
+  &boot wordlist-array 0 lit cells + ! &boot-protected try ?dup +if
+    s" error " +data output-fd @ write 2drop bye
   +else
     bye
   +then

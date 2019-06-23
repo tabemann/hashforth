@@ -380,12 +380,7 @@ void hf_prim_do_does(hf_global_t* global) {
 
 /* End primitive */
 void hf_prim_end(hf_global_t* global) {
-  fprintf(stderr, "End should never be reached!\n");
-#ifndef ABORT_ON_END
-  exit(1);
-#else
-  abort();
-#endif
+  hf_set_int(global, HF_INT_TOKEN, HF_TRUE);
 }
 
 /* NOP primitive */
@@ -513,8 +508,7 @@ void hf_prim_execute(hf_global_t* global) {
 #endif
     word->primitive(global);
   } else {
-    fprintf(stderr, "Out of range token!\n");
-    exit(1);
+    hf_set_int(global, HF_INT_TOKEN, HF_TRUE);
   }
 }
 

@@ -31,6 +31,7 @@
 #define HF_TYPES_H
 
 #include <stdint.h>
+#include <setjmp.h>
 
 /* Forward declarations */
 
@@ -202,8 +203,15 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_PREPARE_TERMINAL (20)
 #define HF_SYS_CLEANUP_TERMINAL (21)
 #define HF_SYS_GET_TERMINAL_SIZE (22)
+#define HF_SYS_GET_INT_HANDLER (23)
+#define HF_SYS_SET_INT_HANDLER (24)
+#define HF_SYS_GET_INT_MASK (25)
+#define HF_SYS_SET_INT_MASK (26)
+#define HF_SYS_ADJUST_INT_MASK (27)
+#define HF_SYS_GET_INT_HANDLER_MASK (28)
+#define HF_SYS_SET_INT_HANDLER_MASK (29)
 
-#define HF_MAX_STD_SERVICES (23)
+#define HF_MAX_STD_SERVICES (30)
 
 #else /* WITH_SYS_ALLOCATE */
 
@@ -233,8 +241,15 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_PREPARE_TERMINAL (23)
 #define HF_SYS_CLEANUP_TERMINAL (24)
 #define HF_SYS_GET_TERMINAL_SIZE (25)
+#define HF_SYS_GET_INT_HANDLER (26)
+#define HF_SYS_SET_INT_HANDLER (27)
+#define HF_SYS_GET_INT_MASK (28)
+#define HF_SYS_SET_INT_MASK (29)
+#define HF_SYS_ADJUST_INT_MASK (30)
+#define HF_SYS_GET_INT_HANDLER_MASK (31)
+#define HF_SYS_SET_INT_HANDLER_MASK (32)
 
-#define HF_MAX_STD_SERVICES (26)
+#define HF_MAX_STD_SERVICES (33)
 
 #endif /* WITH_SYS_ALLOCATE */
 
@@ -255,9 +270,19 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_POLL_HUP (16)
 #define HF_POLL_NVAL (32)
 
-#define HF_WOULDBLOCK (1);
+#define HF_WOULDBLOCK (1)
 
+#define HF_INT_COUNT (16)
+
+#define HF_INT_SEGV (0)
+#define HF_INT_TOKEN (1)
+#define HF_INT_DIVZERO (2)
+#define HF_INT_ILLEGAL (3)
+#define HF_INT_BUS (4)
+  
 /* Definitions */
+
+sigjmp_buf hf_recover;
 
 struct hf_word_t {
   hf_prim_t primitive;
@@ -300,6 +325,10 @@ struct hf_global_t {
   hf_name_t* name_table;
 #endif
   hf_cell_t trace;
+  hf_cell_t int_mask;
+  hf_cell_t int_flags;
+  hf_cell_t int_handler[HF_INT_COUNT];
+  hf_cell_t int_handler_mask[HF_INT_COUNT];
 };
 
 #endif /* HF_TYPES_H */

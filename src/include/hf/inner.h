@@ -41,8 +41,14 @@
 /* Initialize hashforth */
 void hf_init(hf_global_t* global);
 
+/* Set an interrupt */
+void hf_set_int(hf_global_t* global, hf_cell_t interrupt, hf_cell_t required);
+
 /* The inner interpreter */
 void hf_inner(hf_global_t* global);
+
+/* Handle interrupts and execute the inner loop */
+void hf_inner_and_recover(hf_global_t* global);
 
 /* Boot the Forth VM */
 void hf_boot(hf_global_t* global);
