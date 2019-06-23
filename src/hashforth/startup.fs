@@ -313,7 +313,7 @@
   rp@ handler @ < rp@ rbase @ < and if
     segv-int unmask-int ['] x-segv ?raise
   else
-    segv-int unmask-int space ." <no stacktrace>" x-segv
+    segv-int unmask-int backtrace x-segv
     ['] outer try if s" error " output-fd @ write 2drop then bye
   then ;
 
@@ -322,7 +322,7 @@
   rp@ handler @ < rp@ rbase @ < and if
     token-int unmask-int ['] x-token ?raise
   else
-    token-int unmask-int space ." <no stacktrace>" x-token
+    token-int unmask-int backtrace x-token
     ['] outer try if s" error " output-fd @ write 2drop then bye
   then ;
 
@@ -331,7 +331,7 @@
   rp@ handler @ < rp@ rbase @ < and if
     divzero-int unmask-int ['] x-divzero ?raise
   else
-    divzero-int unmask-int space ." <no stacktrace>" x-divzero
+    divzero-int unmask-int backtrace x-divzero
     ['] outer try if s" error " output-fd @ write 2drop then bye
   then ;
 
@@ -340,7 +340,7 @@
     rp@ handler @ < rp@ rbase @ < and if
     illegal-int unmask-int ['] x-illegal ?raise
   else
-    illegal-int unmask-int space ." <no stacktrace>" x-illegal
+    illegal-int unmask-int backtrace x-illegal
     ['] outer try if s" error " output-fd @ write 2drop then bye
   then ;
 
@@ -349,7 +349,7 @@
   rp@ handler @ < rp@ rbase @ < and if
     bus-int unmask-int ['] x-bus ?raise
   else
-    bus-int unmask-int space ." <no stacktrace>" x-bus
+    bus-int unmask-int space backtrace x-bus
     ['] outer try if s" error " output-fd @ write 2drop then bye
   then ;
 
