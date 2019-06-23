@@ -772,8 +772,7 @@ end-word
 
 \ The implementation of the BYE word, invoking the BYE service
 define-word (bye) ( -- )
-  'global-bye-handler @ ?dup +if execute +then
-  sys-bye @ sys
+  'global-bye-handler @ ?dup +if execute +then cr sys-bye @ sys
 end-word
 
 \ The PAUSE hook

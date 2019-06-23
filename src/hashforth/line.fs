@@ -545,7 +545,7 @@ user line
 \ Handle bye
 : handle-bye ( -- )
   set-normal-command
-  line @ line-count @ line @ line-offset ! update-line cr bye ;
+  line @ line-count @ line @ line-offset ! update-line bye ;
 
 \ Handle go forward
 : handle-forward ( -- )

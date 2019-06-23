@@ -260,9 +260,9 @@
   rp@ begin dup rbase @ < while
     dup @ dup find-word-by-address if
       cr swap ." $" 16 base. ." ("
-      word>name over 0 <> if type else 2drop ." <anonymous>" then ." )"
+      word>name over 0 <> if type else 2drop ." <anonymous>" then ." ) "
     else
-      drop cr ." $" 16 base. ." (???)"
+      drop cr ." $" 16 base. ." (???) "
     then
     cell+
   repeat
