@@ -428,7 +428,8 @@ variable sys-set-protect-stacks
   begin
     awake-task-count @ 1 = if
       get-fd-wait-count here over poll-fd-size * allot
-      dup populate-poll-fds over get-sleep-time poll poll-fd-size * negate allot
+      dup populate-poll-fds over get-sleep-time poll 2drop
+      poll-fd-size * negate allot
     then
     pause
   again ;

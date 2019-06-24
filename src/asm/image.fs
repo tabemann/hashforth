@@ -399,6 +399,14 @@ define-word-created sys-get-int-handler-mask
 define-word-created sys-set-int-handler-mask
 0 set-cell-data
 
+\ Get alarm service ID
+define-word-created sys-get-alarm
+0 set-cell-data
+
+\ Set alarm service ID
+define-word-created sys-set-alarm
+0 set-cell-data
+
 \ Look up a number of services
 define-word lookup-sys ( -- )
   s" READ" +data sys-lookup sys-read !
@@ -417,6 +425,8 @@ define-word lookup-sys ( -- )
   s" ADJUST-INT-MASK" +data sys-lookup sys-adjust-int-mask !
   s" GET-INT-HANDLER-MASK" +data sys-lookup sys-get-int-handler-mask !
   s" SET-INT-HANDLER-MASK" +data sys-lookup sys-set-int-handler-mask !
+  s" GET-ALARM" +data sys-lookup sys-get-alarm !
+  s" SET-ALARM" +data sys-lookup sys-set-alarm !
 end-word
 
 \ Read a file descriptor (a return value of -1 means success, a return value of
@@ -477,6 +487,17 @@ end-word
 \ Set an interrupt handler mask
 define-word set-int-handler-mask ( mask index -- )
   sys-set-int-handler-mask @ sys
+end-word
+
+\ Get an alarm
+define-word get-alarm ( alarm -- int-s int-ns val-s val-ns flag )
+  sys-get-alarm @ sys
+end-word
+
+\ Set an alarm
+define-word set-alarm
+  ( nint-s nint-ns nval-s nval-ns alarm -- oint-s oint-ns oval-s oval-ns flag )
+  sys-set-alarm @ sys
 end-word
 
 \ Whether to treat IO as single-tasking.

@@ -212,8 +212,10 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_SET_INT_HANDLER_MASK (29)
 #define HF_SYS_GET_PROTECT_STACKS (30)
 #define HF_SYS_SET_PROTECT_STACKS (31)
+#define HF_SYS_GET_ALARM (32)
+#define HF_SYS_SET_ALARM (34)
 
-#define HF_MAX_STD_SERVICES (32)
+#define HF_MAX_STD_SERVICES (35)
 
 #else /* WITH_SYS_ALLOCATE */
 
@@ -252,8 +254,10 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_SET_INT_HANDLER_MASK (32)
 #define HF_SYS_GET_PROTECT_STACKS (33)
 #define HF_SYS_SET_PROTECT_STACKS (34)
+#define HF_SYS_GET_ALARM (35)
+#define HF_SYS_SET_ALARM (36)
 
-#define HF_MAX_STD_SERVICES (35)
+#define HF_MAX_STD_SERVICES (37)
 
 #endif /* WITH_SYS_ALLOCATE */
 
@@ -283,10 +287,19 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_INT_DIVZERO (2)
 #define HF_INT_ILLEGAL (3)
 #define HF_INT_BUS (4)
-  
+#define HF_INT_ALARM_REAL (5)
+#define HF_INT_ALARM_VIRTUAL (6)
+#define HF_INT_ALARM_PROF (7)
+
+#define HF_ALARM_REAL (0)
+#define HF_ALARM_VIRTUAL (1)
+#define HF_ALARM_PROF (2)
+
 /* Definitions */
 
 sigjmp_buf hf_recover;
+
+hf_global_t* hf_global;
 
 struct hf_word_t {
   hf_prim_t primitive;

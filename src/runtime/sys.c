@@ -40,6 +40,7 @@
 #include <poll.h>
 #include <time.h>
 #include <termios.h>
+#include <sys/time.h>
 #include <sys/ioctl.h>
 #include "hf/common.h"
 #include "hf/inner.h"
@@ -152,6 +153,12 @@ void hf_sys_get_protect_stacks(hf_global_t* global);
 /* Set protect stacks flag service */
 void hf_sys_set_protect_stacks(hf_global_t* global);
 
+/* Get interval timer service */
+void hf_sys_get_alarm(hf_global_t* global);
+
+/* Set interval timer service */
+void hf_sys_set_alarm(hf_global_t* global);
+
 /* Definitions */
 
 /* Register a service */
@@ -249,6 +256,10 @@ void hf_register_services(hf_global_t* global, void** user_space_current) {
   hf_register_service(global, HF_SYS_SET_PROTECT_STACKS,
 		      "SET-PROTECT-STACKS", hf_sys_set_protect_stacks,
 		      user_space_current);
+  hf_register_service(global, HF_SYS_GET_ALARM, "GET-ALARM",
+		      hf_sys_get_alarm, user_space_current);
+  hf_register_service(global, HF_SYS_SET_ALARM, "SET-ALARM",
+		      hf_sys_set_alarm, user_space_current);
 }
 
 /* LOOKUP service */
@@ -530,6 +541,8 @@ void hf_sys_poll(hf_global_t* global) {
       }
       *(fd_info + (i * 3) + 2) = revents;
     }
+    *(--global->data_stack) = count;
+    *(--global->data_stack) = HF_TRUE;
   } else if(errno == EINTR) {
     *(--global->data_stack) = 0;
     *(--global->data_stack) = HF_TRUE;
@@ -716,4 +729,89 @@ void hf_sys_get_protect_stacks(hf_global_t* global) {
 /* Set protect stacks flag service */
 void hf_sys_set_protect_stacks(hf_global_t* global) {
   global->protect_stacks = *global->data_stack++;
+}
+
+/* Get interval timer service */
+void hf_sys_get_alarm(hf_global_t* global) {
+  hf_cell_t alarm_type = *global->data_stack++;
+  int which;
+  struct itimerval info;
+  switch(alarm_type) {
+  case HF_ALARM_REAL:
+    which = ITIMER_REAL;
+    break;
+  case HF_ALARM_VIRTUAL:
+    which = ITIMER_VIRTUAL;
+    break;
+  case HF_ALARM_PROF:
+    which = ITIMER_PROF;
+    break;
+  default:
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = HF_FALSE;
+    return;
+  }
+  if(getitimer(which, &info) == 0) {
+    *(--global->data_stack) = (hf_cell_t)info.it_interval.tv_sec;
+    *(--global->data_stack) = ((hf_cell_t)info.it_interval.tv_usec) * 1000;
+    *(--global->data_stack) = (hf_cell_t)info.it_value.tv_sec;
+    *(--global->data_stack) = ((hf_cell_t)info.it_value.tv_usec) * 1000;
+    *(--global->data_stack) = HF_TRUE ;
+  } else {
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = HF_FALSE;
+  }
+}
+
+/* Set interval timer service */
+void hf_sys_set_alarm(hf_global_t* global) {
+  hf_cell_t alarm_type = *global->data_stack++;
+  int which;
+  hf_cell_t value_ns = *global->data_stack++;
+  hf_cell_t value_s = *global->data_stack++;
+  hf_cell_t interval_ns = *global->data_stack++;
+  hf_cell_t interval_s = *global->data_stack++;
+  struct itimerval new_info;
+  struct itimerval old_info;
+  new_info.it_interval.tv_sec = (time_t)interval_s;
+  new_info.it_interval.tv_usec = (suseconds_t)(interval_ns / 1000);
+  new_info.it_value.tv_sec = (time_t)value_s;
+  new_info.it_value.tv_usec = (suseconds_t)(value_ns / 1000);
+  switch(alarm_type) {
+  case HF_ALARM_REAL:
+    which = ITIMER_REAL;
+    break;
+  case HF_ALARM_VIRTUAL:
+    which = ITIMER_VIRTUAL;
+    break;
+  case HF_ALARM_PROF:
+    which = ITIMER_PROF;
+    break;
+  default:
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = HF_FALSE;
+    return;
+  }
+  if(setitimer(which, &new_info, &old_info) == 0) {
+    *(--global->data_stack) = (hf_cell_t)old_info.it_interval.tv_sec;
+    *(--global->data_stack) = ((hf_cell_t)old_info.it_interval.tv_usec) * 1000;
+    *(--global->data_stack) = (hf_cell_t)old_info.it_value.tv_sec;
+    *(--global->data_stack) = ((hf_cell_t)old_info.it_value.tv_usec) * 1000;
+    *(--global->data_stack) = HF_TRUE ;
+  } else {
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = 0;
+    *(--global->data_stack) = HF_FALSE;
+  }
 }

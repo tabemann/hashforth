@@ -293,6 +293,24 @@
 \ Bus error interrupt
 4 constant bus-int
 
+\ Realtime alarm interrupt
+5 constant alarm-real-int
+
+\ User-mode alarm interrupt
+6 constant alarm-virtual-int
+
+\ User/system alarm interrupt
+7 constant alarm-prof-int
+
+\ Realtime alarm type
+0 constant alarm-real
+
+\ User-mode alarm type
+1 constant alarm-virtual
+
+\ User/system alarm type
+2 constant alarm-prof
+
 \ Segfault exception
 : x-segv ( -- ) space ." segmentation fault" cr ;
 

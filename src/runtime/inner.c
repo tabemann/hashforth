@@ -40,6 +40,7 @@
 void hf_init(hf_global_t* global) {
   hf_cell_t* data_stack_base;
   hf_token_t** return_stack_base;
+  hf_global = global;
   global->word_count = 0;
   global->word_space_count = 0;
   global->words = NULL;
@@ -81,6 +82,23 @@ void hf_recover_signal(int signum, siginfo_t* info, void* extra) {
   case SIGILL:
   case SIGBUS:
     siglongjmp(hf_recover, signum);
+    break;
+  default:
+    break;
+  }
+}
+
+/* Handle an alarm signal */
+void hf_handle_alarm_signal(int signum, siginfo_t* info, void* extra) {
+  switch(signum) {
+  case SIGALRM:
+    hf_global->int_flags |= 1 << HF_INT_ALARM_REAL;
+    break;
+  case SIGVTALRM:
+    hf_global->int_flags |= 1 << HF_INT_ALARM_VIRTUAL;
+    break;
+  case SIGPROF:
+    hf_global->int_flags |= 1 << HF_INT_ALARM_PROF;
     break;
   default:
     break;
@@ -181,6 +199,15 @@ void hf_set_signal_handler(int signum) {
   sigaction(signum, &act, NULL);
 }
 
+/* Set a signal handler */
+void hf_set_alarm_signal_handler(int signum) {
+  struct sigaction act;
+  act.sa_sigaction = hf_handle_alarm_signal;
+  sigemptyset(&act.sa_mask);
+  act.sa_flags = SA_SIGINFO;
+  sigaction(signum, &act, NULL);
+}
+
 /* Handle interrupts and execute the inner loop */
 void hf_inner_and_recover(hf_global_t* global) {
   while(HF_TRUE) {
@@ -190,6 +217,9 @@ void hf_inner_and_recover(hf_global_t* global) {
       hf_set_signal_handler(SIGFPE);
       hf_set_signal_handler(SIGILL);
       hf_set_signal_handler(SIGBUS);
+      hf_set_alarm_signal_handler(SIGALRM);
+      hf_set_alarm_signal_handler(SIGVTALRM);
+      hf_set_alarm_signal_handler(SIGPROF);
       while(HF_TRUE) {
 	hf_inner(global);
 	if(global->int_flags) {
