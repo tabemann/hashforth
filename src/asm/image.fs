@@ -1315,6 +1315,10 @@ end-word
 define-word-created latestxt-value
 0 set-cell-data
 
+\ The maximum xt value
+define-word-created max-xt
+0 set-cell-data
+
 \ Allocate space for a string in user space and copy a string into it, pushing
 \ the allocated string's address and length in bytes on the data stack
 define-word allocate-string ( c-addr bytes -- c-addr bytes )
@@ -1330,7 +1334,7 @@ non-define-word : ( -- )
   parse-name dup 0 lit <> +if
     allocate-string +true state ! here new-colon dup 3 lit roll 3 lit roll rot
 \    S" compiling: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
-    name>word hidden-flag lit over flags>word dup latestxt-value !
+    name>word hidden-flag lit over flags>word dup max-xt ! dup latestxt-value !
     here latestxt-value @ start>word
     get-current wordlist>first over next>word
     get-current first>wordlist
@@ -1342,7 +1346,7 @@ end-word
 \ Begin compilation of an anonymous word, setting LATESTXT to the word, and
 \ pushing the xt for the word onto the data stack
 define-word :noname ( -- xt )
-  true state ! here new-colon dup latestxt-value !
+  true state ! here new-colon dup max-xt ! dup latestxt-value !
   here latestxt-value @ start>word
   0 lit 0 lit latestxt-value @ name>word
 end-word
@@ -1355,7 +1359,7 @@ end-word
 define-word create-with-name ( c-addr bytes -- )
   allocate-string here new-create dup 3 lit roll 3 lit roll rot
 \  S" creating: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
-  name>word dup latestxt-value !
+  name>word dup max-xt ! dup latestxt-value !
   get-current wordlist>first over next>word
   get-current first>wordlist
 end-word
@@ -1665,7 +1669,7 @@ not-vm build-#user @ set-cell-data vm
 \ everything defined after and including itself, including restoring wordlists
 \ to the state where they were when the marker was defined
 define-word marker ( "name" -- )
-  latestxt here create , , #user @ , wordlist-count @ ,
+  max-xt @ latestxt here create , , , #user @ , wordlist-count @ ,
   wordlist-array wordlist-count @ +begin dup 0 lit > +while
     swap dup @ dup latestxt = +if word>next +then , cell+ swap 1 lit -
   +repeat
@@ -1675,8 +1679,10 @@ define-word marker ( "name" -- )
   +repeat
   2drop get-current ,
   does>
-  dup @ here! cell+ dup @ dup latestxt-value ! 1 lit + set-word-count cell+
-  dup @ #user ! dup @ dup wordlist-count !
+  dup @ here!
+  cell+ dup @ latestxt-value !
+  cell+ dup @ dup max-xt ! 1 lit + set-word-count cell+
+  dup @ #user ! cell+ dup @ dup wordlist-count !
   swap cell+ swap wordlist-array swap +begin dup 0 lit > +while
     swap rot dup @ rot tuck ! cell+ swap cell+ swap rot 1 lit -
   +repeat

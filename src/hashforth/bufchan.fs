@@ -106,3 +106,5 @@ end-structure
 
 \ Get channel entry size.
 : get-bufchan-entry-size ( chan -- ) bufchan-vector @ get-vector-entry-size ;
+
+base ! set-current set-order

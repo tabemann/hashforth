@@ -42,7 +42,8 @@ lambda-wordlist set-current
   & branch here 0 , 0 compile, latestxt :noname ; immediate
 
 : ;] ( -- ) ( in xt: -- )
-  & exit 0 compile, rot here swap ! & (lit) , latestxt-value ! ; immediate
+  & exit 0 compile, here latestxt end>word
+  rot here swap ! & (lit) , latestxt-value ! ; immediate
 
 : option ( ... flag true-xt -- ... )
   state @ if
