@@ -189,6 +189,9 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
     token-32 of token-32, endof
   endcase ;
 
+: arg-8, ( value -- )
+  $ff and here c! here 1 code-buffer @ append-buffer ;
+
 : arg-16, ( value -- )
   $ffff and here h! here 2 code-buffer @ append-buffer ;
 
@@ -221,7 +224,7 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
     cell-64 of set-arg-64 endof
   endcase ;
 
-variable current-token 59 current-token !
+variable current-token 62 current-token !
 
 : next-token ( -- token ) current-token @ dup 1+ current-token ! ;
 
@@ -456,66 +459,82 @@ not-vm hashforth-asm-wordlist set-current
 3 primitive branch
 4 primitive 0branch
 5 primitive (lit)
-6 primitive (data)
-7 primitive new-colon
-8 primitive new-create
-9 primitive set-does>
-10 primitive finish
-11 primitive execute
-12 primitive drop
-13 primitive dup
-14 primitive swap
-15 primitive over
-16 primitive rot
-17 primitive pick
-18 primitive roll
-19 primitive @
-20 primitive !
-21 primitive c@
-22 primitive c!
-23 primitive =
-24 primitive <>
-25 primitive <
-26 primitive >
-27 primitive u<
-28 primitive u>
-29 primitive not
-30 primitive and
-31 primitive or
-32 primitive xor
-33 primitive lshift
-34 primitive rshift
-35 primitive arshift
-36 primitive +
-37 primitive -
-38 primitive *
-39 primitive /
-40 primitive mod
-41 primitive u/
-42 primitive umod
-43 primitive mux
-44 primitive /mux
-45 primitive r@
-46 primitive >r
-47 primitive r>
-48 primitive sp@
-49 primitive sp!
-50 primitive rp@
-51 primitive rp!
-52 primitive >body
-53 primitive h@
-54 primitive h!
-55 primitive w@
-56 primitive w!
-57 primitive set-word-count
-58 primitive sys
+6 primitive (litc)
+7 primitive (lith)
+8 primitive (litw)
+9 primitive (data)
+10 primitive new-colon
+11 primitive new-create
+12 primitive set-does>
+13 primitive finish
+14 primitive execute
+15 primitive drop
+16 primitive dup
+17 primitive swap
+18 primitive over
+19 primitive rot
+20 primitive pick
+21 primitive roll
+22 primitive @
+23 primitive !
+24 primitive c@
+25 primitive c!
+26 primitive =
+27 primitive <>
+28 primitive <
+29 primitive >
+30 primitive u<
+31 primitive u>
+32 primitive not
+33 primitive and
+34 primitive or
+35 primitive xor
+36 primitive lshift
+37 primitive rshift
+38 primitive arshift
+39 primitive +
+40 primitive -
+41 primitive *
+42 primitive /
+43 primitive mod
+44 primitive u/
+45 primitive umod
+46 primitive mux
+47 primitive /mux
+48 primitive r@
+49 primitive >r
+50 primitive r>
+51 primitive sp@
+52 primitive sp!
+53 primitive rp@
+54 primitive rp!
+55 primitive >body
+56 primitive h@
+57 primitive h!
+58 primitive w@
+59 primitive w!
+60 primitive set-word-count
+61 primitive sys
 
 name-table-offset @ define-word-created-with-offset name-table
 info-table-offset @ define-word-created-with-offset info-table
 
 : end-word ( -- ) vm exit end not-vm get-ref current-token @ 1 - set-end ;
 
-: lit ( x -- ) vm (lit) not-vm arg, ;
+: lit ( x -- )
+  dup 127 <= over -128 >= and if
+    vm (litc) not-vm arg-8,
+  else
+    dup 32767 <= over -32768 >= and if
+      vm (lith) not-vm arg-16,
+    else
+      dup 2147483647 <= over -2147483648 >= and if
+	vm (litw) not-vm arg-32,
+      else
+	vm (lit) not-vm arg,
+      then
+    then
+  then ;
 
 : back-ref ( "name" -- ) create get-ref , does> @ ;
 

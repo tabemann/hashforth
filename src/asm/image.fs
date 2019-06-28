@@ -166,6 +166,23 @@ define-word compile, ( token -- )
   +then
 end-word
 
+\ Compile a literal
+define-word lit, ( x -- )
+  dup 127 lit <= over -128 lit >= and +if
+    &(litc) compile, $FF lit and c,
+  +else
+    dup 32767 lit <= over -32768 lit >= and +if
+      &(lith) compile, $FFFF lit and h,
+    +else
+      dup 2147483647 lit <= over -2147483648 lit >= and +if
+	&(litw) compile, $FFFFFFFF lit and w,
+      +else
+	&(lit) compile, ,
+      +then
+    +then
+  +then
+end-word
+
 \ Standard input file descriptor constant
 define-word stdin ( -- fd ) 0 lit end-word
 
@@ -1197,7 +1214,7 @@ non-define-word-immediate s" ( "ccc<quote>" -- )
   ( Runtime: -- c-addr bytes )
   parse-string state @ +if
     &(data) compile, dup , swap here 2 lit pick cmove
-    dup allot &(lit) compile, ,
+    dup allot lit,
   +else
     swap string-buffer rot string-buffer-size lit min >r r@ cmove
     string-buffer r>
@@ -1209,7 +1226,7 @@ end-word
 non-define-word-immediate-compile-only ." ( Compile-time "ccc<quote>" -- )
   ( Runtime: -- c-addr bytes )
   parse-string
-  &(data) compile, dup , swap here 2 lit pick cmove dup allot &(lit) compile, ,
+  &(data) compile, dup , swap here 2 lit pick cmove dup allot lit,
   &type compile,
 end-word
 
@@ -1248,7 +1265,7 @@ end-word
 \ Immediately parse a name and compile its first character as a literal, so that
 \ it will be pushed onto the data stack when the code compiled is executed
 define-word-immediate-compile-only [char] ( run-time: -- c )
-  ^char token, &(lit) compile, ,
+  ^char token, lit,
 end-word
 
 \ Parse a name and look it up in the wordlists, pushing its xt onto the data
@@ -1275,14 +1292,14 @@ end-word
 \ it is discarded
 define-word-immediate-compile-only averts ( Compile-time: "name" -- )
   ( Run-time: asserted -- xt|... )
-  &(lit) compile, ' ,  &??raise compile,
+  ' lit,  &??raise compile,
 end-word
 
 \ Compile a value on the data stack as a literal, so it is pushed onto the data
 \ stack when the code compiled is executed at runtme
 define-word-immediate-compile-only literal ( Compile-time: x -- )
   ( Run-time: -- x )
-  &(lit) compile, ,
+  lit,
 end-word
 
 \ Immediately parse a name and look it up in the wordlists, compiling its xt
@@ -1290,14 +1307,14 @@ end-word
 \ executed if it is found and throwing an exception if it is not
 define-word-immediate-compile-only ['] ( Compile-time: "name" -- )
   ( Run-time: -- xt )
-  &(lit) compile, ' ,
+  ' lit,
 end-word
 
 \ Parse a name and look it up in the wordlists, compiling code that compiles
 \ its xt into the code being compiled if it is found and throwing an exception
 \ if it is not
 define-word-immediate-compile-only compile ( Compile-time: "name" -- )
-  &(lit) compile, ' , &compile, compile,
+  ' lit, &compile, compile,
 end-word
 
 \ Parse a name and look it up in the wordlists, compiling its xt into the code
@@ -1522,9 +1539,7 @@ end-word
 define-word handle-number ( c-addr bytes -- )
   2dup parse-number +if
     rot rot 2drop
-    state @ +if
-      &(lit) compile, ,
-    +then
+    state @ +if lit, +then
   +else
     drop save-exception &x-parse-error ?raise
   +then

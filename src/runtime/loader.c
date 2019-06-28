@@ -308,6 +308,12 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 	  current = (hf_token_t*)((void*)current + sizeof(hf_cell_t));
 	} else if(parsed_token == HF_PRIM_LIT) {
 	  current = (hf_token_t*)((void*)current + sizeof(hf_cell_t));
+	} else if(parsed_token == HF_PRIM_LIT_8) {
+	  current = (hf_token_t*)((void*)current + sizeof(uint8_t));
+	} else if(parsed_token == HF_PRIM_LIT_16) {
+	  current = (hf_token_t*)((void*)current + sizeof(uint16_t));
+	} else if(parsed_token == HF_PRIM_LIT_32) {
+	  current = (hf_token_t*)((void*)current + sizeof(uint32_t));
 	} else if(parsed_token == HF_PRIM_DATA) {
 	  hf_cell_t size = *(hf_cell_t*)current;
 	  current = (hf_token_t*)((void*)current + sizeof(hf_cell_t) + size);

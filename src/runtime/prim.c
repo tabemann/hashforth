@@ -59,6 +59,15 @@ void hf_prim_0branch(hf_global_t* global);
 /* (LIT) primitive */
 void hf_prim_lit(hf_global_t* global);
 
+/* (LITC) primitve */
+void hf_prim_lit_8(hf_global_t* global);
+
+/* (LITH) primitive */
+void hf_prim_lit_16(hf_global_t* global);
+
+/* (LITW) primitive */
+void hf_prim_lit_32(hf_global_t* global);
+
 /* (DATA) primitive */
 void hf_prim_data(hf_global_t* global);
 
@@ -252,6 +261,12 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_LIT, hf_prim_lit,
 		   user_space_current);
+  hf_register_prim(global, HF_PRIM_LIT_8, hf_prim_lit_8,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_LIT_16, hf_prim_lit_16,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_LIT_32, hf_prim_lit_32,
+		   user_space_current);
   hf_register_prim(global, HF_PRIM_DATA, hf_prim_data,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_NEW_COLON, hf_prim_new_colon,
@@ -410,6 +425,30 @@ void hf_prim_0branch(hf_global_t* global) {
 void hf_prim_lit(hf_global_t* global) {
   *(--global->data_stack) = *(hf_cell_t*)global->ip;
   global->ip = (hf_token_t*)((void*)global->ip + sizeof(hf_cell_t));
+}
+
+/* (LITC) primitve */
+void hf_prim_lit_8(hf_global_t* global) {
+  hf_cell_t value = *(uint8_t*)global->ip;
+  global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint8_t));
+  *(--global->data_stack) =
+    value < 128 ? value : value | (((hf_sign_cell_t)-1) & ~0xFF);
+}
+
+/* (LITH) primitive */
+void hf_prim_lit_16(hf_global_t* global) {
+  hf_cell_t value = *(uint16_t*)global->ip;
+  global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint16_t));
+  *(--global->data_stack) =
+    value < 32768 ? value : value | (((hf_sign_cell_t)-1) & ~0xFFFF);
+}
+
+/* (LITW) primitive */
+void hf_prim_lit_32(hf_global_t* global) {
+  hf_cell_t value = *(uint32_t*)global->ip;
+  global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint32_t));
+  *(--global->data_stack) =
+    value < 2147483648 ? value : value | (((hf_sign_cell_t)-1) & ~0xFFFFFFFF);
 }
 
 /* (DATA) primitive */
