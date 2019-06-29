@@ -237,7 +237,64 @@
 \ directly beneath the count
 : nips ( x*u1 x1 u1 -- x1 ) swap >r 1- drops r> ;
 
-\ Search for the word an address is in
+\ s" constant
+2 constant s"-length
+create s"-data char s c, char " c,
+s"-data s"-length 2constant s"-constant
+
+\ ." constant
+2 constant ."-length
+create ."-data char c c, char " c,
+."-data ."-length 2constant ."-constant
+
+\ c" constant
+2 constant c"-length
+create c"-data char c c, char " c,
+c"-data c"-length 2constant c"-constant
+
+\ Implement the [else] in [if]/[else]/[then] for conditional
+\ execution/compilation
+: [else] ( -- )
+  1 begin
+    begin parse-name dup while
+      case
+	s" [if]" ofstrcase 1 + endof
+        s" [else]" ofstrcase 1 - dup if 1 + then endof
+        s" [then]" ofstrcase 1 - endof
+	s" \" ofstrcase
+	  begin
+	    input-left? if input-newline? advance->in else true then
+	  until
+	endof
+	s" (" ofstrcase
+	  begin
+	    input-left? if input-close-paren? advance->in else true then
+	  until
+	endof
+	s"-constant ofstrcase parse-string 2drop endof
+	c"-constant ofstrcase parse-string 2drop endof
+	."-constant ofstrcase parse-string 2drop endof
+	s" .(" ofstrcase parse-paren-string 2drop endof
+	s" char" ofstrcase state @ not if parse-name 2drop then endof
+	s" [char]" ofstrcase parse-name 2drop endof
+	s" '" ofstrcase state @ not if parse-name 2drop then endof
+	s" [']" ofstrcase parse-name 2drop endof
+	s" postpone" ofstrcase parse-name 2drop endof
+	s" &" ofstrcase parse-name 2drop endof
+      endcasestr
+      ?dup 0 = if exit then
+    repeat 2drop
+  refill input# @ 0 = until
+  drop
+; immediate
+
+\ Start conditional execution/compilation
+: [if] ( flag -- ) 0 = if & [else] then ; immediate
+
+\ Finish conditional execution/compilation
+: [then] ( -- ) ; immediate
+
+ \ Search for the word an address is in
 : find-word-by-address ( addr -- xt found )
   latestxt begin
     dup 0 > if
