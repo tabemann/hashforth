@@ -42,6 +42,12 @@ forth-wordlist lambda-wordlist map-private-wordlist map-wordlist
 lambda-wordlist 5 set-order
 map-private-wordlist set-current
 
+\ Map entry is free
+0 constant map-entry-free
+
+\ Map entry is deleted
+-1 constant map-entry-deleted
+
 \ The map entry structure
 begin-structure map-header-size
   \ The map entry key size
@@ -97,7 +103,34 @@ end-structure
 : get-index ( addr bytes map -- index )
   2 pick 2 pick 2 pick get-entry-key dup >r begin
     dup 2 pick get-entry
-    dup @ 0 = if ( addr bytes map entry-key entry )
+    dup @ map-entry-free = if ( addr bytes map entry-key entry )
+      drop nip nip nip r> drop true
+    else
+      dup @ map-entry-deleted <> if
+	4 pick 4 pick rot @ compare-keys if
+	  nip nip nip r> drop true
+	else
+	  1 + over map-count @ umod dup r@ <> if
+	    false
+	  else
+	    2drop 2drop r> drop -1 true
+	  then
+	then
+      else
+	drop 1 + over map-count @ umod dup r@ <> if
+	  false
+	else
+	  2drop 2drop r> drop -1 true
+	then
+      then
+    then
+  until ;
+
+\ Get the index for a free key; return -1 if key is not found
+: get-free-index ( addr bytes map -- index )
+  2 pick 2 pick 2 pick get-entry-key dup >r begin
+    dup 2 pick get-entry
+    dup @ dup map-entry-free = swap map-entry-deleted = or if
       drop nip nip nip r> drop true
     else
       4 pick 4 pick rot @ compare-keys if
@@ -113,7 +146,8 @@ end-structure
   until ;
 
 \ Get whether an index is a found index
-: is-found-index ( index map -- ) get-entry @ 0 <> ;
+: is-found-index ( index map -- )
+  get-entry @ dup map-entry-free <> swap map-entry-deleted <> and ;
 
 \ Get the key of an entry
 : entry-key ( entry -- addr bytes )
@@ -135,7 +169,7 @@ end-structure
 
 \ Actually set a value in a map
 : actually-set-map ( addr map -- success )
-  over entry-key 2 pick get-index dup -1 <> if
+  over entry-key 2 pick get-free-index dup -1 <> if
     dup 2 pick is-found-index if
       2dup swap get-entry @ 2 pick do-finalize
       swap get-entry dup @ free! ! true
@@ -175,8 +209,10 @@ end-structure
   2dup map-entries !
   dup map-entries @ over map-count @ cells 0 fill
   2 pick map-count @ 0 ?do
-    i 3 pick get-entry @ ?dup if
+    i 3 pick get-entry @ dup map-entry-free <> over map-entry-deleted <> and if
       over actually-set-map averts x-map-internal
+    else
+      drop
     then
   loop
   drop map-size negate allot
@@ -209,7 +245,7 @@ map-wordlist set-current
 : clear-map ( map -- )
   dup map-count @ 0 ?do
     i over is-found-index if
-      i over get-entry dup @ dup 3 pick do-finalize free! 0 swap !
+      i over get-entry dup @ dup 3 pick do-finalize free! map-entry-free swap !
     then
   loop
   0 swap map-entry-count ! ;
@@ -269,7 +305,11 @@ map-wordlist set-current
   dup >r get-index dup -1 <> if
     dup r@ is-found-index if
       -1 r@ map-entry-count +!
-      r@ get-entry dup @ r> do-finalize 0 swap ! true
+      dup 1 + r@ map-count @ umod r@ get-entry @ map-entry-free <> if
+	r@ get-entry dup @ r> do-finalize map-entry-deleted swap ! true
+      else
+	r@ get-entry dup @ r> do-finalize map-entry-free swap ! true
+      then
     else
       drop r> drop false
     then

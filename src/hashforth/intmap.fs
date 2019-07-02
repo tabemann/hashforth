@@ -42,9 +42,21 @@ forth-wordlist lambda-wordlist intmap-private-wordlist intmap-wordlist
 lambda-wordlist 5 set-order
 intmap-private-wordlist set-current
 
+\ Intmap entry is free
+0 constant intmap-entry-free
+
+\ Intmap entry is deleted
+1 constant intmap-entry-deleted
+
+\ Intmap entry is used
+2 constant intmap-entry-used
+
 \ The intmap entry structure
 begin-structure intmap-header-size
-  \ The intmap entry key (+ 1, a key of 0 indicates that an entry is free)
+  \ The intmap entry state
+  field: intmap-entry-state
+  
+  \ The intmap entry key
   field: intmap-entry-key
 end-structure
 
@@ -87,10 +99,30 @@ end-structure
 : get-index ( key intmap -- index )
   2dup get-entry-key dup >r begin
     dup 2 pick get-entry
-    dup intmap-entry-key @ 0 = if ( key intmap entry-key entry )
+    dup intmap-entry-state @ intmap-entry-free = if
       drop nip nip r> drop true ( [: ." a " ;] as-non-task-io )
     else
-      dup intmap-entry-key @ 4 pick 1 + = if
+      dup intmap-entry-key @ 4 pick = if
+	drop nip nip r> drop true ( [: ." b " ;] as-non-task-io )
+      else
+	drop 1 + over intmap-count @ umod dup r@ <> if
+	  false ( [: ." c " ;] as-non-task-io )
+	else
+	  2drop drop r> drop -1 true ( [: ." d " ;] as-non-task-io )
+	then
+      then
+    then
+  until ;
+
+\ Get the index for a free key; returns -1 if key is not found
+: get-free-index ( key intmap -- index )
+  2dup get-entry-key dup >r begin
+    dup 2 pick get-entry
+    dup intmap-entry-state @
+    dup intmap-entry-free = swap intmap-entry-deleted = or if
+      drop nip nip r> drop true ( [: ." a " ;] as-non-task-io )
+    else
+      dup intmap-entry-key @ 4 pick = if
 	drop nip nip r> drop true ( [: ." b " ;] as-non-task-io )
       else
 	drop 1 + over intmap-count @ umod dup r@ <> if
@@ -103,7 +135,8 @@ end-structure
   until ;
 
 \ Get whether an index is a found index
-: is-found-index ( index intmap -- ) get-entry intmap-entry-key @ 0 <> ;
+: is-found-index ( index intmap -- )
+  get-entry intmap-entry-state @ intmap-entry-used = ;
 
 \ Carry out finalizing of an entry if there is a finalizer xt
 : do-finalize ( entry intmap -- )
@@ -119,13 +152,14 @@ end-structure
 
 \ Actually set a value in an intmap
 : actually-set-intmap ( addr key intmap -- success )
-  2dup get-index dup -1 <> if
+  2dup get-free-index dup -1 <> if
     dup 2 pick is-found-index if
       over get-entry rot drop dup 2 pick do-finalize
       intmap-header-size + rot swap rot intmap-value-size @ move true
     else
       1 2 pick intmap-entry-count +!
-      over get-entry rot 1 + over intmap-entry-key !
+      over get-entry rot over intmap-entry-key !
+      intmap-entry-used over intmap-entry-state !
       intmap-header-size + rot swap rot intmap-value-size @ move true
     then
   else
@@ -153,8 +187,8 @@ end-structure
   dup intmap-entries @ over intmap-count @ 2 pick intmap-entry-size *
   0 fill
   2 pick intmap-count @ 0 ?do
-    i 3 pick get-entry dup intmap-entry-key @ 0 <> if
-      dup intmap-header-size + swap intmap-entry-key @ 1 -
+    i 3 pick get-entry dup intmap-entry-state @ intmap-entry-used = if
+      dup intmap-header-size + swap intmap-entry-key @
       2 pick actually-set-intmap averts x-intmap-internal
     else
       drop
@@ -211,7 +245,8 @@ intmap-wordlist set-current
 : clear-intmap ( intmap -- )
   dup intmap-count @ 0 ?do
     i over is-found-index if
-      i over get-entry dup 2 pick do-finalize 0 swap !
+      i over get-entry dup 2 pick do-finalize
+      intmap-entry-free swap intmap-entry-state !
     then
   loop
   0 swap intmap-entry-count ! ;
@@ -233,7 +268,7 @@ intmap-wordlist set-current
     2dup swap intmap-count @ < if
       2dup swap is-found-index if
 	2dup swap get-entry swap >r swap >r swap >r
-	dup intmap-header-size + swap @ 1 - r@ execute
+	dup intmap-header-size + swap intmap-entry-key @ r@ execute
 	r> r> r>
       then
       1 + false
@@ -269,15 +304,21 @@ intmap-wordlist set-current
 
 \ Delete a value in an intmap
 : delete-intmap ( key intmap -- found )
-  tuck get-index dup -1 <> if
+  2dup >r >r tuck get-index dup -1 <> if
     dup 2 pick is-found-index if
       -1 2 pick intmap-entry-count +!
-      over get-entry dup rot do-finalize 0 swap intmap-entry-key ! true
+      over get-entry dup rot do-finalize
+      r> r> swap 1 + over intmap-count @ umod swap
+      get-entry intmap-entry-state @ intmap-entry-free <> if
+	intmap-entry-deleted swap intmap-entry-state ! true
+      else
+	intmap-entry-free swap intmap-entry-state ! true
+      then
     else
-      2drop false
+      r> r> 2drop 2drop false
     then
   else
-    2drop false
+    r> r> 2drop 2drop false
   then ;
 
 \ Get whether a key is a member of an intmap
