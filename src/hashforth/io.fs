@@ -315,15 +315,15 @@ variable first-included-item
 
 \ Execute code with a specific input file descriptor
 : with-input-fd ( xt fd -- )
-  input-fd @ >r input-fd ! try r> input-fd ! ?raise ;
+  input-fd @ >r input-fd ! try r> input-fd ! ?reraise ;
 
 \ Execute code with a specific output file descriptor
 : with-output-fd ( xt fd -- )
-  output-fd @ >r output-fd ! try r> output-fd ! ?raise ;
+  output-fd @ >r output-fd ! try r> output-fd ! ?reraise ;
 
 \ Execute code with a specific error file descriptor
 : with-error-fd ( xt fd -- )
-  error-fd @ >r error-fd ! try r> error-fd ! ?raise ;
+  error-fd @ >r error-fd ! try r> error-fd ! ?reraise ;
 
 \ Old BYE implementation
 variable old-bye 'bye @ old-bye !

@@ -30,7 +30,7 @@
 get-order get-current base @
 
 decimal
-forth-wordlist task-wordlist 2 set-order
+forth-wordlist lambda-wordlist task-wordlist 3 set-order
 task-wordlist set-current
 
 begin-structure mutex-size
@@ -43,6 +43,16 @@ end-structure
 
 \ Mutex is allocated flags
 1 constant allocated-mutex
+
+\ Dump a mutex
+: mutex. ( mutex -- )
+  [:
+    cr ." mutex-flags: " dup mutex-flags @ .
+    cr ." mutex-held: " dup mutex-held @ .
+    cr ." mutex-waiting: " dup mutex-waiting @ .
+    cr ." mutex-waiting-count: " dup mutex-waiting-count @ .
+    cr ." mutex-waiting-size: " mutex-waiting-size @ .
+  ;] as-non-task-io ;
 
 \ Allot a new mutex variable with a specified waiting queue size.
 : allot-mutex ( waiting-size -- mutex )
@@ -76,9 +86,9 @@ end-structure
     begin dup mutex-waiting-count @ over mutex-waiting-size @ = while
       pause
     repeat
-    dup mutex-held @ 0<> and mutex-held @ current-task <> and if
-      dup mutex-waiting @ over mutex-waiting-count @ cells + current-task swap !
-      1 swap mutex-waiting-count +!
+    dup mutex-held @ 0<> over mutex-held @ current-task <> and if
+      dup mutex-waiting @ over mutex-waiting-count @ cells + swap !
+      1 over mutex-waiting-count +!
       current-task deactivate-task
     then
   repeat
@@ -99,6 +109,6 @@ end-structure
 
 \ Lock and unlock a mutex after executing a word.
 : with-mutex ( mutex xt -- )
-  over lock-mutex swap >r try r> unlock-mutex ?raise ;
+  over lock-mutex swap >r try r> unlock-mutex ?reraise ;
 
 base ! set-current set-order

@@ -43,7 +43,7 @@
 
 \ Execute an xt with a specified BASE set, restoring BASE afterwards even if
 \ an exception occurs
-: base-execute ( i*x xt base -- j*x ) base @ >r base ! try r> base ! ?raise ;
+: base-execute ( i*x xt base -- j*x ) base @ >r base ! try r> base ! ?reraise ;
 
 \ Execute . with a specified base
 : base. ( n base -- ) ['] . swap base-execute ;

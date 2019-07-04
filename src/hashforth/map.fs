@@ -288,7 +288,7 @@ map-wordlist set-current
     dup ['] expand-map try dup ['] x-map-allocate-failed = if
       drop 0
     then
-    ?raise
+    ?reraise
   then
   >r allocate-entry ?dup if
     dup r> actually-set-map if

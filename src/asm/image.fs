@@ -288,9 +288,15 @@ end-word
 \ If the passed-in value is non-zero, raise an exception; note that this value
 \ should be an xt, since uncaught exception values are normally executed as an
 \ xt
-define-word ?raise ( xt | 0 -- xt | 0 )
-  dup +if 'global-handler @ ?dup +if execute +then +then
+define-word ?reraise ( xt | 0 -- xt | 0 )
   ?dup +if handler @ rp! r> handler ! r> swap >r sp! drop r> +then
+end-word
+
+\ If the passed-in value is non-zero, raise an exception; note that this value
+\ should be an xt, since uncaught exception values are normally executed as an
+\ xt
+define-word ?raise ( xt | 0 -- xt | 0 )
+  dup +if 'global-handler @ ?dup +if execute +then +then ?reraise
 end-word
 
 \ IF conditional

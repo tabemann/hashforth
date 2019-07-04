@@ -297,7 +297,7 @@ intmap-wordlist set-current
       dup ['] expand-intmap try dup ['] x-intmap-allocate-failed = if
 	drop 0
       then
-      ?raise
+      ?reraise
     then
   then
   actually-set-intmap ;
