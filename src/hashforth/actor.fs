@@ -61,6 +61,9 @@ initial-dead-actor-count 1 cells 1 allocate-bufchan constant dead-actor-chan
 \ Actor user variable
 user current-actor-obj
 
+\ Actor started flag
+1 constant actor-started
+
 \ Actor structure
 begin-structure actor-size
   \ Actor index
@@ -77,6 +80,9 @@ begin-structure actor-size
 
   \ Actor termination notification map
   field: actor-end-notify-map
+
+  \ Actor flags
+  field: actor-flags
 end-structure
 
 \ Actor configuration structure
@@ -207,9 +213,22 @@ reaper activate-task
   1 next-actor-index +!
   dup dup actor-index @ actor-map set-intmap-cell drop
   dup dup actor-index @ swap actor-task @ task-actor-map set-intmap-cell drop
-  dup actor-task @ activate-task
+  0 over actor-flags !
   actor-index @ ;
 
+\ Start an actor
+: start-actor ( actor-index -- )
+  actor-map get-intmap-cell if
+    dup actor-flags @ actor-started and 0 = if
+      dup actor-flags @ actor-started or over actor-flags !
+      actor-task @ activate-task
+    else
+      drop
+    then
+  else
+    drop
+  then ;
+  
 \ Get whether the current task is an actor
 : current-task-actor? ( -- actor? )
   current-task task-actor-map member-intmap ;
