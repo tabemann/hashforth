@@ -61,6 +61,15 @@ initial-dead-actor-count 1 cells 1 allocate-bufchan constant dead-actor-chan
 \ Actor user variable
 user current-actor-obj
 
+\ Actor init xt
+user actor-xt
+
+\ Actor init data size
+user actor-data-size
+
+\ Actor init data
+user actor-data
+
 \ Actor started flag
 1 constant actor-started
 
@@ -170,7 +179,7 @@ constant default-actor-config
   current-actor-obj @ actor-task @ deactivate-task ;
 
 \ Run an actor
-: run-actor ( -- ) here @ try ?dup if execute then kill-current-actor ;
+: run-actor ( -- ) actor-xt @ try ?dup if execute then kill-current-actor ;
 
 \ Task to destroy dead tasks
 : run-reaper ( -- )
@@ -193,15 +202,22 @@ constant default-actor-config
 \ Activate the reaper
 reaper activate-task
 
-\ Spawn an actor
-: spawn-actor ( config xt -- actor-index )
-  swap >r actor-size allocate!
+\ Spawn an actor with data
+: spawn-actor-with-data ( config addr bytes xt -- actor-index )
+  3 roll >r actor-size allocate!
   r@ actor-data-stack-size @
   r@ actor-return-stack-size @
   r@ actor-user-size @
   r@ actor-locals-count @
   ['] run-actor allocate-task over actor-task !
-  swap ['] task-here 2 pick actor-task @ access-task @ !
+  ['] task-here over actor-task @ access-task @
+  ['] actor-data 2 pick actor-task @ access-task !
+  swap ['] actor-xt 2 pick actor-task @ access-task !
+  over ['] actor-data-size 2 pick actor-task @ access-task !
+  ['] task-here over actor-task @ access-task @
+  swap >r swap move r>
+  ['] actor-data-size over actor-task @ access-task @
+  ['] task-here 2 pick actor-task @ access-task +!
   dup ['] current-actor-obj 2 pick actor-task @ access-task !
   r@ actor-chan-queue-count @
   r@ actor-chan-block-size  @
@@ -215,6 +231,9 @@ reaper activate-task
   dup dup actor-index @ swap actor-task @ task-actor-map set-intmap-cell drop
   0 over actor-flags !
   actor-index @ ;
+
+\ Spawn an actor without data
+: spawn-actor ( config xt -- actor-index ) here 0 rot spawn-actor-with-data ;
 
 \ Start an actor
 : start-actor ( actor-index -- )
