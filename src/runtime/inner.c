@@ -123,12 +123,12 @@ void hf_inner(hf_global_t* global) {
     hf_full_token_t token = *global->ip++;
 #ifdef TOKEN_8_16
     if(token & 0x80) {
-      token = (token & 0x7F) | ((hf_full_token_t)(*global->ip++ + 1) << 7);
+      token = (token & 0x7F) | ((hf_full_token_t)(*global->ip++) << 7);
     }
 #else
 #ifdef TOKEN_16_32
     if(token & 0x8000) {
-      token = (token & 0x7FFF) | ((hf_full_token_t)(*global->ip++ + 1) << 15);
+      token = (token & 0x7FFF) | ((hf_full_token_t)(*global->ip++) << 15);
     }
 #endif
 #endif

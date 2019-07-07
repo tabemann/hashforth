@@ -294,6 +294,44 @@ c"-data c"-length 2constant c"-constant
 \ Finish conditional execution/compilation
 : [then] ( -- ) ; immediate
 
+\ Decompile 8/16-bit token
+: decompile-token-8-16 ( addr -- addr token )
+  dup c@ dup $80 u< if
+    swap 1 + swap
+  else
+    $7f and swap 1 + dup c@ 7 lshift rot or swap 1 + swap
+  then ;
+
+\ Decompile 16-bit token
+: decompile-token-16 ( addr -- addr token ) dup h@ swap 2 + swap ;
+
+\ Decompile 16/32-bit token
+: decompile-token-16-32 ( addr -- addr token )
+  dup h@ dup $8000 u< if
+    swap 2 + swap
+  else
+    $7fff swap 2 + dup h@ 15 lshift rot or swap 2 + swap
+  then ;
+
+\ Decompile 32-bit token
+: decompile-token-32 ( addr -- addr token ) dup w@ swap 4 + swap ;
+
+\ Decompile token
+: decompile-token ( addr -- addr token )
+  half-token-size 1 = if
+    decompile-token-8-16
+  else
+    half-token-size 2 = full-token-size 2 = and if
+      decompile-token-16
+    else
+      half-token-size 2 = full-token-size 4 = and if
+	decompile-token-16-32
+      else
+	decompile-token-32
+      then
+    then
+  then ;
+
  \ Search for the word an address is in
 : find-word-by-address ( addr -- xt found )
   latestxt begin

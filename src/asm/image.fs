@@ -139,28 +139,52 @@ define-word h, ( c -- ) here h! 2 lit allot end-word
 \ bytes
 define-word w, ( c -- ) here w! 4 lit allot end-word
 
+\ Compile 8/16-bit token at the HERE pointer and advance the HERE pointer by
+\ the token size
+define-word compile-8-16, ( token -- )
+  dup $80 lit u< +if
+    c,
+  +else
+    dup $7f lit and $80 lit or c, 7 lit rshift $ff lit and c,
+  +then
+end-word
+
+\ Compile 16-bit token at the HERE pointer and advance the HERE pointer by
+\ the token size
+define-word compile-16, ( token -- )
+  $ffff lit and h,
+end-word
+
+\ Compile 16/32-bit token at the HERE pointer and advance the HERE pointer by
+\ the token size
+define-word compile-16-32, ( token -- )
+  dup $8000 lit u< +if
+    h,
+  +else
+    dup $7fff lit and $8000 lit or h, 15 lit rshift
+    $ffff lit and h,
+  +then
+end-word
+
+\ Compile 32-bit token at the HERE pointer and advance the HERE pointer by
+\ the token size
+define-word compile-32, ( token -- )
+  $ffffffff lit and w,
+end-word
+
 \ Compile a token at the HERE pointer and advance the HERE pointer by the token
 \ size
 define-word compile, ( token -- )
   not-vm target-token @ token-8-16 = vm lit +if
-    dup $80 lit u< +if
-      c,
-    +else
-      dup $7f lit and $80 lit or c, 7 lit rshift 1 lit - $ff lit and c,
-    +then
+    compile-8-16,
   +else
     not-vm target-token @ token-16 = vm lit +if
-      $ffff lit and h,
+      compile-16,
     +else
       not-vm target-token @ token-16-32 = vm lit +if
-        dup $8000 lit u< +if
-          h,
-        +else
-          dup $7fff lit and $8000 lit or h, 15 lit rshift 1 lit -
-	  $ffff lit and h,
-	+then
+	compile-16-32,
       +else ( TARGET-TOKEN @ TOKEN-32 NOT-VM = VM )
-        $ffffffff lit and w,
+        compile-32,
       +then
     +then
   +then
@@ -1663,7 +1687,9 @@ define-word outer ( -- )
     refill
     &interpret try dup 0 lit = +if
       drop state @ 0 lit = input @ input-buffer = and +if
-        space s" ok" +data type cr
+	space s" ok" +data type cr
+      +else
+	cr
       +then
     +else
       dup &quit-exception = +if
