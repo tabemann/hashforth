@@ -310,7 +310,7 @@ c"-data c"-length 2constant c"-constant
   dup h@ dup $8000 u< if
     swap 2 + swap
   else
-    $7fff swap 2 + dup h@ 15 lshift rot or swap 2 + swap
+    $7fff and swap 2 + dup h@ 15 lshift rot or swap 2 + swap
   then ;
 
 \ Decompile 32-bit token
@@ -332,6 +332,79 @@ c"-data c"-length 2constant c"-constant
     then
   then ;
 
+\ Decompile a branch token
+: decompile-branch ( addr -- addr )
+  ." branch $" dup @ dup ['] . 16 base-execute
+  over cell+ decompile-token nip 0 = if nip else drop cell+ then ;
+
+\ Decompile a 0branch token
+: decompile-0branch ( addr -- addr )
+  ." 0branch $" dup @ ['] . 16 base-execute cell+ ;
+
+\ Decompile a (lit) token
+: decompile-(lit) ( addr -- addr ) ." (lit) " dup @ . cell+ ;
+
+\ Decompile a (litc) token
+: decompile-(litc) ( addr -- addr ) ." (litc) " dup c@ . 1 + ;
+
+\ Decompile a (lith) token
+: decompile-(lith) ( addr -- addr ) ." (lith) " dup h@ . 2 + ;
+
+\ Decompile a (litw) token
+: decompile-(litw) ( addr -- addr ) ." (litw) " dup w@ . 4 + ;
+
+\ Print out a string with control characters and characters over $7F replaced
+: type-replaced-string ( addr bytes -- )
+  begin dup 0 > while
+    swap dup c@ dup $21 < over $7f > or if drop [char] . then emit
+    1 + swap 1 -
+  repeat
+  2drop ;
+
+\ Print out a string in hex
+: type-hex-string ( addr bytes -- )
+  begin dup 0 > while
+    swap dup c@
+    dup $f0 and 4 rshift dup 9 > if 10 - [char] A + else [char] 0 + then emit
+    $0f and dup 9 > if 10 - [char] A + else [char] 0 + then emit space
+    1 + swap 1 -
+  repeat
+  2drop ;
+
+\ Decompile a (data) token
+: decompile-(data) ( addr -- addr )
+  ." (data) size: " dup @ swap cell+ swap dup . 2dup type-replaced-string
+  space 2dup type-hex-string + ;
+
+\ Decompile an operation
+: decompile-op ( addr token -- addr )
+  case
+    ['] branch of decompile-branch endof
+    ['] 0branch of decompile-0branch endof
+    ['] (lit) of decompile-(lit) endof
+    ['] (litc) of decompile-(litc) endof
+    ['] (lith) of decompile-(lith) endof
+    ['] (litw) of decompile-(litw) endof
+    ['] (data) of decompile-(data) endof
+    dup word>name type
+  endcase ;
+
+\ Decompile at a starting address
+: decompile-at-address ( addr -- )
+  begin
+    dup decompile-token dup 0 <> if
+      rot cr ." $" ['] . 16 base-execute decompile-op false
+    else
+      drop 2drop true
+    then
+  until ;
+
+\ Decompile a specified word
+: decompile ( xt -- ) word>start decompile-at-address ;
+
+\ Decompile a specified word
+: see ( "name" -- ) ' decompile ;
+
  \ Search for the word an address is in
 : find-word-by-address ( addr -- xt found )
   latestxt begin
@@ -349,6 +422,10 @@ c"-data c"-length 2constant c"-constant
       2drop 0 false true
     then
   until ;
+
+\ Decompile a word containing an address
+: decompile-by-address ( addr -- )
+  find-word-by-address if decompile else drop cr ." ???" then ;
 
 \ Actually display a backtrace
 : do-backtrace ( -- )
