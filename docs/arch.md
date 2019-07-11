@@ -593,13 +593,13 @@ Set the interrupt mask associated with an interrupt, whose index is popped off t
 
 ### `HF_SYS_GET_PROTECT_STACKS` (30)
 
-#### ( f -- )
+#### ( -- f )
 
 Set whether to protect the stacks when executing interrupt handlers, i.e. to allow interrupt handlers to execute even when there is severe data or return stack underflow.
 
 ### `HF_SYS_SET_PROTECT_STACKS` (31)
 
-#### ( -- f )
+#### ( f -- )
 
 Get whether to protect the stacks when executing interrupt handlers, i.e. to allow interrupt handlers to execute even when there is severe data or return stack underflow.
 
@@ -613,7 +613,7 @@ Get the settings of an alarm, including alarm interval in seconds and nanosecond
 
 #### ( new-interval-s new-interval-ns new-value-s new-value-ns alarm -- old-interval-s old-interval-ns old-value-s old-value-ns success )
 
-Set new settings of an alarm, including alarm interval in seconds and nanoseconds and alarm value (time until next alarm trigger) in seconds and nanoseconds, and return old settings of the same, along with `TRUE` on success. In the case of an invalid alarm type, filler values and `FALSE` are returned and no action is taken;
+Set new settings of an alarm, including alarm interval in seconds and nanoseconds and alarm value (time until next alarm trigger) in seconds and nanoseconds, and return old settings of the same, along with `TRUE` on success. In the case of an invalid alarm type, filler values and `FALSE` are returned and no action is taken.
 
 ## Interrupts
 
