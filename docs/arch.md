@@ -35,355 +35,373 @@ After all loading is complete, the stored data address, the stored data length, 
 
 There exist the following primitives in hashforth; for all these primitives, if not specified otherwise, the interpreter pointer after the word's execution points to the token immediately after the token executed:
 
-### `HF_PRIM_END` (0), also known as `END`
+### `HF_PRIM_END` (0)
 
 #### ( -- )
 
 This word should not be executed, and its execution indicates a bug in either the code being executed or the VM itself. Its execution results in an immediate exit.
 
-### `HF_PRIM_NOP` (1), also known as `NOP`
+### `HF_PRIM_NOP` (1), also known as `nop`
 
 #### ( -- )
 
 This word is a no-op.
 
-### `HF_PRIM_EXIT` (2), also known as `EXIT`
+### `HF_PRIM_EXIT` (2), also known as `exit`
 
 #### ( -- ) ( R: addr -- )
 
 This word's execution results in the top of the return stack being popped and transferred to the interpreter pointer.
 
-### `HF_PRIM_BRANCH` (3), also known as `BRANCH`
+### `HF_PRIM_BRANCH` (3), also known as `branch`
 
 #### ( -- )
 
 This word's execution results in the cell immediately after the token for this word being transferred to the interpreter pointer.
 
-### `HF_PRIM_0BRANCH` (4), also known as `0BRANCH`
+### `HF_PRIM_0BRANCH` (4), also known as `0branch`
 
 #### ( u -- )
 
 This word's execution results in the value on the top of the data stack being popped; if its value is zero the cell immediately after the token for this word is transferred to the interpreter pointer; otherwise the interpreter pointer afterwards points to the token after the cell immediately after the token for this word.
 
-### `HF_PRIM_LIT` (5), also known as `(LIT)`
+### `HF_PRIM_LIT` (5), also known as `(lit)`
 
 #### ( -- n )
 
 This word's execution results in the value in the cell immediately after the token for this word being pushed onto the top of the data stack, and the interpreter pointer points to the token after the cell immediately after the token for this word.
 
-### `HF_PRIM_DATA` (6), also known as `(DATA)`
+### `HF_PRIM_LIT_8` (6), also known as `(litc)`
+
+#### ( -- n )
+
+This word's execution results in the value in the byte immediately after the token for this word being pushed onto the top of the data stack with sign extension, and the interpreter pointer points to the token after the byte immediately after the token for this word.
+
+### `HF_PRIM_LIT_16` (7), also known as `(lith)`
+
+#### ( -- n )
+
+This word's execution results in the value in the 16 bits immediately after the token for this word being pushed onto the top of the data stack with sign extension, and the interpreter pointer points to the token after the 16 bits immediately after the token for this word.
+
+### `HF_PRIM_LIT_32` (8), also known as `(litw)`
+
+#### ( -- n )
+
+This word's execution results in the value in the 32 bits immediately after the token for this word being pushed onto the top of the data stack with sign extension, and the interpreter pointer points to the token after the 32 bits immediately after the token for this word.
+
+### `HF_PRIM_DATA` (9), also known as `(data)`
 
 #### ( -- addr )
 
 This word's execution results in the value in bytes in the cell immediately after the token for this word plus the size of one cell and the size of the token for this word being added to the interpreter pointer and the address of the byte immediately after the cell immediately after the token for this word being pushed onto the data stack.
 
-### `HF_PRIM_NEW_COLON` (7), also known as `NEW-COLON`
+### `HF_PRIM_NEW_COLON` (10), also known as `new-colon`
 
 #### ( addr -- xt )
 
 This word's execution results in a new anonymous colon word being created, with the pointer to the start of its token-threaded code being popped off the top of the data stack, the data pointer being set to 0, and the token for the newly created word being pushed onto the data stack. This newly created word also has no next word.
 
-### `HF_PRIM_NEW_CREATE` (8), also known as `NEW-CREATE`
+### `HF_PRIM_NEW_CREATE` (11), also known as `new-create`
 
 #### ( addr -- xt )
 
 This word's execution results in a new anonymous created word being created, with the pointer to the start of its data being popped off the top of the data stack, the TTC code pointer of that word being set to 0, and the token for the newly created word being pushed onto the data stack. This newly created word also has no next word. Created words when executed, by default, push the pointer to the start of their data onto the data stack.
 
-### `HF_PRIM_SET_DOES` (9), also known as `SET-DOES>`
+### `HF_PRIM_SET_DOES` (12), also known as `set-does>`
 
 #### ( xt -- ) ( R: exit-addr does-addr -- )
 
 This word's execution results in a token for a word being popped off the top of the data stack, an address being popped off the top of the return stack and being set to the TTC code pointer of that word, an address afterwards being popped off the top of the return stack and the interpreter pointer being set to it, and the word being set to being a `CREATE`/`DOES>` word which when executed pushes the pointer to the start of their data onto the data stack and then executes the token-threaded code at the TTC code pointer of the word.
 
-### `HF_PRIM_FINISH` (10), also known as `FINISH`
+### `HF_PRIM_FINISH` (13), also known as `finish`
 
 #### ( xt -- )
 
 This word's execution results in a token for a word being popped off the top of the data stack, and any necessary finalization of the word (other than the compilation of `EXIT` and `END`, which must be done before this is called) taking place, such as JIT compilation. In the current implementation, this is equivalent to `HF_PRIM_DROP`.
 
-### `HF_PRIM_EXECUTE` (11), also known as `EXECUTE`
+### `HF_PRIM_EXECUTE` (14), also known as `execute`
 
 #### ( ? xt -- ? )
 
 This word's execution results in a token for a word being popped off the top of the data stack, and that word being executed. If the word is not a primitive, the interpreter pointer as it would be after the execution of a normal word is pushed onto the return stack.
 
-### `HF_PRIM_DROP` (12), also known as `DROP`
+### `HF_PRIM_DROP` (15), also known as `drop`
 
 #### ( x -- )
 
 This word's execution results in a cell being popped off the data stack and then being discarded.
 
-### `HF_PRIM_DUP` (13), also known as `DUP`
+### `HF_PRIM_DUP` (16), also known as `dup`
 
 #### ( x -- x x )
 
 This word's execution results in the cell on the top of the data stack being duplicated as a new cell on the top of the data stack.
 
-### `HF_PRIM_SWAP` (14), also known as `SWAP`
+### `HF_PRIM_SWAP` (17), also known as `swap`
 
 #### ( x1 x2 -- x2 x1 )
 
 This word's execution results in the two cells on the top of the data stack exchanging places.
 
-### `HF_PRIM_OVER` (15), also known as `OVER`
+### `HF_PRIM_OVER` (18), also known as `over`
 
 #### ( x1 x2 -- x1 x2 x1 )
 
 This word's execution results in the cell beneath the top of the data stack being pushed onto the top of the data stack.
 
-### `HF_PRIM_ROT` (16), also known as `ROT`
+### `HF_PRIM_ROT` (19), also known as `rot`
 
 #### ( x1 x2 x3 -- x2 x3 x1 )
 
 This word's execution results in third-from-the-top cell in the data stack being removed and being copied onto the top of the data stack, resulting in the second-from-the-top cell in the data stack now being in the third-from-the-top position and the cell on the top of the data stack now being in the second-from-the-top position.
 
-### `HF_PRIM_PICK` (17), also known as `PICK`
+### `HF_PRIM_PICK` (20), also known as `pick`
 
 #### ( xi ... x0 i -- xi ... x0 xi )
 
 This word's execution results in an index being popped off the top of the data stack, afterwards which serves as a location relative to the top of the data stack, with zero being the top of the data stack after the index was removed, where the cell at that location is copied and placed on the top of the data stack.
 
-### `HF_PRIM_ROLL` (18), also known as `ROLL`
+### `HF_PRIM_ROLL` (21), also known as `roll`
 
 #### ( xi xi-1 ... x0 i -- xi-1 ... x0 xi )
 
 This word's execution results in an index being popped off the top of the data stack, afterwards which serves as a location relative to the top of the data stack, with zero being the top of the data stack after the index was removed, where the cell at that location is removed and placed on the top of the data stack.
 
-### `HF_PRIM_LOAD` (19), also known as `@`
+### `HF_PRIM_LOAD` (22), also known as `@`
 
 #### ( addr -- x )
 
 This word's execution results in an address being popped off the top of the data stack, which is then dereferenced and the cell at that location is then pushed onto the data stack.
 
-### `HF_PRIM_STORE` (20), also known as `!`
+### `HF_PRIM_STORE` (23), also known as `!`
 
 #### ( x addr -- )
 
 This word's execution results in an address being popped off the top of the data stack, followed by a value being popped off the data stack from beneath it; afterwards, the address is dereferenced and the cell at that location is set to the value that was popped.
 
-### `HF_PRIM_LOAD_8` (21), also known as `C@`
+### `HF_PRIM_LOAD_8` (24), also known as `c@`
 
 #### ( addr -- c )
 
 This word's execution results in an address being popped off the top of the data stack, which is then dereferenced and the byte at that location is then pushed onto the data stack. Note that no sign extension takes place.
 
-### `HF_PRIM_STORE_8` (22), also known as `C!`
+### `HF_PRIM_STORE_8` (25), also known as `c!`
 
 #### ( c addr -- )
 
 This word's execution results in an address being popped off the top of the data stack, followed by a value being popped off the data stack from beneath it; afterwards, the address is dereferenced and the byte at that location is set to the lower 8 bits of the value that was popped.
 
-### `HF_PRIM_EQ` (23), also known as `=`
+### `HF_PRIM_EQ` (26), also known as `=`
 
 #### ( x1 x2 -- f )
 
 This word's execution results in two values being popped off the top of the data stack, and if they are equal -1 is pushed onto the data stack; otherwise 0 is pushed onto the data stack.
 
-### `HF_PRIM_NE` (24), also known as `<>`
+### `HF_PRIM_NE` (27), also known as `<>`
 
 #### ( x1 x2 -- f )
 
 This word's execution results in two values being popped off the top of the data stack, and if they are not equal -1 is pushed onto the data stack; otherwise 0 is pushed onto the data stack.
 
-### `HF_PRIM_LT` (25), also known as `<`
+### `HF_PRIM_LT` (28), also known as `<`
 
 #### ( n1 n2 -- f )
 
 This word's execution results in two signed values being popped off the top of the data stack, and if the lower value is (signed) smaller than the top value -1 is pushed onto the data stack; otherwise 0 is pushed onto the data stack.
 
-### `HF_PRIM_GT` (26), also known as `>`
+### `HF_PRIM_GT` (29), also known as `>`
 
 #### ( n1 n2 -- f )
 
 This word's execution results in two signed values being popped off the top of the data stack, and if the lower value is (signed) greater than the top value -1 is pushed onto the data stack; otherwise 0 is pushed onto the data stack.
 
-### `HF_PRIM_ULT` (27), also known as `U<`
+### `HF_PRIM_ULT` (30), also known as `u<`
 
 #### ( u1 u2 -- f )
 
 This word's execution results in two unsigned values being popped off the top of the data stack, and if the lower value is (unsigned) smaller than the top value -1 is pushed onto the data stack; otherwise 0 is pushed onto the data stack.
 
-### `HF_PRIM_UGT` (28), also known as `U>`
+### `HF_PRIM_UGT` (31), also known as `u>`
 
 #### ( u1 u2 -- f )
 
 This word's execution results in two unsigned values being popped off the top of the data stack, and if the lower value is (unsigned) greater than the top value -1 is pushed onto the data stack; otherwise 0 is pushed onto the data stack.
 
-### `HF_PRIM_NOT` (29), also known as `NOT`
+### `HF_PRIM_NOT` (32), also known as `not`
 
 #### ( u1 -- u2 )
 
 This word's execution results in a value being popped off the top of the data stack and the same value with each bit being inverted being pushed back onto the data stack.
 
-### `HF_PRIM_AND` (30), also known as `AND`
+### `HF_PRIM_AND` (33), also known as `and`
 
 #### ( u1 u2 -- u3 )
 
 This word's execution results in two values being popped off the top of the data stack and the bitwise and of these two values being subsequently pushed back onto the data stack.
 
-### `HF_PRIM_OR` (31), also known as `OR`
+### `HF_PRIM_OR` (34), also known as `or`
 
 #### ( u1 u2 -- u3 )
 
 This word's execution results in two values being popped off the top of the data stack and the bitwise or of these two values being subsequently pushed back onto the data stack.
 
-### `HF_PRIM_XOR` (32), also known as `XOR`
+### `HF_PRIM_XOR` (35), also known as `xor`
 
 #### ( u1 u2 -- u3 )
 
 This word's execution results in two values being popped off the top of the data stack and the bitwise exclusive or of these two values being subsequently pushed back onto the data stack.
 
-### `HF_PRIM_LSHIFT` (33), also known as `LSHIFT`
+### `HF_PRIM_LSHIFT` (36), also known as `lshift`
 
 #### ( x1 u2 -- x3 )
 
 This word's execution results in two values being popped off the top of the data stack, where the lower value is shifted to the left by the number of bits indicated by the top-most value and then is pushed back onto the data stack.
 
-### `HF_PRIM_RSHIFT` (34), also known as `RSHIFT`
+### `HF_PRIM_RSHIFT` (37), also known as `rshift`
 
 #### ( u1 u2 -- u3 )
 
 This word's execution results in two values being popped off the top of the data stack, where the lower value is logically (i.e. without sign extension) shifted to the right by the number of bits indicated by the top-most value and then is pushed back onto the data stack.
 
-### `HF_PRIM_ARSHIFT` (35), also known as `ARSHIFT`
+### `HF_PRIM_ARSHIFT` (38), also known as `arshift`
 
 #### ( n1 u -- n2 )
 
 This word's execution results in two values being popped off the top of the data stack, where the lower value is arithmetically (i.e. with sign extension) shifted to the right by the number of bits indicated by the top-most value and then is pushed back onto the data stack.
 
-### `HF_PRIM_ADD` (36), also known as `+`
+### `HF_PRIM_ADD` (39), also known as `+`
 
 #### ( n1 n2 -- n3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then they undergo two's complement addition and the result is pushed back onto the data stack.
 
-### `HF_PRIM_SUB` (37), also known as `-`
+### `HF_PRIM_SUB` (40), also known as `-`
 
 #### ( n1 n2 -- n3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then the top-most value undergoes two's complement subtraction from the lower value and the result is pushed back onto the data stack.
 
-### `HF_PRIM_MUL` (38), also known as `*`
+### `HF_PRIM_MUL` (41), also known as `*`
 
 #### ( n1 n2 -- n3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then they undergo two's complement multiplication and the result is pushed back onto the data stack.
 
-### `HF_PRIM_DIV` (39), also known as `/`
+### `HF_PRIM_DIV` (42), also known as `/`
 
 #### ( n1 n2 -- n3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then the lower value undergoes two's complement division by the top-most value and the result is pushed back onto the data stack.
 
-### `HF_PRIM_MOD` (40), also known as `MOD`
+### `HF_PRIM_MOD` (43), also known as `mod`
 
 #### ( n1 n2 -- n3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then the lower value undergoes two's complement modulus by the top-most value and the result is pushed back onto the data stack.
 
-### `HF_PRIM_UDIV` (41), also known as `U/`
+### `HF_PRIM_UDIV` (44), also known as `u/`
 
 #### ( u1 u2 -- u3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then the lower value undergoes unsigned division by the top-most value and the result is pushed back onto the data stack.
 
-### `HF_PRIM_UMOD` (42), also known as `UMOD`
+### `HF_PRIM_UMOD` (45), also known as `umod`
 
 #### ( u1 u2 -- u3 )
 
 This word's execution results in two values being popped off the top of the data stack, where then the lower value undergoes unsigned modulus by the top-most value and the result is pushed back onto the data stack.
 
-### `HF_PRIM_MUX` (43), also known as `MUX`
+### `HF_PRIM_MUX` (46), also known as `mux`
 
 #### ( x1 x2 mux -- x3 )
 
 This word's execution results in a mux value being popped off the top of the data stack followed by two other values, where the lower of these values is anded against the mux value and or'ed to the higher of these values anded to the inverse of the mux value is then pushed onto the top of the data stack.
 
-### `HF_PRIM_RMUX` (44), also known as `/MUX`
+### `HF_PRIM_RMUX` (47), also known as `/mux`
 
 #### ( mux x1 x2 -- x3 )
 
 This word's execution results in two values being popped off the top of the data stack, followed by a mux value, where the lower of these values is anded against the mux value and orded to the higher of these values anded to the inverse of the mux value is then pushed onto the top of the data stack.
 
-### `HF_PRIM_LOAD_R` (45), also known as `R@`
+### `HF_PRIM_LOAD_R` (48), also known as `r@`
 
 #### ( R: x -- x ) ( -- x )
 
 This word's execution results in the top-most value on the return stack being pushed onto the data stack without being popped from the return stack.
 
-### `HF_PRIM_PUSH_R` (46), also known as `>R`
+### `HF_PRIM_PUSH_R` (49), also known as `>r`
 
 #### ( x -- ) ( R: -- x )
 
 This word's execution results in a value being popped off the top of the data stack and being pushed onto the return stack.
 
-### `HF_PRIM_POP_R` (47), also known as `R>`
+### `HF_PRIM_POP_R` (50), also known as `r>`
 
 #### ( R: x -- ) ( -- x )
 
 This word's execution results in a value being popped off the top of the return stack and being pushed onto the data stack.
 
-### `HF_PRIM_LOAD_SP` (48), also known as `SP@`
+### `HF_PRIM_LOAD_SP` (51), also known as `sp@`
 
 #### ( -- addr )
 
 This word's execution results in the data stack pointer prior to the execution of this word being pushed onto the data stack.
 
-### `HF_PRIM_STORE_SP` (49), also known as `SP!`
+### `HF_PRIM_STORE_SP` (52), also known as `sp!`
 
 #### ( addr -- )
 
 This word's execution results in the data stack pointer being set to an address popped off the top of the data stack.
 
-### `HF_PRIM_LOAD_RP` (50), also known as `RP@`
+### `HF_PRIM_LOAD_RP` (53), also known as `rp@`
 
 #### ( -- addr )
 
 This word's execution results in the return stack pointer being pushed onto the data stack.
 
-### `HF_PRIM_STORE_RP` (51), also known as `RP!`
+### `HF_PRIM_STORE_RP` (54), also known as `rp!`
 
 #### ( addr -- )
 
 This word's execution results in the return stack pointer being set to an address popped off the top of the data stack.
 
-### `HF_PRIM_TO_BODY` (52), also known as `>BODY`
+### `HF_PRIM_TO_BODY` (55), also known as `>body`
 
 #### ( xt -- addr )
 
 This word's execution results in a token being popped off the top of the data stack and the data pointer for the word referred to by the token being subsequently pushed onto the data stack.
 
-### `HF_PRIM_LOAD_16` (53), also known as `H@`
+### `HF_PRIM_LOAD_16` (56), also known as `h@`
 
 #### ( addr -- h )
 
 This word's execution results in an address being popped off the top of the data stack, which is then dereferenced and the 16-bit value at that location is then pushed onto the data stack. Note that no sign extension takes place.
 
-### `HF_PRIM_STORE_16` (54), also known as `H!`
+### `HF_PRIM_STORE_16` (57), also known as `h!`
 
 #### ( h addr -- )
 
 This word's execution results in an address being popped off the top of the data stack, followed by a value being popped off the data stack from beneath it; afterwards, the address is dereferenced and the 16-bit value at that location is set to the lower 16 bits of the value that was popped.
 
-### `HF_PRIM_LOAD_32` (55), also known as `W@`
+### `HF_PRIM_LOAD_32` (58), also known as `w@`
 
 #### ( addr -- w )
 
 This word's execution results in an address being popped off the top of the data stack, which is then dereferenced and the 32-bit value at that location is then pushed onto the data stack. Note that no sign extension takes place.
 
-### `HF_PRIM_STORE_32` (56), also known as `W!`
+### `HF_PRIM_STORE_32` (59), also known as `w!`
 
 #### ( w addr -- )
 
 This word's execution results in an address being popped off the top of the data stack, followed by a value being popped off the data stack from beneath it; afterwards, the address is dereferenced and the 32-bit value at that location is set to the lower 32 bits of the value that was popped.
 
-### `HF_PRIM_SET_WORD_COUNT` (57), also known as `SET-WORD-COUNT`
+### `HF_PRIM_SET_WORD_COUNT` (60), also known as `set-word-count`
 
 #### ( u -- )
 
 This word's execution results in the number of words in the word table being set to a count popped off the top of the data stack; this count must be less than or equal to the number of words in the word table.
 
-### `HF_PRIM_SYS` (58), also known as `SYS`
+### `HF_PRIM_SYS` (61), also known as `sys`
 
 #### ( ? n -- ? f )
 
@@ -530,3 +548,117 @@ Restore the specific file descriptor to a canonical, echoing state. Return -1 if
 #### ( fd -- rows cols xpixels ypixels f )
 
 Get the size of a terminal specified by a file descriptor in rows, columns, x pixels, and y pixels. Also return -1 if successful, else return 0.
+
+### `HF_SYS_GET_INT_HANDLER` (23)
+
+#### ( int -- xt )
+
+Get the handler of an interrupt with the specified index. Invalid interrupt indices will result in 0 being returned.
+
+### `HF_SYS_SET_INT_HANDLER` (24)
+
+#### ( xt int -- )
+
+Set the handler of an interrupt with the specified index. Invalid interrupt indices will result in no action being taken.
+
+### `HF_SYS_GET_INT_MASK` (25)
+
+#### ( -- mask )
+
+Get the current interrupt mask, where each bit corresponds to whether the interrupt with the bit's index is enabled (with 1 being enabled).
+
+### `HF_SYS_SET_INT_MASK` (26)
+
+#### ( mask -- )
+
+Set the current interrupt mask, where each bit corresponds to whether the interrupt with the bit's index is enabled (with 1 being enabled).
+
+### `HF_SYS_ADJUST_INT_MASK` (27)
+
+#### ( mask-and mask-or -- )
+
+Atomically both and and or the current interrupt mask, yielding a new current interrupt mask. First the interrupt mask is anded with the value second-highest on the stack, and then the interrupt mask is ored with the value highest on the stack.
+
+### `HF_SYS_GET_INT_HANDLER_MASK` (28)
+
+#### ( index -- mask )
+
+Get the interrupt mask associated with an interrupt, whose index is popped off the stack. If an invalid interrupt index is specified 0 is returned.
+
+### `HF_SYS_SET_INT_HANDLER_MASK` (29)
+
+#### ( mask index -- )
+
+Set the interrupt mask associated with an interrupt, whose index is popped off the stack followed by the interrupt mask to set. If an invalid interrupt index is specified this is ignored.
+
+### `HF_SYS_GET_PROTECT_STACKS` (30)
+
+#### ( f -- )
+
+Set whether to protect the stacks when executing interrupt handlers, i.e. to allow interrupt handlers to execute even when there is severe data or return stack underflow.
+
+### `HF_SYS_SET_PROTECT_STACKS` (31)
+
+#### ( -- f )
+
+Get whether to protect the stacks when executing interrupt handlers, i.e. to allow interrupt handlers to execute even when there is severe data or return stack underflow.
+
+### `HF_SYS_GET_ALARM` (32)
+
+#### ( alarm -- interval-s interval-ns value-s value-ns success )
+
+Get the settings of an alarm, including alarm interval in seconds and nanoseconds and alarm value (time until next alarm trigger) in seconds and nanoseconds, along with `TRUE` on success. In the case of an invalid alarm type, filler values and `FALSE` are returned.
+
+### `HF_SYS_SET_ALARM` (33)
+
+#### ( new-interval-s new-interval-ns new-value-s new-value-ns alarm -- old-interval-s old-interval-ns old-value-s old-value-ns success )
+
+Set new settings of an alarm, including alarm interval in seconds and nanoseconds and alarm value (time until next alarm trigger) in seconds and nanoseconds, and return old settings of the same, along with `TRUE` on success. In the case of an invalid alarm type, filler values and `FALSE` are returned and no action is taken;
+
+## Interrupts
+
+### `HF_INT_SEGV` (0)
+
+Segmentation fault.
+
+### `HF_INT_TOKEN` (1)
+
+Attempted to execute an invalid token.
+
+### `HF_INT_DIVZERO` (2)
+
+Attempted to divide by zero.
+
+### `HF_INT_ILLEGAL` (3)
+
+Illegal instruction.
+
+### `HF_INT_BUS` (4)
+
+Bus error.
+
+### `HF_INT_ALARM_REAL` (5)
+
+Real-time alarm.
+
+### `HF_INT_ALARM_VIRTUAL` (6)
+
+User time-only alarm.
+
+### `HF_INT_ALARM_PROF` (7)
+
+User and system-time alarm.
+
+## Alarm types
+
+### `HF_ALARM_REAL` (0)
+
+Real-time alarm.
+
+### `HF_ALARM_VIRTUAL` (1)
+
+User time-only alarm.
+
+### `HF_ALARM_PROF` (2)
+
+User and system-time alarm.

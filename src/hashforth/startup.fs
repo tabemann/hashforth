@@ -448,7 +448,7 @@ c"-data c"-length 2constant c"-constant
 ' backtrace 'global-bye-handler !
 
 \ Unmask interrupt
-: unmask-int ( int -- ) 1 swap lshift not 0 adjust-int-mask ;
+: unmask-int ( int -- ) 1 swap lshift 0 swap adjust-int-mask ;
 
 \ Segfault interrupt
 0 constant segv-int
@@ -549,3 +549,5 @@ c"-data c"-length 2constant c"-constant
 ' handle-divzero divzero-int set-int-handler
 ' handle-illegal illegal-int set-int-handler
 ' handle-bus bus-int set-int-handler
+
+-1 set-int-mask

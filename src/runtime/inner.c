@@ -69,7 +69,7 @@ void hf_init(hf_global_t* global) {
   global->int_flags = 0;
   for(int i = 0; i < HF_INT_COUNT; i++) {
     global->int_handler[i] = 0;
-    global->int_handler_mask[i] = 1 << i;
+    global->int_handler_mask[i] = ~(1 << i);
   }
   global->protect_stacks = HF_TRUE;
 }
@@ -92,13 +92,19 @@ void hf_recover_signal(int signum, siginfo_t* info, void* extra) {
 void hf_handle_alarm_signal(int signum, siginfo_t* info, void* extra) {
   switch(signum) {
   case SIGALRM:
-    hf_global->int_flags |= 1 << HF_INT_ALARM_REAL;
+    if(hf_global->int_mask & (1 << HF_INT_ALARM_REAL)) {
+      hf_global->int_flags |= 1 << HF_INT_ALARM_REAL;
+    }
     break;
   case SIGVTALRM:
-    hf_global->int_flags |= 1 << HF_INT_ALARM_VIRTUAL;
+    if(hf_global->int_mask & (1 << HF_INT_ALARM_VIRTUAL)) {
+      hf_global->int_flags |= 1 << HF_INT_ALARM_VIRTUAL;
+    }
     break;
   case SIGPROF:
-    hf_global->int_flags |= 1 << HF_INT_ALARM_PROF;
+    if(hf_global->int_mask & (1 << HF_INT_ALARM_PROF)) {
+      hf_global->int_flags |= 1 << HF_INT_ALARM_PROF;
+    }
     break;
   default:
     break;
@@ -108,13 +114,13 @@ void hf_handle_alarm_signal(int signum, siginfo_t* info, void* extra) {
 /* Set an interrupt */
 void hf_set_int(hf_global_t* global, hf_cell_t interrupt, hf_cell_t required) {
   hf_cell_t flag = 1 << interrupt;
-  if(required && ((global->int_mask & flag) ||
+  if(required && (!(global->int_mask & flag) ||
 		  !global->int_handler[interrupt])) {
     fprintf(stderr, "Masked required exception %lld\n", (uint64_t)interrupt);
     exit(1);
+  } else if(global->int_mask & flag) {
+    global->int_flags |= flag;
   }
-  global->int_flags |= flag;
-  global->int_mask |= global->int_handler_mask[interrupt];
 }
 
 /* The inner interpreter */
@@ -230,9 +236,10 @@ void hf_inner_and_recover(hf_global_t* global) {
 	    flags = flags >> 1;
 	  }
 	  global->int_flags &= ~(1 << index);
-	  if(global->int_handler[index]) {
+	  if(global->int_handler[index] && (global->int_mask & (1 << index))) {
 	    hf_cell_t token = global->int_handler[index];
 	    hf_word_t* word = global->words + token;
+	    global->int_mask &= global->int_handler_mask[index];
 	    global->current_word = word;
 	    if(global->protect_stacks) {
 	      if(global->data_stack > global->data_stack_base) {

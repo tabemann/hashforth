@@ -216,9 +216,9 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_SYS_GET_PROTECT_STACKS (30)
 #define HF_SYS_SET_PROTECT_STACKS (31)
 #define HF_SYS_GET_ALARM (32)
-#define HF_SYS_SET_ALARM (34)
+#define HF_SYS_SET_ALARM (33)
 
-#define HF_MAX_STD_SERVICES (35)
+#define HF_MAX_STD_SERVICES (34)
 
 #else /* WITH_SYS_ALLOCATE */
 
