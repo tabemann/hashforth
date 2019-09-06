@@ -106,6 +106,14 @@ typedef void (*hf_prim_t)(hf_global_t* global);
 
 typedef void (*hf_sys_prim_t)(hf_global_t* global);
 
+/* Macros */
+
+#define HF_ALIGNED_TO(addr, pow2) \
+  (((((hf_cell_t)(addr)) - 1) | ((pow2) - 1)) + 1)
+
+#define HF_ALIGNED_TO_TOKEN(addr) \
+  ((hf_token_t*)HF_ALIGNED_TO(addr, sizeof(hf_token_t)))
+
 /* Constants */
 
 #define HF_TRUE ((hf_cell_t)(-1))

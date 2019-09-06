@@ -102,9 +102,11 @@ void hf_load_image(hf_global_t* global, char* path) {
     fprintf(stderr, "Unable to allocate user space!\n");
     exit(1);
   }
+  /* printf("initial address 0: %llx\n", (uint64_t)mem_current); */
   global->words = (hf_word_t*)mem_current;
   global->word_space_count = max_word_count;
   mem_current += max_word_count * sizeof(hf_word_t);
+  /* printf("initial address 1: %llx\n", (uint64_t)mem_current); */
   global->return_stack = mem_space + mem_size;
 #ifdef TRACE
   global->return_stack_base = global->return_stack;
@@ -120,19 +122,26 @@ void hf_load_image(hf_global_t* global, char* path) {
     global->std_services[i].defined = HF_FALSE;
   }
   mem_current += HF_MAX_STD_SERVICES * sizeof(hf_sys_t);
+  /* printf("initial address 2: %llx\n", (uint64_t)mem_current); */
   global->nstd_service_space_count = HF_MAX_NSTD_SERVICES;
   global->nstd_services = (hf_sys_t*)mem_current;
   for(int i = 0; i < HF_MAX_NSTD_SERVICES; i++) {
     global->nstd_services[i].defined = HF_FALSE;
   }
   mem_current += HF_MAX_NSTD_SERVICES * sizeof(hf_sys_t);
+  /* printf("initial address 3: %llx\n", (uint64_t)mem_current); */
   hf_register_prims(global, &mem_current);
+  /* printf("initial address 4: %llx\n", (uint64_t)mem_current); */
   hf_register_services(global, &mem_current);
+  /* printf("initial address 5: %llx\n", (uint64_t)mem_current); */
+  mem_current = (void*)HF_ALIGNED_TO(mem_current, sizeof(hf_cell_t));
   user_space = mem_current;
   current = hf_parse_headers(global, current, &mem_current);
   user_image_size = *(hf_cell_t*)current;
   current += sizeof(hf_cell_t);
   start_address = mem_current;
+  /* printf("start address: %llx\n", (uint64_t)start_address); */
+  /* printf("code loading offset: %llx\n", (uint64_t)current - (uint64_t)buffer); */
   hf_load_code(global, current, user_image_size, &mem_current);
   current += user_image_size;
   hf_relocate(global, start_token, start_address, user_space);
@@ -186,6 +195,14 @@ void* hf_verify_image_type(void* current) {
   token_type = *(hf_byte_t*)current;
   current += sizeof(hf_byte_t);
 #ifdef CELL_16
+#else
+#ifdef CELL_32
+  current += sizeof(hf_byte_t) * 2;
+#else /* CELL_64 */
+  current += sizeof(hf_byte_t) * 6;
+#endif
+#endif
+#ifdef CELL_16
   if(cell_type != 0) {
     error = HF_TRUE;
   }
@@ -235,12 +252,12 @@ void* hf_verify_image_type(void* current) {
 /* Parse headers */
 void* hf_parse_headers(hf_global_t* global, void* current,
 		       void** user_space_current) {
-  hf_byte_t type;
-  while((type = *(hf_byte_t*)current)) {
+  hf_cell_t type;
+  while((type = *(hf_cell_t*)current)) {
     hf_cell_t token;
     hf_word_t* word;
     hf_cell_t offset;
-    current += sizeof(hf_byte_t);
+    current += sizeof(hf_cell_t);
     token = *(hf_cell_t*)current;
     current += sizeof(hf_cell_t);
     offset = *(hf_cell_t*)current;
@@ -268,7 +285,7 @@ void* hf_parse_headers(hf_global_t* global, void* current,
       word->data = (void*)offset;
     }
   }
-  return current + 1;
+  return current += sizeof(hf_cell_t);
 }
 
 /* Load code */
@@ -284,14 +301,18 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
   hf_full_token_t token = start_token;
   while(token < global->word_count) {
     hf_word_t* word = global->words + token;
+    /* printf("parsing token: %lld\n", (uint64_t)token); */
     if(word->primitive == hf_prim_enter) {
+
+      /* printf("got secondary: %llx\n", (uint64_t)word->secondary); */
+      
       word->secondary =
 	(hf_token_t*)((hf_cell_t)word->secondary + (hf_cell_t)start_address);
 
       hf_token_t* current = word->secondary;
       hf_token_t parsed_token;
       while((parsed_token = *current++) != HF_PRIM_END) {
-	/*	printf("found token: %lld\n", (uint64_t)parsed_token); */
+	/* printf("found token: %lld\n", (uint64_t)parsed_token); */
 #ifdef TOKEN_8_16
 	if(parsed_token & 0x80) {
 	  *current++;
@@ -304,20 +325,27 @@ void hf_relocate(hf_global_t* global, hf_full_token_t start_token,
 #endif
 #endif
 	if(parsed_token == HF_PRIM_BRANCH || parsed_token == HF_PRIM_0BRANCH) {
+	  current = (hf_token_t*)HF_ALIGNED_TO(current, sizeof(hf_cell_t));
 	  *(hf_cell_t*)current += (hf_cell_t)start_address;
 	  current = (hf_token_t*)((void*)current + sizeof(hf_cell_t));
 	} else if(parsed_token == HF_PRIM_LIT) {
+	  current = (hf_token_t*)HF_ALIGNED_TO(current, sizeof(hf_cell_t));
 	  current = (hf_token_t*)((void*)current + sizeof(hf_cell_t));
 	} else if(parsed_token == HF_PRIM_LIT_8) {
 	  current = (hf_token_t*)((void*)current + sizeof(uint8_t));
 	} else if(parsed_token == HF_PRIM_LIT_16) {
+	  current = (hf_token_t*)HF_ALIGNED_TO(current, sizeof(uint16_t));
 	  current = (hf_token_t*)((void*)current + sizeof(uint16_t));
 	} else if(parsed_token == HF_PRIM_LIT_32) {
+	  current = (hf_token_t*)HF_ALIGNED_TO(current, sizeof(uint32_t));
 	  current = (hf_token_t*)((void*)current + sizeof(uint32_t));
 	} else if(parsed_token == HF_PRIM_DATA) {
-	  hf_cell_t size = *(hf_cell_t*)current;
+	  hf_cell_t size;
+	  current = (hf_token_t*)HF_ALIGNED_TO(current, sizeof(hf_cell_t));
+	  size = *(hf_cell_t*)current;
 	  current = (hf_token_t*)((void*)current + sizeof(hf_cell_t) + size);
 	}
+	current = (hf_token_t*)HF_ALIGNED_TO_TOKEN(current);
       }
     } else if (word->primitive == hf_prim_do_create) {
       word->data =

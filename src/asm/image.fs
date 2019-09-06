@@ -123,6 +123,29 @@ define-word +! ( n addr -- ) dup @ rot + swap ! end-word
 \ Duplicate a value on the top of the stack if it is non-zero
 define-word ?dup ( 0 | x -- 0 | x x ) dup 0 lit <> +if dup +then end-word
 
+\ Align an address to a power of two
+define-word aligned-to ( addr1 pow2 -- addr2 )
+  swap 1 lit - swap 1 lit - or 1 lit +
+end-word
+
+\ Align an address to the cell size
+define-word aligned ( addr1 -- addr2 ) cell-size aligned-to end-word
+
+\ Align an address to a 32-bit size
+define-word waligned ( addr1 -- addr2 ) 4 lit aligned-to end-word
+
+\ Align an address to a 16-bit size
+define-word haligned ( addr1 -- addr2 ) 2 lit aligned-to end-word
+
+\ Align the HERE pointer to the cell size
+define-word align ( -- ) here aligned here! end-word
+
+\ Align the HERE pointer to a 32-bit size
+define-word walign ( -- ) here waligned here! end-word
+
+\ Align the HERE pointer to a 16-bit size
+define-word halign ( -- ) here haligned here! end-word
+
 \ Store a cell-sized value at the HERE pointer and advance the HERE pointer by
 \ one cell
 define-word , ( x -- ) here ! cell-size allot end-word
@@ -139,9 +162,32 @@ define-word h, ( c -- ) here h! 2 lit allot end-word
 \ bytes
 define-word w, ( c -- ) here w! 4 lit allot end-word
 
+\ Compile a token at the HERE pointer and advance the HERE pointer by the token
+\ size
+define-word token-align ( token -- )
+  not-vm target-token @ dup token-16 = swap token-16-32 = or vm lit +if
+    halign
+  +else
+    not-vm target-token @ token-32 = vm lit +if
+      walign
+    +then
+  +then
+end-word
+
+\ define-word token-align ( token -- )
+\   [ not-vm target-token @ dup token-16 = swap token-16-32 = or vm ] [if]
+\     halign
+\   [else]
+\     [ not-vm target-token @ dup token-32 = vm ] [if]
+\       walign
+\     [then]
+\   [then]
+\ end-word
+
 \ Compile 8/16-bit token at the HERE pointer and advance the HERE pointer by
 \ the token size
 define-word compile-8-16, ( token -- )
+  token-align
   dup $80 lit u< +if
     c,
   +else
@@ -152,12 +198,13 @@ end-word
 \ Compile 16-bit token at the HERE pointer and advance the HERE pointer by
 \ the token size
 define-word compile-16, ( token -- )
-  $ffff lit and h,
+  token-align $ffff lit and h,
 end-word
 
 \ Compile 16/32-bit token at the HERE pointer and advance the HERE pointer by
 \ the token size
 define-word compile-16-32, ( token -- )
+  token-align
   dup $8000 lit u< +if
     h,
   +else
@@ -169,7 +216,7 @@ end-word
 \ Compile 32-bit token at the HERE pointer and advance the HERE pointer by
 \ the token size
 define-word compile-32, ( token -- )
-  $ffffffff lit and w,
+  token-align $ffffffff lit and w,
 end-word
 
 \ Compile a token at the HERE pointer and advance the HERE pointer by the token
@@ -183,29 +230,101 @@ define-word compile, ( token -- )
     +else
       not-vm target-token @ token-16-32 = vm lit +if
 	compile-16-32,
-      +else ( TARGET-TOKEN @ TOKEN-32 NOT-VM = VM )
+      +else
         compile-32,
       +then
     +then
   +then
 end-word
 
-\ Compile a literal
-define-word lit, ( x -- )
+\ define-word compile, ( token -- )
+\   [ not-vm target-token @ token-8-16 = vm ] [if]
+\     compile-8-16,
+\   [else]
+\     [ not-vm target-token @ token-16 = vm ] [if]
+\       compile-16,
+\     [else]
+\       [ not-vm target-token @ token-16-32 = vm ] [if]
+\ 	compile-16-32,
+\       [else]
+\         compile-32,
+\       [then]
+\     [then]
+\   [then]
+\ end-word
+
+\ Compile a literal for 8/16-bit tokens
+define-word lit-token-8-16, ( x -- )
   dup 127 lit <= over -128 lit >= and +if
     &(litc) compile, $FF lit and c,
   +else
     dup 32767 lit <= over -32768 lit >= and +if
-      &(lith) compile, $FFFF lit and h,
+      &(lith) compile, $FFFF lit and halign h,
     +else
       dup 2147483647 lit <= over -2147483648 lit >= and +if
-	&(litw) compile, $FFFFFFFF lit and w,
+	&(litw) compile, $FFFFFFFF lit and walign w,
       +else
-	&(lit) compile, ,
+	&(lit) compile, align ,
       +then
     +then
   +then
 end-word
+
+\ Compile a literal for 16 and 16/32-bit tokens
+define-word lit-token-16, ( x -- )
+  dup 32767 lit <= over -32768 lit >= and +if
+    &(lith) compile, $FFFF lit and halign h,
+  +else
+    dup 2147483647 lit <= over -2147483648 lit >= and +if
+      &(litw) compile, $FFFFFFFF lit and walign w,
+    +else
+      &(lit) compile, align ,
+    +then
+  +then
+end-word
+
+\ Compile a literal
+define-word lit, ( x -- )
+  not-vm target-token @ token-8-16 = vm lit +if
+    lit-token-8-16,
+  +else
+    not-vm target-token @ dup token-16 = over token-16-32 = or vm lit +if
+      lit-token-16,
+    +else
+      dup 2147483647 lit <= over -2147483648 lit >= and +if
+	&(litw) compile, $FFFFFFFF lit and walign w,
+      +else
+	&(lit) compile, align ,
+      +then
+    +then
+  +then
+end-word
+
+\ define-word lit, ( x -- )
+\ [ not-vm target-token @ token-8-16 = vm ] [if]
+\   dup 127 lit <= over -128 lit >= and +if
+\     &(litc) compile, $FF lit and c,
+\   +else
+\ [then]  
+\ [ not-vm target-token @ dup token-8-16 = over token-16 = or swap token-16-32 =
+\ or vm ] [if]  
+\     dup 32767 lit <= over -32768 lit >= and +if
+\       &(lith) compile, $FFFF lit and halign h,
+\     +else
+\ [then]
+\       dup 2147483647 lit <= over -2147483648 lit >= and +if
+\ 	&(litw) compile, $FFFFFFFF lit and walign w,
+\       +else
+\ 	&(lit) compile, align ,
+\       +then
+\ [ not-vm target-token @ dup token-8-16 = over token-16 = or swap token-16-32 =
+\ or vm ] [if]  
+\     +then
+\ [then]
+\ [ not-vm target-token @ token-8-16 = vm ] [if]
+\   +then
+\ [then]
+\ end-word
 
 \ Standard input file descriptor constant
 define-word stdin ( -- fd ) 0 lit end-word
@@ -325,46 +444,46 @@ end-word
 
 \ IF conditional
 define-word-immediate-compile-only if ( f -- ) ( Compile-time: -- fore-ref )
-  &0branch compile, here 0 lit ,
+  &0branch compile, align here 0 lit ,
 end-word
 
 \ ELSE conditional
 define-word-immediate-compile-only else ( -- )
   ( Compile-time: fore-ref -- fore-ref )
-  &branch compile, here 0 lit , here rot !
+  &branch compile, align here 0 lit , token-align here rot !
 end-word
 
 \ THEN conditional
 define-word-immediate-compile-only then ( -- ) ( Compile-time: fore-ref -- )
-  here swap !
+  token-align here swap !
 end-word
 
 \ Start of BEGIN/AGAIN, BEGIN/UNTIL, and BEGIN/WHILE/REPEAT loops
 define-word-immediate-compile-only begin ( -- ) ( Compile-time: -- back-ref )
-  here
+  token-align here
 end-word
 
 \ Jump back unconditionally to the matching BEGIN
 define-word-immediate-compile-only again ( -- ) ( Compile-time: back-ref -- )
-  &branch compile, ,
+  &branch compile, align ,
 end-word
 
 \ Jump back to the matching BEGIN until a value taken off the top of the stack
 \ is non-zero
 define-word-immediate-compile-only until ( -- ) ( Compile-time: back-ref -- )
-  &0branch compile, ,
+  &0branch compile, align ,
 end-word
 
 \ Jump forward to the matching REPEAT if the value taken off the top of the
 \ stack is zero
 define-word-immediate-compile-only while ( -- ) ( Compile_time: -- fore-ref )
-  &0branch compile, here 0 lit ,
+  &0branch compile, align here 0 lit ,
 end-word
 
 \ Jump back to the matching BEGIN, and be jumped after by the matching WHILE
 define-word-immediate-compile-only repeat ( -- )
   ( Compile-time: back-ref fore-ref -- )
-  swap &branch compile, , here swap !
+  swap &branch compile, align , token-align here swap !
 end-word
 
 \ Unimplemented service exception
@@ -1243,7 +1362,7 @@ string-buffer-size 0 set-fill-data
 non-define-word-immediate s" ( "ccc<quote>" -- )
   ( Runtime: -- c-addr bytes )
   parse-string state @ +if
-    &(data) compile, dup , swap here 2 lit pick cmove
+    &(data) compile, dup align , swap here 2 lit pick cmove
     dup allot lit,
   +else
     swap string-buffer rot string-buffer-size lit min >r r@ cmove
@@ -1256,7 +1375,7 @@ end-word
 non-define-word-immediate-compile-only ." ( Compile-time "ccc<quote>" -- )
   ( Runtime: -- c-addr bytes )
   parse-string
-  &(data) compile, dup , swap here 2 lit pick cmove dup allot lit,
+  &(data) compile, dup align , swap here 2 lit pick cmove dup allot lit,
   &type compile,
 end-word
 
@@ -1379,7 +1498,8 @@ end-word
 \ adding the word to the current wordlist
 non-define-word : ( -- )
   parse-name dup 0 lit <> +if
-    allocate-string +true state ! here new-colon dup 3 lit roll 3 lit roll rot
+    allocate-string +true state ! token-align here new-colon
+    dup 3 lit roll 3 lit roll rot
 \    S" compiling: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
     name>word hidden-flag lit over flags>word dup max-xt ! dup latestxt-value !
     here latestxt-value @ start>word
@@ -1393,7 +1513,7 @@ end-word
 \ Begin compilation of an anonymous word, setting LATESTXT to the word, and
 \ pushing the xt for the word onto the data stack
 define-word :noname ( -- xt )
-  true state ! here new-colon dup max-xt ! dup latestxt-value !
+  true state ! token-align here new-colon dup max-xt ! dup latestxt-value !
   here latestxt-value @ start>word
   0 lit 0 lit latestxt-value @ name>word
 end-word
@@ -1404,7 +1524,7 @@ end-word
 \ word to be hidden, setting LATESTXT to the word, and adding the word to the
 \ current wordlist
 define-word create-with-name ( c-addr bytes -- )
-  allocate-string here new-create dup 3 lit roll 3 lit roll rot
+  allocate-string align here new-create dup 3 lit roll 3 lit roll rot
 \  S" creating: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
   name>word dup max-xt ! dup latestxt-value !
   get-current wordlist>first over next>word
@@ -1460,11 +1580,11 @@ end-word
 
 \ Parse a name and create a cell-sized constant whose value is on the data stack
 \ with it as its name
-define-word constant ( x -- ) create , does> @ end-word
+define-word constant ( x -- ) align create , does> @ end-word
 
 \ Parse a name and create a cell-sized variable initialized to zero with it as
 \ its name
-define-word variable ( -- ) create 0 lit , end-word
+define-word variable ( -- ) align create 0 lit , end-word
 
 \ Advance the pointer to a string by one byte and subtract one from its length
 define-word advance-string ( c-addr1 bytes1 -- c-addr2 bytes2 )
@@ -1541,10 +1661,10 @@ define-word parse-number ( c-addr bytes -- n matches )
 end-word
 
 \ Immediately set the state to interpretation mode
-define-word-immediate [ ( -- ) +false state ! end-word
+non-define-word-immediate [ ( -- ) +false state ! end-word
 
 \ Immediately set the state to compilation mode
-define-word-immediate ] ( -- ) +true state ! end-word
+non-define-word-immediate ] ( -- ) +true state ! end-word
 
 \ Compile an xt unless it is immediate, where then it is executed immediately
 define-word compile-word ( c-addr bytes xt -- )
@@ -1759,7 +1879,7 @@ end-word
 
 \ Exception-protected boot actions
 define-word boot-protected ( -- )
-  lookup-sys name-table set-name-table
+  lookup-sys name-table set-name-table ( +TRUE SET-TRACE )
   set-hooks &refill-terminal 'refill ! interpret-storage outer
 end-word
 

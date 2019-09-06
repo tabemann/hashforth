@@ -78,7 +78,7 @@
 : postpone ' dup immediate? if
     compile,
   else
-    compile (lit) , compile compile,
+    lit, compile compile,
   then ; immediate compile-only
 
 : & postpone postpone ; immediate
@@ -115,23 +115,24 @@
 
 : is state @ if & ['] & defer! else ' defer! then ; immediate
 
-: do & (lit) here dup 0 , & >r & 2>r here ; immediate compile-only
+: do & (lit) align here dup 0 , & >r & 2>r token-align here
+; immediate compile-only
 
-: ?do & (lit) here 0 , & >r & 2dup & 2>r & <> & 0branch here 0 , here
-  ; immediate compile-only
+: ?do & (lit) align here 0 , & >r & 2dup & 2>r & <> & 0branch align here 0 ,
+  token-align here ; immediate compile-only
 
-: loop & 2r> & 1+ & 2dup & 2>r & = & 0branch , here swap ! here swap !
-  & 2r> & 2drop & r> & drop ; immediate compile-only
+: loop & 2r> & 1+ & 2dup & 2>r & = & 0branch align , token-align here swap !
+  here swap ! & 2r> & 2drop & r> & drop ; immediate compile-only
 
 : +loop & 2r> & rot & dup & 0>= & if
-    & swap & dup & (lit) 3 , & pick & < & rot & rot & +
-    & dup & (lit) 3 , & pick & >= & rot & and & rot & rot & 2>r
+    & swap & dup 3 lit, & pick & < & rot & rot & +
+    & dup 3 lit, & pick & >= & rot & and & rot & rot & 2>r
   & else
-    & swap & dup & (lit) 3 , & pick & >= & rot & rot & +
-    & dup & (lit) 3 , & pick & < & rot & and & rot & rot & 2>r
+    & swap & dup 3 lit, & pick & >= & rot & rot & +
+    & dup 3 lit, & pick & < & rot & and & rot & rot & 2>r
   & then
-  & 0branch , here swap ! here swap ! & 2r> & 2drop & r> & drop ;
-  immediate compile-only
+  & 0branch align , token-align here swap ! here swap ! & 2r> & 2drop & r>
+  & drop ; immediate compile-only
 
 : leave r> 2r> 2drop >r ;
 
@@ -145,60 +146,61 @@
 
 : of & over & = postpone if & drop ; immediate compile-only
 
-: endof swap ?dup if here swap ! then
-  & branch here 0 , swap postpone then ; immediate compile-only
+: endof swap ?dup if token-align here swap ! then
+  & branch align here 0 , swap postpone then ; immediate compile-only
 
-: endcase & drop ?dup if here swap ! then ; immediate compile-only
+: endcase & drop ?dup if token-align here swap ! then ; immediate compile-only
 
 : ofstr
-  & (lit) 3 , & pick & (lit) 3 , & pick & equal-strings? postpone if & 2drop
+  3 lit, & pick 3 lit, & pick & equal-strings? postpone if & 2drop
 ; immediate compile-only
 
 : ofstrcase
-  & (lit) 3 , & pick & (lit) 3 , & pick & equal-name? postpone if & 2drop
+  3 lit, & pick 3 lit, & pick & equal-name? postpone if & 2drop
 ; immediate compile-only
 
-: endcasestr & 2drop ?dup if here swap ! then ; immediate compile-only
+: endcasestr & 2drop ?dup if token-align here swap ! then
+; immediate compile-only
 
 : fill ( addr count char -- )
   swap begin dup 0 > while rot 2 pick over c! 1 + rot rot 1 - repeat
   drop 2drop ;
 
-: align here cell-size mod dup 0<> if
-    cell-size swap - allot
-  else
-    drop
-  then ;
+\ : align here cell-size mod dup 0<> if
+\     cell-size swap - allot
+\   else
+\     drop
+\   then ;
 
-: aligned dup cell-size mod dup 0<> if
-    cell-size swap - +
-  else
-    drop
-  then ;
+\ : aligned dup cell-size mod dup 0<> if
+\     cell-size swap - +
+\   else
+\     drop
+\   then ;
 
-: walign here 4 mod dup 0<> if
-    4 swap - allot
-  else
-    drop
-  then ;
+\ : walign here 4 mod dup 0<> if
+\     4 swap - allot
+\   else
+\     drop
+\   then ;
 
-: waligned dup 4 mod dup 0<> if
-    4 swap - +
-  else
-    drop
-  then ;
+\ : waligned dup 4 mod dup 0<> if
+\     4 swap - +
+\   else
+\     drop
+\   then ;
 
-: halign here 2 mod dup 0<> if
-    2 swap - allot
-  else
-    drop
-  then ;
+\ : halign here 2 mod dup 0<> if
+\     2 swap - allot
+\   else
+\     drop
+\   then ;
 
-: haligned dup 2 mod dup 0<> if
-    2 swap - +
-  else
-    drop
-  then ;
+\ : haligned dup 2 mod dup 0<> if
+\     2 swap - +
+\   else
+\     drop
+\   then ;
 
 : begin-structure create here 0 0 , does> @ ;
 

@@ -404,18 +404,44 @@ void hf_prim_nop(hf_global_t* global) {
 
 /* EXIT primitive */
 void hf_prim_exit(hf_global_t* global) {
-  global->ip = *global->return_stack++;
+  global->ip = HF_ALIGNED_TO_TOKEN(*global->return_stack++);
 }
 
 /* BRANCH primitive */
 void hf_prim_branch(hf_global_t* global) {
-  global->ip = *(hf_token_t**)global->ip;
+#ifdef CELL_16
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#elif CELL_32
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#elif TOKEN_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#else
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif  
+  global->ip = HF_ALIGNED_TO_TOKEN(*(hf_token_t**)global->ip);
 }
 
 /* 0BRANCH primitive */
 void hf_prim_0branch(hf_global_t* global) {
+#ifdef CELL_16
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#elif CELL_32
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#elif TOKEN_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#else
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif  
   if(!(*global->data_stack++)) {
-    global->ip = *(hf_token_t**)global->ip;
+    global->ip = HF_ALIGNED_TO_TOKEN(*(hf_token_t**)global->ip);
   } else {
     *(void**)(&global->ip) += sizeof(hf_token_t*);
   }
@@ -423,6 +449,19 @@ void hf_prim_0branch(hf_global_t* global) {
 
 /* (LIT) primitive */
 void hf_prim_lit(hf_global_t* global) {
+#ifdef CELL_16
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#elif CELL_32
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#elif TOKEN_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#else
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif  
   *(--global->data_stack) = *(hf_cell_t*)global->ip;
   global->ip = (hf_token_t*)((void*)global->ip + sizeof(hf_cell_t));
 }
@@ -430,22 +469,42 @@ void hf_prim_lit(hf_global_t* global) {
 /* (LITC) primitve */
 void hf_prim_lit_8(hf_global_t* global) {
   hf_cell_t value = *(uint8_t*)global->ip;
+#ifdef TOKEN_8_16
   global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint8_t));
-  *(--global->data_stack) =
-    value < 128 ? value : value | (((hf_sign_cell_t)-1) & ~0xFF);
+#else
+  global->ip =
+    (hf_token_t*)HF_ALIGNED_TO_TOKEN((void*)global->ip + sizeof(uint8_t));
+#endif
+ *(--global->data_stack) =
+   value < 128 ? value : value | (((hf_sign_cell_t)-1) & ~0xFF);
 }
 
 /* (LITH) primitive */
 void hf_prim_lit_16(hf_global_t* global) {
-  hf_cell_t value = *(uint16_t*)global->ip;
+  hf_cell_t value;
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(uint16_t));
+#endif
+  value = *(uint16_t*)global->ip;
+#ifdef TOKEN_8_16
   global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint16_t));
+#elif TOKEN_16
+  global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint16_t));
+#else
+  global->ip =
+    (hf_token_t*)HF_ALIGNED_TO_TOKEN((void*)global->ip + sizeof(uint16_t));
+#endif
   *(--global->data_stack) =
     value < 32768 ? value : value | (((hf_sign_cell_t)-1) & ~0xFFFF);
 }
 
 /* (LITW) primitive */
 void hf_prim_lit_32(hf_global_t* global) {
-  hf_cell_t value = *(uint32_t*)global->ip;
+  hf_cell_t value;
+#ifndef TOKEN_32
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(uint32_t));
+#endif
+  value = *(uint32_t*)global->ip;
   global->ip = (hf_token_t*)((void*)global->ip + sizeof(uint32_t));
   *(--global->data_stack) =
     value < 2147483648 ? value : value | (((hf_sign_cell_t)-1) & ~0xFFFFFFFF);
@@ -453,9 +512,25 @@ void hf_prim_lit_32(hf_global_t* global) {
 
 /* (DATA) primitive */
 void hf_prim_data(hf_global_t* global) {
-  hf_cell_t bytes = *(hf_cell_t*)global->ip;
+  hf_cell_t bytes;
+#ifdef CELL_16
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#elif CELL_32
+#ifdef TOKEN_8_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#elif TOKEN_16
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+#else
+  global->ip = (hf_token_t*)HF_ALIGNED_TO(global->ip, sizeof(hf_cell_t));
+#endif
+  bytes = *(hf_cell_t*)global->ip;
   *(--global->data_stack) = (hf_cell_t)global->ip + sizeof(hf_cell_t);
-  global->ip = (hf_token_t*)((void*)global->ip + sizeof(hf_cell_t) + bytes);
+  global->ip =
+    (hf_token_t*)HF_ALIGNED_TO_TOKEN((void*)global->ip +
+				     sizeof(hf_cell_t) + bytes);
 }
 
 /* NEW-COLON primitive */
@@ -465,7 +540,7 @@ void hf_prim_new_colon(hf_global_t* global) {
   word = hf_new_word(global, token);
   word->data = NULL;
   word->primitive = hf_prim_enter;
-  word->secondary = (hf_token_t*)(*global->data_stack++);
+  word->secondary = HF_ALIGNED_TO_TOKEN(*global->data_stack++);
   *(--global->data_stack) = (hf_cell_t)token;
 }
 
@@ -486,7 +561,7 @@ void hf_prim_set_does(hf_global_t* global) {
   if(token < global->word_count) {
     hf_word_t* word = global->words + token;
     word->primitive = hf_prim_do_does;
-    word->secondary = *global->return_stack++;
+    word->secondary = HF_ALIGNED_TO_TOKEN(*global->return_stack++);
     global->ip = *global->return_stack++;
   } else {
     fprintf(stderr, "Out of range token!\n");

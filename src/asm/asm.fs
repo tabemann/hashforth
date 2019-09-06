@@ -124,7 +124,15 @@ end-structure
   then
   max-return-stack-count ! max-word-count ! mem-size ! target-token !
   target-cell !
-  target-cell @ header-8, target-token @ header-8, mem-size @ header,
+  target-cell @ header-8, target-token @ header-8,
+  target-cell @ cell-32 = if
+    0 header-16,
+  else
+    target-cell @ cell-64 = if
+      0 header-16, 0 header-32,
+    then
+  then
+  mem-size @ header,
   max-word-count @ header, max-return-stack-count @ header,
   max-word-count @ name-table-entry-size * 0 set-fill-data
   max-word-count @ info-table-entry-size * 0 set-fill-data
@@ -156,6 +164,41 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
     token-32 of 4 endof
   endcase ;
 
+\ Align an address to a power of two
+\ REMOVE AFTER COMPILING SUCCESSFULLY
+: aligned-to ( addr1 pow2 -- addr2 ) swap 1 - swap 1 - or 1 + ;
+
+\ Align code to a power of two
+: align-code-to ( pow2 -- )
+  code-buffer @ get-buffer-length tuck swap aligned-to
+  swap - here over allot 2dup swap 0 fill over code-buffer @ append-buffer
+  negate allot ;
+
+\ Align code to the cell-size
+: align-code ( -- ) cell-size align-code-to ;
+
+\ Align code to 32 bits
+: walign-code ( -- ) 4 align-code-to ;
+
+\ Align code to 16 bits
+: halign-code ( -- ) 2 align-code-to ;
+
+\ Align a token in code
+: align-code-token ( -- )
+  target-token @ case
+    token-16 of halign-code endof
+    token-16-32 of halign-code endof
+    token-32 of walign-code endof
+  endcase ;
+
+\ Align an offset a token in code
+: aligned-code-token ( offset -- offset )
+  target-token @ case
+    token-16 of 2 aligned-to endof
+    token-16-32 of 2 aligned-to endof
+    token-32 of 4 aligned-to endof
+  endcase ;
+
 : token-8-16, ( token -- )
   dup $7f > if
     dup $ff and $80 or code-buffer @ append-byte-buffer
@@ -165,9 +208,10 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
   then ;
 
 : token-16, ( token -- )
-  $ffff and here h! here 2 code-buffer @ append-buffer ;
+  halign-code $ffff and here h! here 2 code-buffer @ append-buffer ;
 
 : token-16-32, ( token -- )
+  halign-code
   dup $7fff > if
     dup $ffff and $8000 or here h! here 2
     code-buffer @ append-buffer
@@ -178,7 +222,7 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
   then ;
 
 : token-32, ( token -- )
-  $ffffffff and here w! here 4 code-buffer @ append-buffer ;
+  walign-code $ffffffff and here w! here 4 code-buffer @ append-buffer ;
 
 : token, ( token -- )
 \  cr ." compiling token: " dup .
@@ -193,13 +237,13 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
   $ff and here c! here 1 code-buffer @ append-buffer ;
 
 : arg-16, ( value -- )
-  $ffff and here h! here 2 code-buffer @ append-buffer ;
+  halign-code $ffff and here h! here 2 code-buffer @ append-buffer ;
 
 : arg-32, ( value -- )
-  $ffffffff and here w! here 4 code-buffer @ append-buffer ;
+  walign-code $ffffffff and here w! here 4 code-buffer @ append-buffer ;
 
 : arg-64, ( value -- )
-  here ! here cell-size code-buffer @ append-buffer ;
+  align-code here ! here cell-size code-buffer @ append-buffer ;
 
 : arg, ( value -- )
   target-cell @ case
@@ -232,10 +276,17 @@ variable current-token 62 current-token !
 1 constant colon-word
 2 constant create-word
 
+\ Get a reference
 : get-ref ( -- ref ) code-buffer @ get-buffer-length ;
 
+\ Get a cell-aligned reference
+: get-align-ref ( -- ref ) align-code get-ref ;
+
+\ Get a token-aligned reference
+: get-token-align-ref ( -- ref ) align-code-token get-ref ;
+
 : set-name-info ( addr bytes token flags -- )
-\   3 pick 3 pick type ." : " over (.) cr
+  3 pick 3 pick type ." : " over (.) cr
   get-ref here name-offset ! 2 pick here name-length !
   here name-table-entry-size
   3 pick name-table-entry-size * name-table-offset @ +
@@ -258,19 +309,21 @@ variable current-token 62 current-token !
   code-buffer @ write-buffer ;
 
 : make-colon-word ( token name-addr name-length flags -- )
-  colon-word header-8, 3 pick header, over get-ref + dup >r header, 3 roll swap
-  over >r set-name-info r> r> swap set-start ;
+  colon-word header, 3 pick header,
+  over get-ref + aligned-code-token dup >r header, 3 roll swap
+  over >r set-name-info r> r> swap set-start align-code-token ;
 
 : make-create-word ( token name-addr name-length flags -- )
-  create-word header-8, 3 pick header, over get-ref + header, 3 roll swap
-  set-name-info ;
+  create-word header, 3 pick header,
+  over get-ref + cell-size aligned-to header, 3 roll swap
+  set-name-info align-code ;
 
 : make-create-word-with-offset ( token name-addr name-length flags offset -- )
-  create-word header-8, 4 pick header, header, 3 roll swap
+  create-word header, 4 pick header, header, 3 roll swap
   set-name-info ;
 
 : end-headers ( -- )
-  headers-end header-8, code-buffer @ get-buffer-length header, ;
+  headers-end header, code-buffer @ get-buffer-length header, ;
 
 : x-unable-to-open space ." unable to open file" cr ;
 : x-unable-to-write space ." unable to write to file" cr ;
@@ -522,49 +575,52 @@ info-table-offset @ define-word-created-with-offset info-table
 : end-word ( -- ) vm exit end not-vm get-ref current-token @ 1 - set-end ;
 
 : lit ( x -- )
+[ target-token @ token-8-16 = ] [if]
   dup 127 <= over -128 >= and if
     vm (litc) not-vm arg-8,
   else
+[then]
+[ target-token @ dup token-8-16 = over token-16 = or swap token-16-32 = or ]
+[if]  
     dup 32767 <= over -32768 >= and if
       vm (lith) not-vm arg-16,
     else
+[then]
       dup 2147483647 <= over -2147483648 >= and if
 	vm (litw) not-vm arg-32,
       else
 	vm (lit) not-vm arg,
       then
+[ target-token @ dup token-8-16 = over token-16 = or swap token-16-32 = or ]
+[if]  
     then
-  then ;
-
-: back-ref ( "name" -- ) create get-ref , does> @ ;
-
-: +branch-fore ( "name" -- )
-  create vm branch not-vm get-ref , 0 arg, does> @ get-ref swap set-arg ;
-
-: +0branch-fore ( "name" -- )
-  create vm 0branch not-vm get-ref , 0 arg, does> @ get-ref swap set-arg ;
+[then]
+[ target-token @ token-8-16 = ] [if]
+  then
+[then]
+  ;
 
 : +branch-back ( x -- ) vm branch not-vm arg, ;
 
 : +0branch-back ( x -- ) vm 0branch not-vm arg, ;
 
-: +if ( -- forward-ref ) vm 0branch not-vm get-ref 0 arg, ;
+: +if ( -- forward-ref ) vm 0branch not-vm get-align-ref 0 arg, ;
 
 : +else ( forward-ref -- forward-ref )
-  vm branch not-vm get-ref 0 arg, swap get-ref swap set-arg ;
+  vm branch not-vm get-align-ref 0 arg, swap get-token-align-ref swap set-arg ;
 
-: +then ( forward-ref -- ) get-ref swap set-arg ;
+: +then ( forward-ref -- ) get-token-align-ref swap set-arg ;
 
-: +begin ( -- backward-ref ) get-ref ;
+: +begin ( -- backward-ref ) get-token-align-ref ;
 
 : +again ( backward-ref -- ) +branch-back ;
 
 : +until ( backward-ref -- ) +0branch-back ;
 
-: +while ( -- forward-ref ) vm 0branch not-vm get-ref 0 arg, ;
+: +while ( -- forward-ref ) vm 0branch not-vm get-align-ref 0 arg, ;
 
 : +repeat ( backward-ref forward-ref -- )
-  swap +branch-back get-ref swap set-arg ;
+  swap +branch-back get-align-ref swap set-arg ;
 
 : +data ( c-addr bytes -- )
   vm (data) not-vm dup arg, tuck set-data vm lit not-vm ;

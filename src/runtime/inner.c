@@ -138,6 +138,7 @@ void hf_inner(hf_global_t* global) {
     }
 #endif
 #endif
+    /* printf("executing token: %lld\n", (uint64_t)token); */
     if(token < global->word_count) {
       hf_word_t* word = global->words + token;
       global->current_word = word;
