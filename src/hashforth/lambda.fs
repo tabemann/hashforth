@@ -39,11 +39,11 @@ forth-wordlist lambda-wordlist 2 set-order
 lambda-wordlist set-current
 
 : [: ( -- xt) ( in xt: -- )
-  & branch here 0 , 0 compile, latestxt :noname ; immediate
+  & branch align here 0 , 0 compile, latestxt :noname ; immediate
 
 : ;] ( -- ) ( in xt: -- )
   & exit 0 compile, here latestxt end>word
-  rot here swap ! & (lit) , latestxt-value ! ; immediate
+  rot here swap ! lit, latestxt-value ! ; immediate
 
 : option ( ... flag true-xt -- ... )
   state @ if
