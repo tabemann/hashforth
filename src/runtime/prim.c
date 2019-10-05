@@ -230,6 +230,66 @@ void hf_prim_sys(hf_global_t* global);
 /* SYS-LOOKUP primitive */
 void hf_prim_sys_lookup(hf_global_t* global);
 
+/* D+ primitive */
+void hf_prim_d_add(hf_global_t* global);
+
+/* D- primitive */
+void hf_prim_d_sub(hf_global_t* global);
+
+/* D* primitive */
+void hf_prim_d_mul(hf_global_t* global);
+
+/* D/ primitive */
+void hf_prim_d_div(hf_global_t* global);
+
+/* DMOD primitive */
+void hf_prim_d_mod(hf_global_t* global);
+
+/* DU/ primitive */
+void hf_prim_d_u_div(hf_global_t* global);
+
+/* DUMOD primitive */
+void hf_prim_d_u_mod(hf_global_t* global);
+
+/* DNOT primitive */
+void hf_prim_d_not(hf_global_t* global);
+
+/* DAND primitive */
+void hf_prim_d_and(hf_global_t* global);
+
+/* DOR primitive */
+void hf_prim_d_or(hf_global_t* global);
+
+/* DXOR primitive */
+void hf_prim_d_xor(hf_global_t* global);
+
+/* DLSHIFT primitive */
+void hf_prim_d_lshift(hf_global_t* global);
+
+/* DRSHIFT primitive */
+void hf_prim_d_rshift(hf_global_t* global);
+
+/* DARSHIFT primitive */
+void hf_prim_d_arshift(hf_global_t* global);
+
+/* D< primitive */
+void hf_prim_d_lt(hf_global_t* global);
+
+/* D> primitive */
+void hf_prim_d_gt(hf_global_t* global);
+
+/* D= primitive */
+void hf_prim_d_eq(hf_global_t* global);
+
+/* D<> primitive */
+void hf_prim_d_ne(hf_global_t* global);
+
+/* DU< primitive */
+void hf_prim_d_u_lt(hf_global_t* global);
+
+/* DU> primitive */
+void hf_prim_d_u_gt(hf_global_t* global);
+
 /* Macros */
 
 /* Convert a C boolean into a Forth boolean */
@@ -372,6 +432,45 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
   hf_register_prim(global, HF_PRIM_SET_WORD_COUNT,
 		   hf_prim_set_word_count, user_space_current);
   hf_register_prim(global, HF_PRIM_SYS, hf_prim_sys, user_space_current);
+  hf_register_prim(global, HF_PRIM_D_ADD, hf_prim_d_add, user_space_current);
+  hf_register_prim(global, HF_PRIM_D_SUB, hf_prim_d_sub,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_MUL, hf_prim_d_mul,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_DIV, hf_prim_d_div,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_MOD, hf_prim_d_mod,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_U_DIV, hf_prim_d_u_div,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_U_MOD, hf_prim_d_u_mod,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_NOT, hf_prim_d_not,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_AND, hf_prim_d_and,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_OR, hf_prim_d_or,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_XOR, hf_prim_d_xor,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_LSHIFT, hf_prim_d_lshift,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_RSHIFT, hf_prim_d_rshift,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_ARSHIFT, hf_prim_d_arshift,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_LT, hf_prim_d_lt,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_GT, hf_prim_d_gt,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_EQ, hf_prim_d_eq,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_NE, hf_prim_d_ne,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_U_LT, hf_prim_d_u_lt,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_D_U_GT, hf_prim_d_u_gt,
+		   user_space_current);
 }
 
 /* Enter primitive */
@@ -958,4 +1057,198 @@ void hf_prim_sys(hf_global_t* global) {
       }
     }
   }
+}
+
+/* D+ primitive */
+void hf_prim_d_add(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 + value1);
+}
+
+/* D- primitive */
+void hf_prim_d_sub(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 - value1);
+}
+
+/* D* primitive */
+void hf_prim_d_mul(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 * value1);
+}
+
+/* D/ primitive */
+void hf_prim_d_div(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 / value1);
+}
+
+/* DMOD primitive */
+void hf_prim_d_mod(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 % value1);
+}
+
+/* DU/ primitive */
+void hf_prim_d_u_div(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 / value1);
+}
+
+/* DUMOD primitive */
+void hf_prim_d_u_mod(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 % value1);
+}
+
+/* DNOT primitive */
+void hf_prim_d_not(hf_global_t* global) {
+  hf_2cell_t value;
+  HF_LOAD_2CELL(global, 0, value);
+  HF_STORE_2CELL(global, 0, ~value);
+}
+
+/* DAND primitive */
+void hf_prim_d_and(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 & value1);
+}
+
+/* DOR primitive */
+void hf_prim_d_or(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 | value1);
+}
+
+/* DXOR primitive */
+void hf_prim_d_xor(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 2;
+  HF_STORE_2CELL(global, 0, value0 ^ value1);
+}
+
+/* DLSHIFT primitive */
+void hf_prim_d_lshift(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 1, value0);
+  value1 = *global->data_stack++;
+  HF_STORE_2CELL(global, 0, value0 << value1);
+}
+
+/* DRSHIFT primitive */
+void hf_prim_d_rshift(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 1, value0);
+  value1 = *global->data_stack++;
+  HF_STORE_2CELL(global, 0, value0 >> value1);
+}
+
+/* DARSHIFT primitive */
+void hf_prim_d_arshift(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 1, value0);
+  value1 = *global->data_stack++;
+  HF_STORE_2CELL(global, 0, value0 >> value1);
+}
+
+/* D< primitive */
+void hf_prim_d_lt(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 3;
+  *global->data_stack = (hf_cell_t)(value0 < value1 ? -1 : 0);
+}
+
+/* D> primitive */
+void hf_prim_d_gt(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 3;
+  *global->data_stack = (hf_cell_t)(value0 > value1 ? -1 : 0);
+}
+
+/* D= primitive */
+void hf_prim_d_eq(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 3;
+  *global->data_stack = (hf_cell_t)(value0 == value1 ? -1 : 0);
+}
+
+/* D<> primitive */
+void hf_prim_d_ne(hf_global_t* global) {
+  hf_sign_2cell_t value0;
+  hf_sign_2cell_t value1;
+  HF_LOAD_SIGN_2CELL(global, 2, value0);
+  HF_LOAD_SIGN_2CELL(global, 0, value1);
+  global->data_stack += 3;
+  *global->data_stack = (hf_cell_t)(value0 != value1 ? -1 : 0);
+}
+
+/* DU< primitive */
+void hf_prim_d_u_lt(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 3;
+  *global->data_stack = (hf_cell_t)(value0 < value1 ? -1 : 0);
+}
+
+/* DU> primitive */
+void hf_prim_d_u_gt(hf_global_t* global) {
+  hf_2cell_t value0;
+  hf_2cell_t value1;
+  HF_LOAD_2CELL(global, 2, value0);
+  HF_LOAD_2CELL(global, 0, value1);
+  global->data_stack += 3;
+  *global->data_stack = (hf_cell_t)(value0 > value1 ? -1 : 0);
 }

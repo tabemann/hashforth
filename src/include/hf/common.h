@@ -39,17 +39,23 @@
 
 typedef uint16_t hf_cell_t;
 typedef int16_t hf_sign_cell_t;
+typedef uint32_t hf_2cell_t;
+typedef int32_t hf_sign_2cell_t;
 
 #else
 #ifdef CELL_32
 
 typedef uint32_t hf_cell_t;
 typedef int32_t hf_sign_cell_t;
+typedef uint64_t hf_2cell_t;
+typedef int64_t hf_sign_2cell_t;
 
 #else /* CELL_64 */
 
 typedef uint64_t hf_cell_t;
 typedef int64_t hf_sign_cell_t;
+typedef unsigned __int128 hf_2cell_t;
+typedef __int128 hf_sign_2cell_t;
 
 #endif
 #endif
@@ -113,6 +119,33 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 
 #define HF_ALIGNED_TO_TOKEN(addr) \
   ((hf_token_t*)HF_ALIGNED_TO(addr, sizeof(hf_token_t)))
+
+/* Load an unsigned double-cell integer from data stack at cell offset */
+#define HF_LOAD_2CELL(global, offset, value) \
+  { hf_global_t* _global_  = (global); \
+    hf_cell_t _offset_ = (offset); \
+    hf_2cell_t high = *(_global_->data_stack + _offset_); \
+    hf_2cell_t low = *(_global_->data_stack + _offset_ + 1); \
+    value = low | (high << (sizeof(hf_cell_t) << 3)); }
+
+/* Load a signed double-cell integer from data stack at cell offset */
+#define HF_LOAD_SIGN_2CELL(global, offset, value) \
+  { hf_global_t* _global_  = (global); \
+    hf_cell_t _offset_ = (offset); \
+    hf_2cell_t high = *(_global_->data_stack + _offset_); \
+    hf_2cell_t low = *(_global_->data_stack + _offset_ + 1); \
+    value = (hf_sign_2cell_t)(low | (high << (sizeof(hf_cell_t) << 3))); }
+
+/* Store a double-cell integer to data stack at cell offset */
+#define HF_STORE_2CELL(global, offset, value) \
+  { hf_global_t* _global_ = (global); \
+    hf_cell_t _offset_ = (offset); \
+    hf_2cell_t _value_ = (hf_2cell_t)(value);	\
+    *(_global_->data_stack + _offset_) = \
+      (hf_cell_t)(_value_ >> (sizeof(hf_cell_t) << 3));	\
+    *(_global_->data_stack + _offset_ + 1) = \
+      (hf_cell_t)(_value_ & ((~(hf_2cell_t)0) >> (sizeof(hf_cell_t) << 3))); }
+
 
 /* Constants */
 
@@ -188,6 +221,26 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_PRIM_STORE_32 (59)
 #define HF_PRIM_SET_WORD_COUNT (60)
 #define HF_PRIM_SYS (61)
+#define HF_PRIM_D_ADD (62)
+#define HF_PRIM_D_SUB (63)
+#define HF_PRIM_D_MUL (64)
+#define HF_PRIM_D_DIV (65)
+#define HF_PRIM_D_MOD (66)
+#define HF_PRIM_D_U_DIV (67)
+#define HF_PRIM_D_U_MOD (68)
+#define HF_PRIM_D_NOT (69)
+#define HF_PRIM_D_AND (70)
+#define HF_PRIM_D_OR (71)
+#define HF_PRIM_D_XOR (72)
+#define HF_PRIM_D_LSHIFT (73)
+#define HF_PRIM_D_RSHIFT (74)
+#define HF_PRIM_D_ARSHIFT (75)
+#define HF_PRIM_D_LT (76)
+#define HF_PRIM_D_GT (77)
+#define HF_PRIM_D_EQ (78)
+#define HF_PRIM_D_NE (79)
+#define HF_PRIM_D_U_LT (80)
+#define HF_PRIM_D_U_GT (81)
 
 #ifndef WITH_SYS_ALLOCATE
 
