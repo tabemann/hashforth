@@ -226,8 +226,8 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_PRIM_D_MUL (64)
 #define HF_PRIM_D_DIV (65)
 #define HF_PRIM_D_MOD (66)
-#define HF_PRIM_D_U_DIV (67)
-#define HF_PRIM_D_U_MOD (68)
+#define HF_PRIM_D_UDIV (67)
+#define HF_PRIM_D_UMOD (68)
 #define HF_PRIM_D_NOT (69)
 #define HF_PRIM_D_AND (70)
 #define HF_PRIM_D_OR (71)
@@ -239,8 +239,8 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_PRIM_D_GT (77)
 #define HF_PRIM_D_EQ (78)
 #define HF_PRIM_D_NE (79)
-#define HF_PRIM_D_U_LT (80)
-#define HF_PRIM_D_U_GT (81)
+#define HF_PRIM_D_ULT (80)
+#define HF_PRIM_D_UGT (81)
 
 #ifndef WITH_SYS_ALLOCATE
 

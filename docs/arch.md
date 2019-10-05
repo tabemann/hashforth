@@ -407,6 +407,126 @@ This word's execution results in the number of words in the word table being set
 
 This word's execution results in a service number being popped off the top of the data stack, which is non-negative for standard services and negative for non-standard services, which if corresponding to an implemented service results in the parameters for that service being popped off the top of the data stack and the results being pushed onto the data stack followed by -1 being pushed onto the data stack, and otherwise 0 is pushed onto the data stack.
 
+### `HF_PRIM_D_ADD` (62), also known as `d+`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the addition of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_SUB` (63), also known as `d-`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the subtraction of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_MUL` (64), also known as `d*`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the multiplication of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_DIV` (65), also known as `d/`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the signed division of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_MOD` (66), also known as `dmod`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the signed modulus of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_UDIV` (67), also known as `du/`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the unsigned division of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_UMOD` (68), also known as `dumod`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the unsigned modulus of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_NOT` (69), also known as `dnot`
+
+#### ( l1 h1 -- l2 h2 )
+
+This word's execution results in the binary inverse of a double-cell integer popped off the data stack being pushed back onto the data stack.
+
+### `HF_PRIM_D_AND` (70), also known as `dand`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the binary and of two double-cell integers popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_OR` (71), also known as `dor`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the binary or of two double-cell integers popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_XOR` (72), also known as `dor`
+
+####  ( l1 h1 l2 h2 -- l3 h3 )
+
+This word's execution results in the binary exclusive or of two double-cell integers popped off the data stack and with the resulting double-cell integer being pushed back onto the data stack.
+
+### `HF_PRIM_D_LSHIFT` (73), also known as `dlshift`
+
+#### ( l1 h1 u -- l2 h2 )
+
+This word's execution results in the left shift by an integer first popped off the data stack of a double cell integer, with the highest significance cell higher on the data stack, popped afterwards off the data stack, with the resulting double cell integer pushed back onto the data stack.
+
+### `HF_PRIM_D_RSHIFT` (74), also known as `drshift`
+
+#### ( l1 h1 u -- l2 h2 )
+
+This word's execution results in the logical right shift by an integer first popped off the data stack of a double cell integer, with the highest significance cell higher on the data stack, popped afterwards off the data stack, with the resulting double cell integer pushed back onto the data stack.
+
+### `HF_PRIM_D_ARSHIFT` (75), also known as `darshift`
+
+#### ( l1 h1 u -- l2 h2 )
+
+This word's execution results in the arithmetic right shift by an integer first popped off the data stack of a double cell integer, with the highest significance cell higher on the data stack, popped afterwards off the data stack, with the resulting double cell integer pushed back onto the data stack.
+
+### `HF_PRIM_D_LT` (76), also known as `d<`
+
+####  ( l1 h1 l2 h2 -- f )
+
+This word's execution results in the signed less-than comparison of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting boolean being pushed onto the data stack.
+
+### `HF_PRIM_D_GT` (77), also known as `d>`
+
+####  ( l1 h1 l2 h2 -- f )
+
+This word's execution results in the signed greater-than comparison of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting boolean being pushed onto the data stack.
+
+### `HF_PRIM_D_EQ` (78), also known as `d=`
+
+####  ( l1 h1 l2 h2 -- f )
+
+This word's execution results in the equals comparison of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting boolean being pushed onto the data stack.
+
+### `HF_PRIM_D_NE` (79), also known as `d<>`
+
+####  ( l1 h1 l2 h2 -- f )
+
+This word's execution results in the not-equals comparison of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting boolean being pushed onto the data stack.
+
+### `HF_PRIM_D_ULT` (80), also known as `du<`
+
+####  ( l1 h1 l2 h2 -- f )
+
+This word's execution results in the unsigned less-than comparison of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting boolean being pushed onto the data stack.
+
+### `HF_PRIM_D_UGT` (81), also known as `du>`
+
+####  ( l1 h1 l2 h2 -- f )
+
+This word's execution results in the unsigned greater-than comparison of two double-cell integers, with the highest significance cell of each higher on the stack, popped off the data stack and with the resulting boolean being pushed onto the data stack.
+
 ## Services
 
 Services are invoked with the `HF_PRIM_SYS` (`SYS`) word; in the following documentation the service numbers used to invoke the services and the flags returned to indicate that said services exist are not included in the stack signatures for these services.
