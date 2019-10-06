@@ -290,6 +290,30 @@ void hf_prim_d_ult(hf_global_t* global);
 /* DU> primitive */
 void hf_prim_d_ugt(hf_global_t* global);
 
+/* * / primitive */
+void hf_prim_mul_div(hf_global_t* global);
+
+/* *RSHIFT primitive */
+void hf_prim_mul_rshift(hf_global_t* global);
+
+/* LSHIFT/ primitive */
+void hf_prim_lshift_div(hf_global_t* global);
+
+/* U* / primitive */
+void hf_prim_umul_div(hf_global_t* global);
+
+/* U*RSHIFT primitive */
+void hf_prim_umul_rshift(hf_global_t* global);
+
+/* ULSHIFT/ primitive */
+void hf_prim_ulshift_div(hf_global_t* global);
+
+/* * /MOD primitive */
+void hf_prim_mul_div_mod(hf_global_t* global);
+
+/* U* /MOD primitive */
+void hf_prim_umul_div_mod(hf_global_t* global);
+
 /* Macros */
 
 /* Convert a C boolean into a Forth boolean */
@@ -470,6 +494,22 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
   hf_register_prim(global, HF_PRIM_D_ULT, hf_prim_d_ult,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_D_UGT, hf_prim_d_ugt,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_MUL_DIV, hf_prim_mul_div,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_MUL_RSHIFT, hf_prim_mul_rshift,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_LSHIFT_DIV, hf_prim_lshift_div,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_UMUL_DIV, hf_prim_umul_div,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_UMUL_RSHIFT, hf_prim_umul_rshift,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_ULSHIFT_DIV, hf_prim_ulshift_div,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_MUL_DIV_MOD, hf_prim_mul_div_mod,
+		   user_space_current);
+  hf_register_prim(global, HF_PRIM_UMUL_DIV_MOD, hf_prim_umul_div_mod,
 		   user_space_current);
 }
 
@@ -1251,4 +1291,90 @@ void hf_prim_d_ugt(hf_global_t* global) {
   HF_LOAD_2CELL(global, 0, value1);
   global->data_stack += 3;
   *global->data_stack = (hf_cell_t)(value0 > value1 ? -1 : 0);
+}
+
+/* * / primitive */
+void hf_prim_mul_div(hf_global_t* global) {
+  hf_sign_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_sign_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
+  hf_sign_2cell_t value2 = *(hf_sign_cell_t*)(global->data_stack);
+  hf_sign_2cell_t result = (value0 * value1) / value2;
+  global->data_stack += 2;
+  *global->data_stack = (hf_sign_cell_t)result;
+}
+
+/* *RSHIFT primitive */
+void hf_prim_mul_rshift(hf_global_t* global) {
+  hf_sign_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_sign_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
+  hf_cell_t value2 = *global->data_stack;
+  hf_sign_2cell_t result = (value0 * value1) >> value2;
+  global->data_stack += 2;
+  *global->data_stack = (hf_sign_cell_t)result;
+}
+
+/* LSHIFT/ primitive */
+void hf_prim_lshift_div(hf_global_t* global) {
+  hf_sign_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_cell_t value1 = *(global->data_stack + 1);
+  hf_sign_2cell_t value2 = *global->data_stack;
+  hf_sign_2cell_t result = (value0 << value1) / value2;
+  global->data_stack += 2;
+  *global->data_stack = (hf_sign_cell_t)result;
+}
+
+/* U* / primitive */
+void hf_prim_umul_div(hf_global_t* global) {
+  hf_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
+  hf_2cell_t value2 = *(hf_sign_cell_t*)(global->data_stack);
+  hf_2cell_t result = (value0 * value1) / value2;
+  global->data_stack += 2;
+  *global->data_stack = result;
+}
+
+/* U*RSHIFT primitive */
+void hf_prim_umul_rshift(hf_global_t* global) {
+  hf_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
+  hf_cell_t value2 = *global->data_stack;
+  hf_2cell_t result = (value0 * value1) >> value2;
+  global->data_stack += 2;
+  *global->data_stack = result;
+}
+
+/* ULSHIFT/ primitive */
+void hf_prim_ulshift_div(hf_global_t* global) {
+  hf_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_cell_t value1 = *(global->data_stack + 1);
+  hf_2cell_t value2 = *global->data_stack;
+  hf_2cell_t result = (value0 << value1) / value2;
+  global->data_stack += 2;
+  *global->data_stack = result;
+}
+
+/* * /MOD primitive */
+void hf_prim_mul_div_mod(hf_global_t* global) {
+  hf_sign_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_sign_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
+  hf_sign_2cell_t value2 = *(hf_sign_cell_t*)(global->data_stack);
+  hf_sign_2cell_t product = value0 * value1;
+  hf_sign_2cell_t remainder = product % value2;
+  hf_sign_2cell_t quotient = product / value2;
+  global->data_stack++;
+  *(global->data_stack + 1) = (hf_sign_cell_t)remainder;
+  *global->data_stack = (hf_sign_cell_t)quotient;
+}
+
+/* U* /MOD primitive */
+void hf_prim_umul_div_mod(hf_global_t* global) {
+  hf_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
+  hf_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
+  hf_2cell_t value2 = *(hf_sign_cell_t*)(global->data_stack);
+  hf_2cell_t product = value0 * value1;
+  hf_2cell_t remainder = product % value2;
+  hf_2cell_t quotient = product / value2;
+  global->data_stack++;
+  *(global->data_stack + 1) = remainder;
+  *global->data_stack = quotient;
 }
