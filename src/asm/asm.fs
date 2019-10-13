@@ -268,7 +268,7 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
     cell-64 of set-arg-64 endof
   endcase ;
 
-variable current-token 90 current-token !
+variable current-token 89 current-token !
 
 : next-token ( -- token ) current-token @ dup 1+ current-token ! ;
 
@@ -590,12 +590,11 @@ not-vm hashforth-asm-wordlist set-current
 81 primitive du>
 82 primitive */
 83 primitive *rshift
-84 primitive lshift/
-85 primitive u*/
-86 primitive u*rshift
-87 primitive ulshift/
-88 primitive */mod
-89 primitive u*/mod
+84 primitive u*/
+85 primitive u*rshift
+86 primitive ulshift/
+87 primitive */mod
+88 primitive u*/mod
 
 name-table-offset @ define-word-created-with-offset name-table
 info-table-offset @ define-word-created-with-offset info-table

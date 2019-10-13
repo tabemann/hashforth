@@ -214,7 +214,7 @@
 
 : wfield: create waligned dup , 4 + does> @ + ;
 
-: field: create aligned dup , [ cell-size ] literal + does> @ + ;
+: field: create aligned dup , cell + does> @ + ;
 
 \ Add two times
 : time+ ( s1 ns1 s2 ns2 -- s3 ns3 )
@@ -295,6 +295,122 @@ c"-data c"-length 2constant c"-constant
 
 \ Finish conditional execution/compilation
 : [then] ( -- ) ; immediate
+
+\ Negate a double-cell number
+: dnegate ( d1 -- d2 ) -1 -1 d* ;
+
+\ Parse the digits of a double-cell numeric literal
+: parse-double-digits ( base c-addr bytes -- d matches )
+  0 0 begin 2 pick 0 > while
+    4 pick 4 pick c@ parse-digit if
+      rot rot 5 pick 0 d* rot 0 d+ 3 roll 1 + 3 roll 1 - 2swap
+    else
+      2drop 2drop 2drop 0 0 false exit
+    then
+  repeat
+  rot drop rot drop rot drop true ;
+
+\ Parse a double-cell numeric literal
+: parse-double ( c-addr bytes -- d matches )
+  dup 0 u> if
+    2dup + 1 - c@ [char] . = if
+      1 - parse-base rot rot dup 0 u> if
+	over c@ [char] - = if
+	  1 - swap 1 + swap dup 0 u> if
+	    parse-double-digits dup if
+	      drop dnegate true
+	    then
+	  else
+	    2drop drop 0 0 false
+	  then
+	else
+	  parse-double-digits
+	then
+      else
+	2drop drop 0 0 false
+      then
+    else
+      2drop 0 0 false
+    then
+  else
+    2drop 0 0 false
+  then ;
+
+\ Number parser
+: parse-compile-number-or-double ( c-addr bytes -- n|d 1 | 0 )
+  2dup 2>r parse-compile-number if
+    2r> 2drop true
+  else
+    2r> parse-double if
+      state @ if swap lit, lit, then true
+    else
+      2drop false
+    then
+  then ;
+
+\ Set number parser
+' parse-compile-number-or-double 'handle-number !
+
+\ Number out of range exception
+: x-out-of-range-number ( -- ) space ." out of range number" cr ;
+
+\ Convert a single precision number to a double precision number
+: s>d ( n -- d ) dup >= 0 if 0 else -1 then ;
+
+\ Convert a double precision number to a single precision number, raising an
+\ exception if no valid single precision number could result
+: d>s ( d -- n )
+  dup 0 = if
+    drop dup cell 3 lshift 1 - arshift 0 = averts x-out-of-range-number
+  else
+    -1 = if
+      dup cell 3 lshift 1 - arshift -1 = averts x-out-of-range-number
+    else
+      ['] x-out-of-range-number ?raise
+    then
+  then ;
+
+\ Exponentiation
+: ** ( n1 n -- n2 )
+  dup 0 > if
+    1 begin
+      over 1 and if
+	2 pick *
+      then
+      swap 1 rshift dup 0 = if
+	drop nip true
+      else
+	rot dup * swap rot false
+      then
+    until
+  else
+    0 = if
+      drop 1
+    else
+      drop 0
+    then
+  then ;
+
+\ Double-cell exponentiation
+: d** ( d n -- d )
+  dup 0 > if
+    1 0 begin
+      2 pick 1 and if
+	4 pick 4 pick d*
+      then
+      rot 1 rshift dup 0 = if
+	drop 3 roll 3 roll 2drop true
+      else
+	4 roll 4 roll 2dup d* rot 4 roll 4 roll false
+      then
+    until
+  else
+    0 = if
+      2drop 1 0
+    else
+      2drop 0 0
+    then
+  then ;
 
 \ Decompile 8/16-bit token
 : decompile-token-8-16 ( addr -- addr token )
@@ -407,7 +523,7 @@ c"-data c"-length 2constant c"-constant
 \ Decompile a specified word
 : see ( "name" -- ) ' decompile ;
 
- \ Search for the word an address is in
+\ Search for the word an address is in
 : find-word-by-address ( addr -- xt found )
   latestxt begin
     dup 0 > if

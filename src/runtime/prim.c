@@ -296,9 +296,6 @@ void hf_prim_mul_div(hf_global_t* global);
 /* *RSHIFT primitive */
 void hf_prim_mul_rshift(hf_global_t* global);
 
-/* LSHIFT/ primitive */
-void hf_prim_lshift_div(hf_global_t* global);
-
 /* U* / primitive */
 void hf_prim_umul_div(hf_global_t* global);
 
@@ -498,8 +495,6 @@ void hf_register_prims(hf_global_t* global, void** user_space_current) {
   hf_register_prim(global, HF_PRIM_MUL_DIV, hf_prim_mul_div,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_MUL_RSHIFT, hf_prim_mul_rshift,
-		   user_space_current);
-  hf_register_prim(global, HF_PRIM_LSHIFT_DIV, hf_prim_lshift_div,
 		   user_space_current);
   hf_register_prim(global, HF_PRIM_UMUL_DIV, hf_prim_umul_div,
 		   user_space_current);
@@ -1309,16 +1304,6 @@ void hf_prim_mul_rshift(hf_global_t* global) {
   hf_sign_2cell_t value1 = *(hf_sign_cell_t*)(global->data_stack + 1);
   hf_cell_t value2 = *global->data_stack;
   hf_sign_2cell_t result = (value0 * value1) >> value2;
-  global->data_stack += 2;
-  *global->data_stack = (hf_sign_cell_t)result;
-}
-
-/* LSHIFT/ primitive */
-void hf_prim_lshift_div(hf_global_t* global) {
-  hf_sign_2cell_t value0 = *(hf_sign_cell_t*)(global->data_stack + 2);
-  hf_cell_t value1 = *(global->data_stack + 1);
-  hf_sign_2cell_t value2 = *global->data_stack;
-  hf_sign_2cell_t result = (value0 << value1) / value2;
   global->data_stack += 2;
   *global->data_stack = (hf_sign_cell_t)result;
 }

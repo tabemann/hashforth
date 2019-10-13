@@ -243,12 +243,11 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_PRIM_D_UGT (81)
 #define HF_PRIM_MUL_DIV (82)
 #define HF_PRIM_MUL_RSHIFT (83)
-#define HF_PRIM_LSHIFT_DIV (84)
-#define HF_PRIM_UMUL_DIV (85)
-#define HF_PRIM_UMUL_RSHIFT (86)
-#define HF_PRIM_ULSHIFT_DIV (87)
-#define HF_PRIM_MUL_DIV_MOD (88)
-#define HF_PRIM_UMUL_DIV_MOD (89)
+#define HF_PRIM_UMUL_DIV (84)
+#define HF_PRIM_UMUL_RSHIFT (85)
+#define HF_PRIM_ULSHIFT_DIV (86)
+#define HF_PRIM_MUL_DIV_MOD (87)
+#define HF_PRIM_UMUL_DIV_MOD (88)
 
 #ifndef WITH_SYS_ALLOCATE
 

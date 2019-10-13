@@ -42,7 +42,7 @@ define-word true +true end-word
 define-word false +false end-word
 
 \ Cell size in bytes constant
-define-word cell-size ( -- u ) target-cell-size lit end-word
+define-word cell ( -- u ) target-cell-size lit end-word
 
 \ Advance a pointer by one cell
 define-word cell+ ( u -- u ) target-cell-size lit + end-word
@@ -116,6 +116,12 @@ define-word <= ( n1 n2 -- flag ) 2dup = rot rot < or end-word
 \ Get whether one value is greater than (signed) or equal to another value
 define-word >= ( n1 n2 -- flag ) 2dup = rot rot > or end-word
 
+\ Get whether one value is smaller than (unsigned) or equal to another value
+define-word u<= ( n1 n2 -- flag ) 2dup = rot rot u< or end-word
+
+\ Get whether one value is greater than (unsigned) or equal to another value
+define-word u>= ( n1 n2 -- flag ) 2dup = rot rot u> or end-word
+
 \ Fetch a value at an address, add a value to it, and store it to the same
 \ address
 define-word +! ( n addr -- ) dup @ rot + swap ! end-word
@@ -129,7 +135,7 @@ define-word aligned-to ( addr1 pow2 -- addr2 )
 end-word
 
 \ Align an address to the cell size
-define-word aligned ( addr1 -- addr2 ) cell-size aligned-to end-word
+define-word aligned ( addr1 -- addr2 ) cell aligned-to end-word
 
 \ Align an address to a 32-bit size
 define-word waligned ( addr1 -- addr2 ) 4 lit aligned-to end-word
@@ -148,7 +154,7 @@ define-word halign ( -- ) here haligned here! end-word
 
 \ Store a cell-sized value at the HERE pointer and advance the HERE pointer by
 \ one cell
-define-word , ( x -- ) here ! cell-size allot end-word
+define-word , ( x -- ) here ! cell allot end-word
 
 \ Store a byte-sized value at the HERE pointer and advance the HERE pointer by
 \ one byte
@@ -779,7 +785,7 @@ define-word-created rbase
 0 set-cell-data
 
 \ Get the depth of the data stack
-define-word depth ( -- u ) sbase @ sp@ - cell-size / 1 lit - end-word
+define-word depth ( -- u ) sbase @ sp@ - cell / 1 lit - end-word
 
 \ Output the contents of the data stack, from deepest to topmost, on standard
 \ output
@@ -1202,7 +1208,7 @@ end-word
 \ a non-zero value, else zero followed by zero is pushed onto the data stack
 define-word search-wordlists ( c-addr bytes -- xt found )
   0 lit +begin dup wordlist-order-count @ < +while
-    dup cell-size * wordlist-order-array + @ 3 lit pick 3 lit pick rot
+    dup cell * wordlist-order-array + @ 3 lit pick 3 lit pick rot
     search-wordlist +if
       swap drop swap drop swap drop +true exit
     +else
@@ -1660,6 +1666,10 @@ define-word parse-number ( c-addr bytes -- n matches )
   +then
 end-word
 
+\ The actual value of LATESTXT
+define-word-created 'handle-number
+0 set-cell-data
+
 \ Immediately set the state to interpretation mode
 non-define-word-immediate [ ( -- ) +false state ! end-word
 
@@ -1684,14 +1694,19 @@ define-word interpret-word ( c-addr bytes xt -- )
   +then
 end-word
 
+\ Actually handle a number, and in compilation mode compile it as a literal,
+\ unless it cannot be parsed, where then false is returned
+define-word parse-compile-number ( c-addr bytes - n 1 | 0 )
+  parse-number +if state @ +if lit, +then +true +else drop +false +then
+end-word
+
 \ Parse a number, and in compilation mode compile it as a literal, unless it
 \ cannot be parsed, where then an exception is raised
 define-word handle-number ( c-addr bytes -- )
-  2dup parse-number +if
-    rot rot 2drop
-    state @ +if lit, +then
+  2dup >r >r 'handle-number @ execute +if
+    r> r> 2drop
   +else
-    drop save-exception &x-parse-error ?raise
+    r> r> save-exception &x-parse-error ?raise
   +then
 end-word
 
@@ -1904,7 +1919,7 @@ define-word boot ( storage storage-size here -- )
   main-format-digit-buffer format-digit-buffer !
   input-buffer input ! 0 lit input-buffer# ! 0 lit input# !
   stdin input-fd ! stdout output-fd ! stderr error-fd !
-  0 lit read-key ! +false read-key? !
+  0 lit read-key ! +false read-key? ! &parse-compile-number 'handle-number !
   &boot latestxt-value !
   &boot relocate-name-table
   &boot relocate-info-table
@@ -1934,4 +1949,6 @@ s" src/hashforth/map.fs" add-source-to-storage
 s" src/hashforth/bufchan.fs" add-source-to-storage
 s" src/hashforth/varchan.fs" add-source-to-storage
 s" src/hashforth/line.fs" add-source-to-storage
+s" src/hashforth/fixed_16_16.fs" add-source-to-storage
+\ s" src/hashforth/fixed_32_32.fs" add-source-to-storage
 s" src/hashforth/ready.fs" add-source-to-storage
