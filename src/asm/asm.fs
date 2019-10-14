@@ -72,7 +72,7 @@ variable max-return-stack-count 0 max-return-stack-count !
   $ffffffff and here w! here 4 header-buffer @ append-buffer ;
 
 : header-64, ( value -- )
-  here ! here cell-size header-buffer @ append-buffer ;
+  here ! here cell header-buffer @ append-buffer ;
 
 : header, ( value -- )
   target-cell @ case
@@ -88,7 +88,7 @@ variable max-return-stack-count 0 max-return-stack-count !
 : set-fill-data ( bytes c -- )
   over allocate! dup 3 pick 3 roll fill tuck swap set-data free! ;
 
-: set-cell-data ( x -- ) here ! here cell-size set-data ;
+: set-cell-data ( x -- ) here ! here cell set-data ;
 
 variable name-table-offset
 variable info-table-offset
@@ -175,7 +175,7 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
   negate allot ;
 
 \ Align code to the cell-size
-: align-code ( -- ) cell-size align-code-to ;
+: align-code ( -- ) cell align-code-to ;
 
 \ Align code to 32 bits
 : walign-code ( -- ) 4 align-code-to ;
@@ -243,7 +243,7 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
   walign-code $ffffffff and here w! here 4 code-buffer @ append-buffer ;
 
 : arg-64, ( value -- )
-  align-code here ! here cell-size code-buffer @ append-buffer ;
+  align-code here ! here cell code-buffer @ append-buffer ;
 
 : arg, ( value -- )
   target-cell @ case
@@ -259,7 +259,7 @@ cell-64 token-16-32 1024 1024 * 32 * 16384 1024 init-asm
   swap $ffffffff and here w! here 4 rot code-buffer @ write-buffer ;
 
 : set-arg-64 ( value offset -- )
-  swap here ! here cell-size rot code-buffer @ write-buffer ;
+  swap here ! here cell rot code-buffer @ write-buffer ;
 
 : set-arg ( value offset -- )
   target-cell @ case
@@ -315,7 +315,7 @@ variable current-token 89 current-token !
 
 : make-create-word ( token name-addr name-length flags -- )
   create-word header, 3 pick header,
-  over get-ref + cell-size aligned-to header, 3 roll swap
+  over get-ref + cell aligned-to header, 3 roll swap
   set-name-info align-code ;
 
 : make-create-word-with-offset ( token name-addr name-length flags offset -- )
