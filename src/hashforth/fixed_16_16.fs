@@ -61,12 +61,7 @@ cell 2 > [if]
   : fraction ( f16.16 -- f16.16 ) dup floor - ;
 
   \ Get the ceiling of a 16.16 fixed point number
-  : ceiling ( f16.16 -- f16.16 )
-    dup floor tuck - dup 0 > if
-      drop 1 16 lshift +
-    else
-      0 < if 16 lshift negate + then
-    then ;
+  : ceiling ( f16.16 -- f16.16 ) f>s s>f [ 1 16 lshift ] literal + ;
 
   \ Multiply two 16.16 fixed point numbers
   : f* ( f1 f2 -- f3 )
@@ -165,10 +160,12 @@ cell 2 > [if]
     else
       2drop drop 0 false
     then ;
+
+  forth-wordlist lambda-wordlist fixed-wordlist fixed-16.16-wordlist 4 set-order
   
   \ Number parser
   : parse-compile-number-or-double-or-fixed ( c-addr bytes -- x matches )
-    2dup 2>r parse-compile-number-or-double if
+    2dup 2>r parse-compile-number-or-double-or-fixed if
       2r> 2drop true
     else
       2r> parse-f16.16 if
