@@ -55,15 +55,14 @@ cell 8 = [if]
   : f>s ( f32.32 -- n ) 32 arshift ;
 
   \ Get the floor of a 32.32 fixed point number
-  : floor ( f32.32 -- f32.32 )
-    dup 0 >= if f>s s>f else f>s s>f [ 1 32 lshift ] literal - then ;
+  : floor ( f32.32 -- f32.32 ) f>s s>f ;
 
   \ Get the portion of a 32.32 fixed point number right of the decimal point
   : fraction ( f32.32 -- f32.32 ) dup floor - ;
 
   \ Get the ceiling of a 32.32 fixed point number
   : ceiling ( f32.32 -- f32.32 )
-    dup 0 >= if f>s s>f [ 1 32 lshift ] literal + else f>s s>f then ;
+    dup f>s s>f tuck - 0 > if [ 1 32 lshift ] literal + then ;
 
   \ Multiply two 32.32 fixed point numbers
   : f* ( f1 f2 -- f3 ) 32 *rshift ;

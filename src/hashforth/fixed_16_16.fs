@@ -61,7 +61,8 @@ cell 2 > [if]
   : fraction ( f16.16 -- f16.16 ) dup floor - ;
 
   \ Get the ceiling of a 16.16 fixed point number
-  : ceiling ( f16.16 -- f16.16 ) f>s s>f [ 1 16 lshift ] literal + ;
+  : ceiling ( f16.16 -- f16.16 )
+    dup f>s s>f tuck - 0 > if [ 1 16 lshift ] literal + then ;
 
   \ Multiply two 16.16 fixed point numbers
   : f* ( f1 f2 -- f3 )

@@ -102,7 +102,10 @@ variable default-low-precision-bits
 : fraction ( f -- f ) dup floor - ;
 
 \ Get the ceiling of a fixed point number
-: ceiling ( f -- f ) init-precision f>s s>f 1 low-precision-bits @ lshift + ;
+: ceiling ( f -- f )
+  init-precision dup f>s s>f tuck - 0 > if
+    1 low-precision-bits @ lshift +
+  then ;
 
 \ Multiply two fixed point numbers
 : f* ( f1 f2 -- f3 ) init-precision low-precision-bits @ *rshift ;
