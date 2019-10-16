@@ -92,18 +92,22 @@ variable default-low-precision-bits
   then ;
 
 \ Convert a fixed point number into a signed integer to the right of the
-\ decimal point
-: f>s ( f -- n ) init-precision low-precision-bits @ arshift ;
+\ decimal point, rounding to zero
+: f>s ( f -- n ) init-precision 1 low-precision-bits @ lshift / ;
+
+\ Convert a fixed point number into a signed integer to the right of the
+\ decdimal point, rounding down
+: f>s-down ( f -- n ) init-precision low-precision-bits @ arshift ;
 
 \ Get the floor of a fixed point number
-: floor ( f -- f ) init-precision f>s s>f ;
+: floor ( f -- f ) init-precision f>s-down s>f ;
 
 \ Get the portion of a fixed point number right of the decimal point
 : fraction ( f -- f ) dup floor - ;
 
 \ Get the ceiling of a fixed point number
 : ceiling ( f -- f )
-  init-precision dup f>s s>f tuck - 0 > if
+  init-precision dup f>s-down s>f tuck - 0 > if
     1 low-precision-bits @ lshift +
   then ;
 

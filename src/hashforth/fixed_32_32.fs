@@ -51,18 +51,22 @@ cell 8 = [if]
     then ;
 
   \ Convert a 32.32 fixed point number into a signed integer to the right of the
-  \ decimal point
-  : f>s ( f32.32 -- n ) 32 arshift ;
+  \ decimal point, rounding to zero
+  : f>s ( f32.32 -- n ) [ 1 32 lshift ] literal / ;
+
+  \ Convert a 32.32 fixed point number into a signed integer to the right of the
+  \ decimal point, rounding down
+  : f>s-down ( f32.32 -- n ) 32 arshift ;
 
   \ Get the floor of a 32.32 fixed point number
-  : floor ( f32.32 -- f32.32 ) f>s s>f ;
+  : floor ( f32.32 -- f32.32 ) f>s-down s>f ;
 
   \ Get the portion of a 32.32 fixed point number right of the decimal point
   : fraction ( f32.32 -- f32.32 ) dup floor - ;
 
   \ Get the ceiling of a 32.32 fixed point number
   : ceiling ( f32.32 -- f32.32 )
-    dup f>s s>f tuck - 0 > if [ 1 32 lshift ] literal + then ;
+    dup f>s-down s>f tuck - 0 > if [ 1 32 lshift ] literal + then ;
 
   \ Multiply two 32.32 fixed point numbers
   : f* ( f1 f2 -- f3 ) 32 *rshift ;

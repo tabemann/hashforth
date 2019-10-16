@@ -51,18 +51,22 @@ cell 2 > [if]
     then ;
 
   \ Convert a 16.16 fixed point number into a signed integer to the right of the
-  \ decimal point
-  : f>s ( f16.16 -- n ) 16 arshift ;
+  \ decimal point, rounding to zero
+  : f>s ( f16.16 -- n ) [ 1 16 lshift ] literal / ;
+
+  \ Convert a 16.16 fixed point number into a signed integer to the right of the
+  \ decimal point, rounding down
+  : f>s-down ( f16.16 -- n ) 16 arshift ;
 
   \ Get the floor of a 16.16 fixed point number
-  : floor ( f16.16 -- f16.16 ) f>s s>f ;
+  : floor ( f16.16 -- f16.16 ) f>s-down s>f ;
 
   \ Get the portion of a 16.16 fixed point number right of the decimal point
   : fraction ( f16.16 -- f16.16 ) dup floor - ;
 
   \ Get the ceiling of a 16.16 fixed point number
   : ceiling ( f16.16 -- f16.16 )
-    dup f>s s>f tuck - 0 > if [ 1 16 lshift ] literal + then ;
+    dup f>s-down s>f tuck - 0 > if [ 1 16 lshift ] literal + then ;
 
   \ Multiply two 16.16 fixed point numbers
   : f* ( f1 f2 -- f3 )
