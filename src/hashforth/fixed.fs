@@ -206,4 +206,74 @@ variable default-low-precision-bits
 \ Set number parser
 ' parse-compile-number-or-double-or-fixed 'handle-number !
 
+\ Format digits to the right of the decimal point
+: format-fraction ( f -- c-addr )
+  fraction dup 0 > if
+    0 begin ( fraction index )
+      over 0 > if
+	swap base @ * tuck f>s dup 10 < if
+	  [char] 0 +
+	else
+	  10 - [char] A +
+	then ( fraction index char )
+	format-digit-buffer @ 2 pick + c! ( fraction index )
+	swap fraction swap 1 + false
+      else
+	true
+      then
+    until
+    nip
+  else
+    drop [char] 0 format-digit-buffer @ c! 1
+  then
+  format-digit-buffer @ swap format-digit-count over -
+  format-digit-buffer @ + dup >r swap move r> ;
+
+\ Actually format an unsigned fixed point number
+: (format-fixed-unsigned) ( f -- c-addr bytes )
+  dup format-fraction 1 - [char] . over c!
+  swap f>s dup 0 u> if
+    begin
+      dup 0 u>
+    while
+      dup base @ umod dup 10 u< if
+	[char] 0 +
+      else
+	10 - [char] A +
+      then
+      rot 1 - tuck c! swap base @ u/
+    repeat
+    drop
+  else
+    drop 1 - [char] 0 over c!
+  then
+  complete-format-digit-buffer ;
+
+\ Format a fixed point number
+: format-fixed ( f -- c-addr bytes )
+  init-precision
+  dup 0 >= if
+   (format-fixed-unsigned)
+  else
+    negate (format-fixed-unsigned) 1 + swap 1 - [char] - over c! swap
+  then ;
+
+\ Format an unsigned fixed point number
+: format-fixed-unsigned ( f -- c-addr bytes )
+  init-precision (format-fixed-unsigned) ;
+
+\ Output a signed fixed point number on standard output with no following space
+: (f.) ( f -- ) format-fixed type ;
+
+\ Output an unsigned fixed point number on standard output with no following
+\ space
+: (fu.) ( f -- ) format-fixed-unsigned type ;
+
+\ Output a signed fixed point number on standard output with a following space
+: f. ( f -- ) (f.) space ;
+
+\ Output an unsigned fixed point number on standard output with a following
+\ space
+: fu. ( f -- ) (fu.) space ;
+
 base ! set-current set-order

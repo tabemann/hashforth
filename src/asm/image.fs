@@ -680,7 +680,7 @@ define-word-created single-task-io
 define-word-user base
 
 \ The size of the buffer for numeric formatting
-not-vm 65 constant max-format-digit-count vm
+not-vm 130 constant max-format-digit-count vm
 
 \ A buffer for numeric formatting for the main task
 define-word-created main-format-digit-buffer
