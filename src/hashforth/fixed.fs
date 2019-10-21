@@ -103,7 +103,7 @@ variable default-low-precision-bits
 : floor ( f -- f ) init-precision f>s-down s>f ;
 
 \ Get the portion of a fixed point number right of the decimal point
-: fraction ( f -- f ) dup floor - ;
+: fraction ( f -- f ) 1 low-precision-bits @ lshift 1 - and ;
 
 \ Get the ceiling of a fixed point number
 : ceiling ( f -- f )
