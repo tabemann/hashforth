@@ -252,15 +252,24 @@ variable default-low-precision-bits
 \ Format a fixed point number
 : format-fixed ( f -- c-addr bytes )
   init-precision
-  dup 0 >= if
-   (format-fixed-unsigned)
+  base @ dup 2 >= swap 36 <= and if
+    dup 0 >= if
+      (format-fixed-unsigned)
+    else
+      negate (format-fixed-unsigned) 1 + swap 1 - [char] - over c! swap
+    then
   else
-    negate (format-fixed-unsigned) 1 + swap 1 - [char] - over c! swap
+    format-digit-buffer @ 0
   then ;
 
 \ Format an unsigned fixed point number
 : format-fixed-unsigned ( f -- c-addr bytes )
-  init-precision (format-fixed-unsigned) ;
+  init-precision
+  base @ dup 2 >= swap 36 <= and if
+    (format-fixed-unsigned)
+  else
+    format-digit-buffer @ 0
+  then ;
 
 \ Output a signed fixed point number on standard output with no following space
 : (f.) ( f -- ) format-fixed type ;

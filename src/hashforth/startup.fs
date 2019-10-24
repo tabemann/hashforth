@@ -370,6 +370,63 @@ c"-data c"-length 2constant c"-constant
     then
   then ;
 
+\ Inner portion of formatting double-cell numbers
+: (format-double-unsigned) ( d -- c-addr bytes )
+  format-digit-buffer @ format-digit-count + begin
+    2 pick 2 pick 0. du>
+  while
+    2 pick 2 pick base @ 0 dumod 2dup 10. du< if
+      drop [char] 0 +
+    else
+      drop [char] A + 10 -
+    then
+    swap add-char rot rot base @ 0 du/ rot
+  repeat
+  nip nip complete-format-digit-buffer ;
+
+\ Format signed double-cell numbers
+: format-double ( d -- c-addr bytes )
+  2dup 0. d= if
+    2drop [char] 0 format-digit-buffer @ c! format-digit-buffer @ 1
+  else
+    base @ dup 2 >= swap 36 <= and if
+      dup 0 < if
+	dnegate (format-double-unsigned) drop [char] - swap add-char
+	complete-format-digit-buffer
+      else
+	(format-double-unsigned)
+      then
+    else
+      2drop format-digit-buffer @ 0
+    then
+  then ;
+
+\ Format unsigned double-cell numbers
+: format-double-unsigned ( du -- c-addr bytes )
+  2dup 0. d= if
+    2drop [char] 0 format-digit-buffer @ c! format-digit-buffer @ 1
+  else
+    base @ dup 2 >= swap 36 <= and if
+      (format-double-unsigned)
+    else
+      2drop format-digit-buffer @ 0
+    then
+  then ;
+
+\ Output a signed double-cell number on standard output with no following space
+: (d.) ( d -- ) format-double type ;
+
+\ Output an unsigned double-cell number on standard output with no following
+\ space
+: (du.) ( du -- ) format-double-unsigned type ;
+
+\ Output a signed double-cell number on standard output with a following space
+: d. ( n -- ) (d.) space ;
+
+\ Output an unsigned double-cell number on standard output with a following
+\ space
+: du. ( u -- ) (du.) space ;
+
 \ Exponentiation
 : ** ( n1 n -- n2 )
   dup 0 > if
@@ -394,7 +451,7 @@ c"-data c"-length 2constant c"-constant
 \ Double-cell exponentiation
 : d** ( d n -- d )
   dup 0 > if
-    1 0 begin
+    1. begin
       2 pick 1 and if
 	4 pick 4 pick d*
       then
@@ -406,9 +463,9 @@ c"-data c"-length 2constant c"-constant
     until
   else
     0 = if
-      2drop 1 0
+      2drop 1.
     else
-      2drop 0 0
+      2drop 0.
     then
   then ;
 

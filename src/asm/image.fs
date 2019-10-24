@@ -699,27 +699,7 @@ end-word
 \ pointer
 define-word add-char ( c c-addr -- c-addr ) 1 lit - tuck c! end-word
 
-\ The inner loop for formatting decimal numbers
-define-word (format-decimal) ( n -- c-addr )
-  format-digit-buffer @ max-format-digit-count lit + +begin
-    over 0 lit u>
-  +while
-    over 10 lit umod char 0 lit + swap add-char swap 10 lit u/ swap
-  +repeat
-  nip
-end-word
-
-\ Handle the outer parts of formatting decimal numbers
-define-word format-decimal ( n -- c-addr u )
-  dup 0 lit < +if
-    negate (format-decimal) char - lit swap add-char
-    complete-format-digit-buffer
-  +else
-    (format-decimal) complete-format-digit-buffer
-  +then
-end-word
-
-\ Inner portion of formatting unsigned and non-decimal numbers
+\ Inner portion of formatting numbers
 define-word (format-unsigned) ( n -- c-addr u )
   format-digit-buffer @ max-format-digit-count lit + +begin
     over 0 lit u>
@@ -739,10 +719,13 @@ end-word
 define-word format-number ( n -- c-addr u )
   dup 0 lit = +if
     drop char 0 lit format-digit-buffer @ c! format-digit-buffer @ 1 lit
-  +else base @ 10 lit = +if
-    format-decimal
   +else base @ dup 2 lit >= swap 36 lit <= and +if
-    (format-unsigned)
+    dup 0 lit < +if
+      negate (format-unsigned) drop char - lit swap add-char
+      complete-format-digit-buffer
+    +else
+      (format-unsigned)
+    +then
   +else
     drop format-digit-buffer @ 0 lit
   +then +then +then
