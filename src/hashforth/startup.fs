@@ -493,6 +493,7 @@ c"-data c"-length 2constant c"-constant
 
 \ Decompile token
 : decompile-token ( addr -- addr token )
+  half-token-size aligned-to
   half-token-size 1 = if
     decompile-token-8-16
   else
@@ -509,24 +510,33 @@ c"-data c"-length 2constant c"-constant
 
 \ Decompile a branch token
 : decompile-branch ( addr -- addr )
-  ." branch $" dup @ dup ['] . 16 base-execute
-  over cell+ decompile-token nip 0 = if nip else drop cell+ then ;
+  ." branch $" aligned dup @ dup ['] . 16 base-execute
+  over cell+ half-token-size aligned-to dup decompile-token nip 0 = if
+    drop
+  else
+    nip
+  then ;
 
 \ Decompile a 0branch token
 : decompile-0branch ( addr -- addr )
-  ." 0branch $" dup @ ['] . 16 base-execute cell+ ;
+  ." 0branch $" aligned dup @ ['] . 16 base-execute cell+
+  half-token-size aligned-to ;
 
 \ Decompile a (lit) token
-: decompile-(lit) ( addr -- addr ) ." (lit) " dup @ . cell+ ;
+: decompile-(lit) ( addr -- addr )
+  ." (lit) " aligned dup @ . cell+ half-token-size aligned-to ;
 
 \ Decompile a (litc) token
-: decompile-(litc) ( addr -- addr ) ." (litc) " dup c@ . 1 + ;
+: decompile-(litc) ( addr -- addr )
+  ." (litc) " dup c@ . 1 + half-token-size aligned-to ;
 
 \ Decompile a (lith) token
-: decompile-(lith) ( addr -- addr ) ." (lith) " dup h@ . 2 + ;
+: decompile-(lith) ( addr -- addr )
+  ." (lith) " haligned dup h@ . 2 + half-token-size aligned-to ;
 
 \ Decompile a (litw) token
-: decompile-(litw) ( addr -- addr ) ." (litw) " dup w@ . 4 + ;
+: decompile-(litw) ( addr -- addr )
+  ." (litw) " waligned dup w@ . 4 + half-token-size aligned-to ;
 
 \ Print out a string with control characters and characters over $7F replaced
 : type-replaced-string ( addr bytes -- )
@@ -548,8 +558,8 @@ c"-data c"-length 2constant c"-constant
 
 \ Decompile a (data) token
 : decompile-(data) ( addr -- addr )
-  ." (data) size: " dup @ swap cell+ swap dup . 2dup type-replaced-string
-  space 2dup type-hex-string + ;
+  ." (data) size: " aligned dup @ swap cell+ swap dup . 2dup
+  type-replaced-string space 2dup type-hex-string + half-token-size aligned-to ;
 
 \ Decompile an operation
 : decompile-op ( addr token -- addr )
@@ -566,6 +576,7 @@ c"-data c"-length 2constant c"-constant
 
 \ Decompile at a starting address
 : decompile-at-address ( addr -- )
+  half-token-size aligned-to
   begin
     dup decompile-token dup 0 <> if
       rot cr ." $" ['] . 16 base-execute decompile-op false
