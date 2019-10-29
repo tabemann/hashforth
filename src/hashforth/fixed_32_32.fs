@@ -96,7 +96,7 @@ cell 8 = [if]
     rot >r 0 begin
       over 0 > if
 	rot rot 1 - 2dup + c@ r@ swap parse-digit if
-	  32 lshift 3 roll r@ 32 lshift fu/ + false
+	  32 lshift 3 roll r@ u/ + false
 	else
 	  2drop 2drop r> drop 0 false true
 	then

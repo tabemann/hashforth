@@ -139,8 +139,7 @@ variable default-low-precision-bits
   rot >r 0 begin
     over 0 > if
       rot rot 1 - 2dup + c@ r@ swap parse-digit if
-	low-precision-bits @ lshift 3 roll r@
-	low-precision-bits @ lshift fu/ + false
+	low-precision-bits @ lshift 3 roll r@ u/ + false
       else
 	2drop 2drop r> drop 0 false true
       then
