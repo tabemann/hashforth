@@ -284,4 +284,7 @@ variable default-low-precision-bits
 \ space
 : fu. ( f -- ) (fu.) space ;
 
+\ Multiply a value by pi
+: *pi ( f -- f ) $24baf15fe1658f99 $bb10cb777fb8137 */ ;
+
 base ! set-current set-order
