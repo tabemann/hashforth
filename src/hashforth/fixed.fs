@@ -285,6 +285,142 @@ variable default-low-precision-bits
 : fu. ( f -- ) (fu.) space ;
 
 \ Multiply a value by pi
-: *pi ( f -- f ) $24baf15fe1658f99 $bb10cb777fb8137 */ ;
+cell 8 = [if]
+  : *pi ( f -- f ) $24baf15fe1658f99 $bb10cb777fb8137 */ ;
+[else]
+  : *pi ( f -- f ) 104348 33125 */ ;
+[then]
+
+\ Exponentiation of a fixed point number by an unsigned integer
+: fi** ( f1 u -- f2 )
+  init-precision
+  dup 0 > if
+    1 s>f begin
+      over 1 and if
+	2 pick f*
+      then
+      swap 1 rshift dup 0 = if
+	drop nip true
+      else
+	rot dup f* swap rot false
+      then
+    until
+  else
+    0 = if
+      drop 1 s>f
+    else
+      drop 0
+    then
+  then ;
+
+\ Calculate whether a square root is close enough
+: sqrt-close-enough ( f1 f2 -- flag )
+  2dup - abs rot abs rot abs max f/ abs 2 < ;
+
+\ Calculate a better square root guess
+: sqrt-better-guess ( f1 f2 -- f3 ) dup rot rot f/ + 2 / ;
+
+\ The main loop of calculating a square root
+: sqrt-test ( f1 f2 -- f3 )
+  2dup f/ over sqrt-close-enough if
+    nip
+  else
+    2dup sqrt-better-guess nip recurse
+  then ;
+
+\ Calculate a square root
+: sqrt ( f1 -- f2 ) init-precision dup 2 / sqrt-test ;
+
+\ Calculate a factorial
+: factorial ( u1 -- u2 ) 1 swap 1 + 1 ?do i * loop ;
+
+\ Calculate (e^x)-1
+: expm1 ( f1 -- f2 )
+  init-precision >r 0 1 s>f 1 begin
+    swap r@ f* over / dup abs 2 < 3 roll 2 pick + rot
+    3 roll 1 + 3 roll
+  until
+  r> drop 2drop ;
+
+\ Execute e^x
+: exp ( f1 -- f2 ) expm1 1 s>f + ;
+
+\ Calculate sin(x)
+: sin ( f1 -- f2 )
+  init-precision >r r@ r@ 1 begin
+    swap r@ f* r@ f* over 2 * / over 2 * 1 + / dup abs 2 < 3 roll 2 pick
+    4 pick 1 and if - else + then
+    rot 3 roll 1 + 3 roll
+  until
+  r> drop 2drop ;
+
+\ Calculate cos(x)
+: cos ( f1 -- f2 )
+  init-precision >r 1 s>f dup 1 begin
+    swap r@ f* r@ f* over 2 * 1 - ?dup if / then
+    over 2 * /
+    dup abs 2 < 3 roll 2 pick
+    4 pick 1 and if - else + then
+    rot 3 roll 1 + 3 roll
+  until
+  r> drop 2drop ;
+
+\ Calculate tan(x)
+: tan ( f1 -- f2 ) dup sin swap cos f/ ;
+
+\ Calculate atan(x)
+: atan ( f1 -- f2 )
+  1 s>f 1 40 do
+    over i * 2 fi** swap f/ i 2 * 1 - s>f +
+  -1 +loop
+  f/ ;
+
+\ Calculate asin(x)
+: asin ( f1 -- f2 )
+  dup 2 fi** 1 s>f < if
+    1 s>f over 2 fi** - sqrt f/ atan
+  else
+    dup 0 > if
+      drop 1 s>f *pi 2 /
+    else
+      drop 1 s>f *pi -2 /
+    then
+  then ;
+
+\ Calculate acos(x)
+: acos ( f1 -- f2 ) asin negate 1 s>f *pi 2 / + ;
+
+\ Calculate ln(x + 1)
+: lnp1 ( f1 -- f2 )
+  init-precision 1 s>f + >r 0 begin
+    dup exp dup r@ swap - r@ rot + f/ 2 * over +
+    dup rot - abs 2 <
+  until
+  r> drop ;
+
+\ Calculate ln(x)
+: ln ( f1 -- f2 ) 1 s>f - lnp1 ;
+
+\ Calculate a fixed-point power b*x
+: ** ( fb fx -- f )
+  over 0 >= if swap ln f* exp else swap negate ln f* exp negate then ;
+
+\ Calculate sinh(x)
+: sinh ( f1 -- f2 ) expm1 dup dup 1 s>f + f/ + 2 / ;
+
+\ Calculate cosh(x)
+: cosh ( f1 -- f2 ) expm1 dup dup 1 s>f + f/ - 2 / 1 s>f + ;
+
+\ Calculate tanh(x)
+: tanh ( f1 -- f2 ) dup sinh swap cosh f/ ;
+
+\ Calculate asinh(x)
+: asinh ( f1 -- f2 ) dup 2 fi** 1 s>f + sqrt + ln ;
+
+\ Calculate acosh(x)
+: acosh ( f1 -- f2 ) dup 2 fi** 1 s>f - sqrt + ln ;
+
+\ Calculate atanh(x)
+: atanh ( f1 -- f2 ) dup 1 s>f + swap negate 1 s>f + f/ ln 2 / ;
 
 base ! set-current set-order

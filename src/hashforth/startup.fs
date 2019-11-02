@@ -142,6 +142,8 @@
 
 : j 2r> 2r> r@ 4 roll 4 roll 4 roll 4 roll 2>r 2>r ;
 
+: recurse latestxt compile, ; immediate compile-only
+
 : case 0 ; immediate compile-only
 
 : of & over & = postpone if & drop ; immediate compile-only
