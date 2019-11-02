@@ -40,6 +40,9 @@ fixed-wordlist set-current
 \ Invalid precision exception
 : x-invalid-precision ( -- ) space ." invalid precision" cr ;
 
+\ Mathematical domain error
+: x-domain-error ( -- ) space ." domain error" cr ;
+
 \ High precision in bits
 user high-precision-bits
 0 high-precision-bits !
@@ -402,8 +405,17 @@ cell 8 = [if]
 : ln ( f1 -- f2 ) 1 s>f - lnp1 ;
 
 \ Calculate a fixed-point power b*x
-: ** ( fb fx -- f )
-  over 0 >= if swap ln f* exp else swap negate ln f* exp negate then ;
+: f** ( fb fx -- f )
+  over 0 = over 0 = and if ['] x-domain-error ?raise then
+  dup fraction 0 = if
+    dup 0 >= if
+      f>s fi**
+    else
+      f>s negate fi** 1 s>f swap f/
+    then
+  else
+    over 0 >= averts x-domain-error swap ln f* exp
+  then ;
 
 \ Calculate sinh(x)
 : sinh ( f1 -- f2 ) expm1 dup dup 1 s>f + f/ + 2 / ;
