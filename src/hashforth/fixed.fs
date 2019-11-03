@@ -294,6 +294,9 @@ cell 8 = [if]
   : *pi ( f -- f ) 104348 33125 */ ;
 [then]
 
+\ Get the value of pi
+: pi ( -- f ) 1 s>f *pi ;
+
 \ Exponentiation of a fixed point number by an unsigned integer
 : fi** ( f1 u -- f2 )
   init-precision
@@ -378,20 +381,44 @@ cell 8 = [if]
   -1 +loop
   f/ ;
 
+\ Calculate a angle for any pair of x and y coordinates
+: atan2 ( y x -- angle )
+  dup 0 > if
+    f/ atan
+  else
+    2dup 0 < swap 0 >= and if
+      f/ atan pi +
+    else
+      2dup 0 < swap 0 < and if
+	f/ atan pi -
+      else
+	2dup 0 = swap 0 > and if
+	  2drop pi 2 /
+	else
+	  2dup 0 = swap 0 < and if
+	    2drop pi -2 /
+	  else
+	    2drop 0
+	  then
+	then
+      then
+    then
+  then ;
+
 \ Calculate asin(x)
 : asin ( f1 -- f2 )
   dup 2 fi** 1 s>f < if
     1 s>f over 2 fi** - sqrt f/ atan
   else
     dup 0 > if
-      drop 1 s>f *pi 2 /
+      drop pi 2 /
     else
-      drop 1 s>f *pi -2 /
+      drop pi -2 /
     then
   then ;
 
 \ Calculate acos(x)
-: acos ( f1 -- f2 ) asin negate 1 s>f *pi 2 / + ;
+: acos ( f1 -- f2 ) asin negate pi 2 / + ;
 
 \ Calculate ln(x + 1)
 : lnp1 ( f1 -- f2 )
