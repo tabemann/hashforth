@@ -1935,4 +1935,5 @@ s" src/hashforth/line.fs" add-source-to-storage
 s" src/hashforth/fixed.fs" add-source-to-storage
 s" src/hashforth/fixed_16_16.fs" add-source-to-storage
 s" src/hashforth/fixed_32_32.fs" add-source-to-storage
+s" src/hashforth/oop.fs" add-source-to-storage
 s" src/hashforth/ready.fs" add-source-to-storage
