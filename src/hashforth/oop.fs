@@ -102,6 +102,9 @@ variable next-method-index 1 next-method-index !
 \ An undefined method
 0 constant &undefined-method
 
+\ A global reverse-lookup map for methods
+cell default-class-method-count allocate-intmap constant method-map
+
 \ Undefined method exception
 : x-undefined-method ( -- ) space ." undefined method" cr ;
 
@@ -110,6 +113,7 @@ variable next-method-index 1 next-method-index !
 
 \ Invoke undefined method handler
 : invoke-undefined-method ( method-index data class -- )
+  rot rot method-map get-intmap-cell averts x-oop-failure rot
   &undefined-method over @ get-intmap-cell if
     execute
   else
@@ -145,7 +149,9 @@ variable next-method-index 1 next-method-index !
   then ;
 
 \ Declare a method with a specific index
-: method-with-index ( index "method" -- ) create , does> @ invoke-method ;
+: method-with-index ( index "method" -- )
+  create dup , latestxt swap method-map set-intmap-cell averts x-oop-failure
+  does> @ invoke-method ;
 
 \ Declare a method
 : method ( "name" -- )
