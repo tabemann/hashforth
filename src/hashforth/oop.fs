@@ -89,12 +89,15 @@ create object cell default-class-method-count allocate-intmap , 0 , 0 ,
 \ fails
 : allocate-object! ( class -- data class )
   dup class-size dup allocate! dup rot 0 fill over super-size + swap ;
-  
-\ The current method index
-variable method-index 1 method-index !
 
-\ Get whether a method is being defined
-user defining-method 0 defining-method !
+\ Free an object, returns -1 on success and 0 on failure
+: free-object ( data class -- -1|0 ) super-size - free ;
+
+\ Free an object, raising an exception if freeing fails
+: free-object! ( data class -- ) super-size - free! ;
+
+\ The current method index
+variable next-method-index 1 next-method-index !
 
 \ An undefined method
 0 constant &undefined-method
@@ -141,22 +144,21 @@ user defining-method 0 defining-method !
     again
   then ;
 
+\ Declare a method with a specific index
+: method-with-index ( index "method" -- ) create , does> @ invoke-method ;
+
 \ Declare a method
 : method ( "name" -- )
-  create method-index @ dup , 1 + method-index !
-  does> @ defining-method @ 0 = if invoke-method then ;
+  next-method-index @ dup 1 + next-method-index ! method-with-index ;
 
 \ Declare an undefined method
-: undefined-method ( data class -- )
-  &undefined-method defining-method @ 0 = if invoke-method then ;
+&undefined-method method-with-index undefined-method
+
+\ Get method index
+: method-index ( xt -- index ) >body @ ;
 
 \ Define a method
 : :method ( class "method" -- )
-  1 defining-method +! ' execute -1 defining-method +! :noname
-  swap rot @ set-intmap-cell averts x-oop-failure ;
-
-\ Get method index
-: method-index ( xt -- index )
-  1 defining-method +! execute -1 defining-method +! ;
+  ' method-index :noname swap rot @ set-intmap-cell averts x-oop-failure ;
 
 base ! set-current set-order
