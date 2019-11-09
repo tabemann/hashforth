@@ -41,17 +41,6 @@ oop-wordlist set-current
 \ Initial method count for a class's intmap
 16 constant default-class-method-count
 
-\ Ultimate superclass
-create object cell default-class-method-count allocate-intmap , 0 , 0 ,
-
-\ Begin defining a class's members
-: begin-class ( superclass -- )
-  create cell default-class-method-count allocate-intmap , ,
-  here 0 0 , ;
-
-\ End defining a class's members
-: end-class ( -- ) swap ! ;
-
 \ Get the superclass of a class
 : super ( data1 class1 -- data2 class2 )
   dup @ 0 <> if
@@ -113,37 +102,37 @@ cell default-class-method-count allocate-intmap constant method-map
 
 \ Invoke undefined method handler
 : invoke-undefined-method ( method-index data class -- )
-  rot rot method-map get-intmap-cell averts x-oop-failure rot
-  &undefined-method over @ get-intmap-cell if
-    execute
+  rot method-map get-intmap-cell averts x-oop-failure rot rot
+  2dup >r >r &undefined-method over @ get-intmap-cell if
+    r> r> execute
   else
     drop begin
       super dup 0 <> if
 	&undefined-method over @ get-intmap-cell if
-	  execute exit
+	  r> r> rot execute exit
 	else
 	  drop
 	then
       else
-	['] x-undefined-method ?raise
+	r> r> 2drop ['] x-undefined-method ?raise
       then
     again
   then ;
 
 \ Invoke a method
 : invoke-method ( data class method-index -- )
-  dup 2 pick @ get-intmap-cell if
-    swap drop execute
+  rot rot 2dup >r >r rot dup 2 pick @ get-intmap-cell if
+    swap drop r> r> rot execute
   else
-    drop rot rot 2dup 2>r rot begin
+    drop begin
       rot rot super dup 0 <> if
 	rot dup 2 pick @ get-intmap-cell if
-	  swap drop r> drop r> drop execute exit
+	  swap drop r> r> rot execute exit
 	else
 	  drop
 	then
       else
-	2drop 2r> invoke-undefined-method exit
+	2drop r> r> invoke-undefined-method exit
       then
     again
   then ;
@@ -157,6 +146,20 @@ cell default-class-method-count allocate-intmap constant method-map
 : method ( "name" -- )
   next-method-index @ dup 1 + next-method-index ! method-with-index ;
 
+\ Declare a method if it does not already exist
+: 'method ( "name" -- xt )
+  parse-name dup 0 <> if
+    2dup search-wordlists if
+      rot rot 2drop
+    else
+      drop create-with-name next-method-index @ dup 1 + next-method-index !
+      dup , latestxt swap method-map set-intmap-cell averts x-oop-failure
+      latestxt does> @ invoke-method exit
+    then
+  else
+    2drop ['] x-no-parse-found ?raise
+  then ;
+
 \ Declare an undefined method
 &undefined-method method-with-index undefined-method
 
@@ -165,6 +168,63 @@ cell default-class-method-count allocate-intmap constant method-map
 
 \ Define a method
 : :method ( class "method" -- )
-  ' method-index :noname swap rot @ set-intmap-cell averts x-oop-failure ;
+  'method method-index :noname & rot & drop & rot & drop
+  swap rot @ set-intmap-cell averts x-oop-failure ;
+
+wordlist constant oop-field-wordlist
+forth-wordlist lambda-wordlist intmap-wordlist allocate-wordlist oop-wordlist
+oop-field-wordlist 6 set-order
+oop-field-wordlist set-current
+
+\ Define an arbitrarily-sized field of a class
+: +field
+  'method method-index create-noname swap 4 pick @ set-intmap-cell
+  averts x-oop-failure over , + does> nip nip nip @ + ;
+
+\ Define a byte-sized field of a class
+: cfield:
+  'method method-index create-noname swap 3 pick @ set-intmap-cell
+  averts x-oop-failure dup , 1 + does> nip nip nip @ + ;
+
+\ Define a 16-bit-sized field of a class
+: hfield:
+  'method method-index create-noname swap 3 pick @ set-intmap-cell
+  averts x-oop-failure haligned dup , 2 + does> nip nip nip @ + ;
+
+\ Define a 32-bit-sized field of a class
+: wfield:
+  'method method-index create-noname swap 3 pick @ set-intmap-cell
+  averts x-oop-failure waligned dup , 4 + does> nip nip nip @ + ;
+
+\ Define a cell-sized field of a class
+: field:
+  'method method-index create-noname swap 3 pick @ set-intmap-cell
+  averts x-oop-failure aligned dup , cell + does> nip nip nip @ + ;
+
+\ Define a double cell-sized field of a class
+: 2field:
+  'method method-index create-noname swap 3 pick @ set-intmap-cell
+  averts x-oop-failure aligned dup , 2 cells + does> nip nip nip @ + ;
+
+\ Define a method
+: :method ( "method" -- )
+  'method method-index :noname swap 3 pick @ set-intmap-cell
+  averts x-oop-failure ;
+
+forth-wordlist lambda-wordlist intmap-wordlist allocate-wordlist oop-wordlist
+5 set-order
+oop-wordlist set-current
+
+\ Ultimate superclass
+create object cell default-class-method-count allocate-intmap , 0 , 0 ,
+
+\ Begin defining a class's members
+: begin-class ( superclass -- )
+  create cell default-class-method-count allocate-intmap , ,
+  here 0 0 , latestxt >body swap
+  get-order oop-field-wordlist swap 1 + set-order ;
+
+\ End defining a class's members
+: end-class ( -- ) nip swap ! get-order nip 1 - set-order ;
 
 base ! set-current set-order

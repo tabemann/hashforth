@@ -1507,6 +1507,13 @@ define-word :noname ( -- xt )
   0 lit 0 lit latestxt-value @ name>word
 end-word
 
+\ Create a CREATEd anonymous word, setting LATESTXT to the word, and
+\ pushing the xt for the word onto the data stack
+define-word create-noname ( -- xt )
+  align here new-create dup max-xt ! dup latestxt-value !
+  0 lit 0 lit latestxt-value @ name>word
+end-word
+
 \ Create a CREATEd word with the specified name, setting the word to have a data
 \ pointer to the address in the data stack after where the word's name is
 \ copied, setting the word to have a null secondary code pointer, setting the

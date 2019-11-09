@@ -218,6 +218,8 @@
 
 : field: create aligned dup , cell + does> @ + ;
 
+: 2field: create aligned dup , 2 cells + does> @ + ;
+
 \ Add two times
 : time+ ( s1 ns1 s2 ns2 -- s3 ns3 )
   rot + dup 1000000000 >= if
