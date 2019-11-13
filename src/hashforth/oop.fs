@@ -62,29 +62,6 @@ oop-wordlist set-current
 : super-size ( class -- bytes )
   dup 0 <> if cell + @ class-size else drop 0 then ;
 
-\ Allot an object in the user space
-: allot-object ( class -- data class )
-  dup class-size dup here over allot dup rot 0 fill over super-size + swap ;
-
-\ Allocate an object on the current heap, returns -1 on success and 0 on failure
-: allocate-object ( class -- data class -1|0 )
-  dup class-size dup allocate if
-    dup rot 0 fill over super-size + swap true
-  else
-    2drop 0 0 false
-  then ;
-
-\ Allocate an object on the current heap, raising an exception if allocation
-\ fails
-: allocate-object! ( class -- data class )
-  dup class-size dup allocate! dup rot 0 fill over super-size + swap ;
-
-\ Free an object, returns -1 on success and 0 on failure
-: free-object ( data class -- -1|0 ) super-size - free ;
-
-\ Free an object, raising an exception if freeing fails
-: free-object! ( data class -- ) super-size - free! ;
-
 \ The current method index
 variable next-method-index 1 next-method-index !
 
@@ -167,8 +144,8 @@ cell default-class-method-count allocate-intmap constant method-map
 : method-index ( xt -- index ) >body @ ;
 
 \ Define a method
-: :method ( class "method" -- )
-  'method method-index :noname & rot & drop & rot & drop
+: :method ( class metaclass "method" -- )
+  drop 'method method-index :noname & rot & drop & rot & drop
   swap rot @ set-intmap-cell averts x-oop-failure ;
 
 wordlist constant oop-field-wordlist
@@ -211,20 +188,65 @@ oop-field-wordlist set-current
   'method method-index :noname swap 3 pick @ set-intmap-cell
   averts x-oop-failure ;
 
+\ End defining a class's members
+: end-class ( -- ) nip swap ! get-order nip 1 - set-order ;
+
 forth-wordlist lambda-wordlist intmap-wordlist allocate-wordlist oop-wordlist
 5 set-order
 oop-wordlist set-current
 
-\ Ultimate superclass
-create object cell default-class-method-count allocate-intmap , 0 , 0 ,
+\ Metaclass creator
+: make-metaclass ( -- )
+  s" metaclass" create-with-name cell default-class-method-count allocate-intmap
+  , 0 , 0 , does> dup ;
+
+make-metaclass
+
+\ Object class creator
+: make-object ( -- )
+  s" object" create-with-name cell default-class-method-count allocate-intmap
+  , 0 , 0 , does> metaclass drop ;
+
+make-object
+
+\ Create an empty init method
+object :method init ( data class -- ) 2drop ;
+
+\ Create an empty destroy method
+object :method destroy ( data class -- ) 2drop ;
 
 \ Begin defining a class's members
-: begin-class ( superclass -- )
-  create cell default-class-method-count allocate-intmap , ,
+metaclass :method begin-class ( superclass metaclass -- )
+  drop create cell default-class-method-count allocate-intmap , ,
   here 0 0 , latestxt >body swap
-  get-order oop-field-wordlist swap 1 + set-order ;
+  get-order oop-field-wordlist swap 1 + set-order
+  does> metaclass drop ;
 
-\ End defining a class's members
-: end-class ( -- ) nip swap ! get-order nip 1 - set-order ;
+\ Allot an object in the user space
+metaclass :method allot-object ( class metaclass -- data class )
+  drop dup class-size dup here over allot
+  dup rot 0 fill over super-size + swap 2dup 2>r init 2r> ;
+
+\ Allocate an object on the current heap, returns -1 on success and 0 on failure
+metaclass :method allocate-object ( class metaclass -- data class -1|0 )
+  drop dup class-size dup allocate if
+    dup rot 0 fill over super-size + swap 2dup 2>r init 2r> true
+  else
+    2drop 0 0 false
+  then ;
+
+\ Allocate an object on the current heap, raising an exception if allocation
+\ fails
+metaclass :method allocate-object! ( class metaclass -- data class )
+  drop dup class-size dup allocate! dup rot 0 fill over super-size + swap
+  2dup 2>r init 2r> ;
+
+\ Free an object, returns -1 on success and 0 on failure
+object :method free-object ( data class -- -1|0 )
+  2dup destroy super-size - free ;
+
+\ Free an object, raising an exception if freeing fails
+object :method free-object! ( data class -- )
+  2dup destroy super-size - free! ;
 
 base ! set-current set-order
