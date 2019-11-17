@@ -637,9 +637,6 @@ c"-data c"-length 2constant c"-constant
 ' backtrace 'global-handler !
 ' backtrace 'global-bye-handler !
 
-\ Unmask interrupt
-: unmask-int ( int -- ) 1 swap lshift 0 swap adjust-int-mask ;
-
 \ Segfault interrupt
 0 constant segv-int
 
@@ -672,6 +669,23 @@ c"-data c"-length 2constant c"-constant
 
 \ User/system alarm type
 2 constant alarm-prof
+
+\ Unmask interrupt
+: unmask-int ( int -- )
+  1 swap lshift 1 alarm-real-int lshift or 0 swap adjust-int-mask ;
+
+\ Set interrupt handler masks
+: mask-alarm-real ( -- )
+  0 begin
+    dup 8 < if
+      dup get-int-handler-mask alarm-real-int not and
+      over set-int-handler-mask 1 + false
+    else
+      drop true
+    then
+  until ;
+
+mask-alarm-real
 
 \ Segfault exception
 : x-segv ( -- ) space ." segmentation fault" cr ;

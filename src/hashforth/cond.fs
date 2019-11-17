@@ -69,15 +69,20 @@ end-structure
 
 \ Wait on a condition variable.
 : wait-cond ( cond -- )
+  begin-atomic
   begin dup cond-waiting-count @ over cond-waiting-size @ = while
+    end-atomic
     pause
+    begin-atomic
   repeat
   dup cond-waiting @ over cond-waiting-count @ cells + current-task swap !
   1 swap cond-waiting-count +!
-  current-task deactivate-task ;
+  current-task deactivate-task
+  end-atomic ;
 
 \ Signal a condition variable.
 : signal-cond ( cond -- )
+  begin-atomic
   dup cond-waiting-count @ 0 > if
     dup cond-waiting @ @ activate-task
     dup cond-waiting @ cell+ over cond-waiting @
@@ -85,13 +90,16 @@ end-structure
     -1 swap cond-waiting-count +!
   else
     drop
-  then ;
+  then
+  end-atomic ;
 
 \ Broadcast on a condition variable.
 : broadcast-cond ( cond -- )
+  begin-atomic
   dup cond-waiting-count @ 0 ?do
     dup cond-waiting @ i cells + @ activate-task
   loop
-  0 swap cond-waiting-count ! ;
+  0 swap cond-waiting-count !
+  end-atomic ;
 
 base ! set-current set-order

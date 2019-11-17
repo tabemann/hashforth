@@ -393,13 +393,16 @@ user private-heap 0 private-heap !
 forth-wordlist set-current
 
 \ Allocate memory on the current heap; returns -1 on success and 0 on failure
-: allocate ( bytes -- addr -1|0 ) get-heap allocate-with-heap ;
+: allocate ( bytes -- addr -1|0 )
+  begin-atomic get-heap allocate-with-heap end-atomic ;
 
 \ Free memory on the current heap; returns -1 on success and 0 on failure
-: free ( addr -- -1|0 ) get-heap free-with-heap ;
+: free ( addr -- -1|0 )
+  begin-atomic get-heap free-with-heap end-atomic ;
 
 \ Resize memory on the current heap; returns -1 on success and 0 on failure
-: resize ( addr new-bytes -- addr -1|0 ) get-heap resize-with-heap ;
+: resize ( addr new-bytes -- addr -1|0 )
+  begin-atomic get-heap resize-with-heap end-atomic ;
 
 \ Memory management failure exception
 : x-memory-management-failure ( -- )

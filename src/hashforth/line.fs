@@ -150,35 +150,40 @@ user line
 : (dec.) ( n -- ) 10 (base.) ;
 
 \ Type the CSI sequence
-: csi ( -- ) escape emit [char] [ emit ;
+: csi ( -- ) begin-atomic escape emit [char] [ emit end-atomic ;
 
 \ Show the cursor
-: show-cursor ( -- ) csi [char] ? emit 25 (dec.) [char] h emit ;
+: show-cursor ( -- )
+  begin-atomic csi [char] ? emit 25 (dec.) [char] h emit end-atomic ;
 
 \ Hide the cursor
-: hide-cursor ( -- ) csi [char] ? emit 25 (dec.) [char] l emit ;
+: hide-cursor ( -- )
+  begin-atomic csi [char] ? emit 25 (dec.) [char] l emit end-atomic ;
 
 \ Save the cursor position
-: save-cursor ( -- ) csi [char] s emit ;
+: save-cursor ( -- ) begin-atomic csi [char] s emit end-atomic ;
 
 \ Restore the cursor position
-: restore-cursor ( -- )  csi [char] u emit ;
+: restore-cursor ( -- ) begin-atomic csi [char] u emit end-atomic ;
 
 \ Scroll up screen by one line
-: scroll-up ( lines -- ) csi (dec.) [char] S emit ;
+: scroll-up ( lines -- ) begin-atomic csi (dec.) [char] S emit end-atomic ;
 
 \ Move the cursor to specified row and column coordinates
 : go-to-coord ( row column -- )
-  swap csi 1+ (dec.) [char] ; emit 1+ (dec.) [char] f emit ;
+  begin-atomic
+  swap csi 1+ (dec.) [char] ; emit 1+ (dec.) [char] f emit
+  end-atomic ;
 
 \ Erase from the cursor to the end of the line
-: erase-end-of-line ( -- ) csi [char] K emit ;
+: erase-end-of-line ( -- ) begin-atomic csi [char] K emit end-atomic ;
 
 \ Erase the lines below the current line
-: erase-down ( -- ) csi [char] J emit ;
+: erase-down ( -- ) begin-atomic csi [char] J emit end-atomic ;
 
 \ Query for the cursor position
-: query-cursor-position ( -- ) csi [char] 6 emit [char] n emit ;
+: query-cursor-position ( -- )
+  begin-atomic csi [char] 6 emit [char] n emit end-atomic ;
 
 \ Show the cursor with a show/hide counter
 : show-cursor ( -- )

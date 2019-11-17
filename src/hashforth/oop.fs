@@ -121,7 +121,9 @@ cell default-class-method-count allocate-intmap constant method-map
 
 \ Declare a method
 : method ( "name" -- )
-  next-method-index @ dup 1 + next-method-index ! method-with-index ;
+  begin-atomic
+  next-method-index @ dup 1 + next-method-index ! method-with-index
+  end-atomic ;
 
 \ Declare a method if it does not already exist
 : 'method ( "name" -- xt )

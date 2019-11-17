@@ -82,20 +82,25 @@ end-structure
 
 \ Lock a mutex.
 : lock-mutex ( mutex -- )
+  begin-atomic
   begin dup mutex-held @ 0<> over mutex-held @ current-task <> and while
     begin dup mutex-waiting-count @ over mutex-waiting-size @ = while
+      end-atomic
       pause
+      begin-atomic
     repeat
     dup mutex-held @ 0<> over mutex-held @ current-task <> and if
       dup mutex-waiting @ over mutex-waiting-count @ cells + swap !
       1 over mutex-waiting-count +!
-      current-task deactivate-task
+      current-task end-atomic deactivate-task begin-atomic
     then
   repeat
-  current-task swap mutex-held ! ;
+  current-task swap mutex-held !
+  end-atomic ;
 
 \ Unlock a mutex.
 : unlock-mutex ( mutex -- )
+  begin-atomic
   dup mutex-held @ current-task = if
     dup mutex-waiting-count @ 0 > if
       dup mutex-waiting @ @ 2dup mutex-held ! activate-task
@@ -105,7 +110,8 @@ end-structure
     else
       0 swap mutex-held !
     then
-  then ;
+  then
+  end-atomic ;
 
 \ Lock and unlock a mutex after executing a word.
 : with-mutex ( mutex xt -- )

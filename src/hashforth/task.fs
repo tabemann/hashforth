@@ -161,6 +161,7 @@ end-structure
 
 \ Internal word for actually activating a task.
 : (activate-task) ( task -- )
+  begin-atomic
   first-task @ if
     first-task @ over task-next !
     first-task @ task-prev @ over task-prev !
@@ -177,35 +178,43 @@ end-structure
   dup first-task !
   ['] task-wait swap access-task @ no-wait = if
     awake-task-count @ 1+ awake-task-count !
-  then ;
+    then
+  end-atomic ;
 
 \ Activate a task for execution.
 : activate-task ( task -- )
+  begin-atomic
   ['] task-active over access-task @ 1 + ['] task-active 2 pick access-task !
-  ['] task-active over access-task @ 1 = if (activate-task) else drop then ;
+  ['] task-active over access-task @ 1 = if (activate-task) else drop then
+  end-atomic ;
 
 \ Force the activation of a task.
 : force-activate-task ( task -- )
+  begin-atomic
   ['] task-active over access-task @ 1 < if
     1 ['] task-active 2 pick access-task ! (activate-task)
   else
     drop
-  then ;
+  then
+  end-atomic ;
 
 \ Last task deactivated exception
 : x-last-task-deactivated ( -- ) space ." last task deactivated" cr ;
 
 \ Deactivate the last task.
 : deactivate-last-task ( task -- )
+  begin-atomic
   current-task @ = if sp@ task-data-stack ! rp@ task-return-stack ! then
   0 first-task !
   0 next-task !
   0 current-task !
   0 awake-task-count !
+  end-atomic
   ['] x-last-task-deactivated ?raise ;
 
 \ Internal word for actually deactivating tasks.
 : (deactivate-task) ( task -- )
+  begin-atomic
   dup task-next @ over <> if
     ['] task-wait over access-task @ no-wait = if
       awake-task-count @ 1- awake-task-count !
@@ -225,20 +234,25 @@ end-structure
     then
   else
     deactivate-last-task
-  then ;
+  then
+  end-atomic ;
 
 \ Deactivate a task (remove it from execution).
 : deactivate-task ( task -- )
+  begin-atomic
   ['] task-active over access-task @ 1 - ['] task-active 2 pick access-task !
-  ['] task-active over access-task @ 0 = if (deactivate-task) else drop then ;
+  ['] task-active over access-task @ 0 = if (deactivate-task) else drop then
+  end-atomic ;
 
 \ Force the deactivation of a task.
 : force-deactivate-task ( task -- )
+  begin-atomic
   ['] task-active over access-task @ 0 > if
     0 ['] task-active 2 pick access-task ! (deactivate-task)
   else
     drop
-  then ;
+  then
+  end-atomic ;
 
 \ Services for multitasking
 variable sys-poll
@@ -265,45 +279,61 @@ variable sys-set-protect-stacks
 
 \ Set a task as waiting on reading a file descriptor.
 : set-wait-in ( fd -- )
+  begin-atomic
   task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
-  task-wait-fd ! task-wait @ wait-in or task-wait ! ;
+  task-wait-fd ! task-wait @ wait-in or task-wait !
+  end-atomic ;
 
 \ Set a task as not waiting on reading a file descriptor.
 : unset-wait-in ( -- )
+  begin-atomic
   0 task-wait-fd ! wait-in not task-wait @ and task-wait !
-  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then
+  end-atomic ;
 
 \ Set a task as waiting on writing a file descriptor.
 : set-wait-out ( fd -- )
+  begin-atomic
   task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
-  task-wait-fd ! task-wait @ wait-out or task-wait ! ;
+  task-wait-fd ! task-wait @ wait-out or task-wait !
+  end-atomic ;
 
 \ Set a task as not waiting on writing a file descriptor.
 : unset-wait-out ( -- )
+  begin-atomic
   0 task-wait-fd ! wait-out not task-wait @ and task-wait !
-  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then
+  end-atomic ;
 
 \ Set a task as waiting on reading priority data from a file descriptor.
 : set-wait-pri ( fd -- )
+  begin-atomic
   task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
-  task-wait-fd ! task-wait @ wait-pri or task-wait ! ;
+  task-wait-fd ! task-wait @ wait-pri or task-wait !
+  end-atomic ;
 
 \ Set a task as not waiting on reading priority data from a file descriptor.
 : unset-wait-pri ( -- )
+  begin-atomic
   0 task-wait-fd ! wait-pri not task-wait @ and task-wait !
-  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then
+  end-atomic ;
 
 \ Set a task as waiting for a given time.
 : set-wait-time ( s ns -- )
+  begin-atomic
   task-wait @ 0 = if awake-task-count @ 1 - awake-task-count ! then
   task-wait-time-ns ! task-wait-time-s !
-  task-wait @ wait-time or task-wait ! ;
+  task-wait @ wait-time or task-wait !
+  end-atomic ;
 
 \ Set a task as not waiting on reading priority data from a file descriptor.
 : unset-wait-time ( -- )
+  begin-atomic
   0 task-wait-time-ns ! 0 task-wait-time-s !
   wait-time not task-wait @ and task-wait !
-  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then ;
+  task-wait @ 0 = if awake-task-count @ 1 + awake-task-count ! then
+  end-atomic ;
 
 \ Subtract one time from another.
 : subtract-time ( s1 ns1 s2 ns2 -- s3 ns3 )
@@ -427,12 +457,20 @@ variable sys-set-protect-stacks
 : do-sleep ( -- )
   begin
     awake-task-count @ 1 = if
+      begin-atomic
       get-fd-wait-count here over poll-fd-size * allot
       dup populate-poll-fds over get-sleep-time poll 2drop
       poll-fd-size * negate allot
+      end-atomic
     then
     pause
   again ;
+
+\ Whether to preempt
+variable preempt? false preempt? !
+
+\ Preemption interval
+variable preempt-interval 1000 1000 * 1000 * 50 / preempt-interval !
 
 \ Function to call on pause
 variable 'on-pause
@@ -442,6 +480,7 @@ variable pause-count
 
 \ Actually handle pausing
 : (pause) ( -- )
+  1 alarm-real-int lshift not set-int-mask
   current-task @ if
     sp@ task-data-stack !
     rp@ task-return-stack !
@@ -473,7 +512,8 @@ variable pause-count
       then
       current-task @ force-deactivate-task
     then
-  then ;
+  then
+  -1 set-int-mask ;
 
 \ Initialize multitasking
 : init-tasks ( -- )
@@ -520,5 +560,17 @@ sleep-task activate-task
 
 \ Abstracting getting the current number of pauses
 : pause-count pause-count @ ;
+
+\ Realtime alarm interrupt handler
+: handle-alarm-real ( -- ) alarm-real-int unmask-int pause ;
+
+\ Set realtime alarm interrupt handler
+' handle-alarm-real alarm-real-int set-int-handler
+
+\ Enable preemption
+: enable-preempt ( -- ) 0 preempt-interval @ 0 0 alarm-real-int set-alarm drop ;
+
+\ Disable preemption
+: disable-preempt ( -- ) 0 0 0 0 alarm-real-int set-alarm drop ;
 
 base ! set-current set-order

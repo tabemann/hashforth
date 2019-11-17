@@ -126,56 +126,63 @@ end-structure
 \ value from the bounded channel, and waiting for a value to be read from the
 \ bounded channel if it is already full.
 : send-bchan ( x chan -- )
+  begin-atomic
   begin dup bchan-queue-count @ over bchan-queue-size @ >= while
-    dup bchan-send-cond @ wait-cond
+    dup bchan-send-cond @ end-atomic wait-cond begin-atomic
   repeat
-  swap over enqueue-bchan bchan-recv-cond @ signal-cond ;
+  swap over enqueue-bchan bchan-recv-cond @ end-atomic signal-cond ;
 
 \ Attempt to send a value on a bounded channel, waking up one task waiting to
 \ receive a value from the bounded channel, and returning FALSE if the bounded
 \ channel is already full.
 : try-send-bchan ( x chan -- success )
+  begin-atomic
   dup bchan-queue-count @ over bchan-queue-size @ < if
-    tuck enqueue-bchan bchan-recv-cond @ signal-cond true
+    tuck enqueue-bchan bchan-recv-cond @ end-atomic signal-cond true
   else
-    2drop false
+    end-atomic 2drop false
   then ;
 
 \ Receive a value from a bounded channel, waking up one task waiting to send
 \ a value on the bounded channel, and waiting for a task to send a value on
 \ the bounded channel if it is empty.
 : recv-bchan ( chan -- x )
+  begin-atomic
   begin dup bchan-queue-count @ 0= while
-    dup bchan-recv-cond @ wait-cond
+    dup bchan-recv-cond @ end-atomic wait-cond begin-atomic
   repeat
-  dup dequeue-bchan swap bchan-send-cond @ signal-cond ;
+  dup dequeue-bchan swap bchan-send-cond @ end-atomic signal-cond ;
 
 \ Receive a value from a bounded channel without dequeueing any values, waiting
 \ for a task to send a value on the bounded channel if it is empty.
 : peek-bchan ( chan -- x )
+  begin-atomic
   begin dup bchan-queue-count @ 0= while
-    dup bchan-recv-cond @ wait-cond
+    dup bchan-recv-cond @ end-atomic wait-cond begin-atomic
   repeat
-  do-peek-bchan ;
+  do-peek-bchan end-atomic ;
 
 \ Attempt to receive a value from a bounded channel, waking up one task waiting
 \ to send a value on the bounded channel, and returning FALSE if the bounded
 \ channel is empty.
 : try-recv-bchan ( chan -- x found )
+  begin-atomic
   dup bchan-queue-count @ 0<> if
-    dup dequeue-bchan swap bchan-send-cond @ signal-cond true
+    dup dequeue-bchan swap bchan-send-cond @ end-atomic signal-cond true
   else
-    drop 0 false
+    end-atomic drop 0 false
   then ;
 
 \ Attempt to receive a value from a bounded channel without dequeueing any
 \ values, returning FALSE if the bounded channel is empty.
 : try-peek-bchan ( chan -- x found )
+  begin-atomic
   dup bchan-queue-count @ 0<> if
     do-peek-bchan true
   else
     drop 0 false
-  then ;
+  then
+  end-atomic ;
 
 \ Get the number of values queued in a bounded channel.
 : count-bchan ( chan -- u ) bchan-queue-count @ ;
@@ -185,6 +192,6 @@ end-structure
 
 \ Get whether a bounded channel is full.
 : full-bchan? ( chan -- full )
-  dup bchan-queue-count @ swap bchan-queue-size @ = ;
+  begin-atomic dup bchan-queue-count @ swap bchan-queue-size @ = end-atomic ;
 
 base ! set-current set-order

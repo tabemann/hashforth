@@ -61,12 +61,27 @@ define-word token-flag-bit ( -- flag )
   half-token-size full-token-size <>
 end-word
 
+\ Duplicate a value on the top of the stack if it is non-zero
+define-word ?dup ( 0 | x -- 0 | x x ) dup 0 lit <> +if dup +then end-word
+
 \ The user space pointer
 define-word-created up
 0 set-cell-data
 
 \ The HERE pointer is stored here
 define-word-created user-space-current
+0 set-cell-data
+
+\ Define an atomic counter
+define-word-created atomic-count
+0 set-cell-data
+
+\ Define a pause-while-atomic flag
+define-word-created pause-deferred?
+0 set-cell-data
+
+\ The PAUSE hook
+define-word-created 'pause
 0 set-cell-data
 
 \ Get the HERE pointer
@@ -79,6 +94,65 @@ define-word here! ( addr -- ) user-space-current ! end-word
 \ bytes
 define-word allot ( u -- ) here + here! end-word
 
+\ TYPE hook
+define-word-created 'type
+0 set-cell-data
+
+\ KEY? hook
+define-word-created 'key?
+0 set-cell-data
+
+\ KEY hook
+define-word-created 'key
+0 set-cell-data
+
+\ ACCEPT hook
+define-word-created 'accept
+0 set-cell-data
+
+\ BYE hook
+define-word-created 'bye
+0 set-cell-data
+
+\ TYPE wrapper
+define-word type ( c-addr bytes -- ) 'type @ execute end-word
+
+\ KEY? wrapper
+define-word key? ( -- flag ) 'key? @ execute end-word
+
+\ KEY wrapper
+define-word key ( -- c ) 'key @ execute end-word
+
+\ ACCEPT wrapper
+define-word accept ( c-addr bytes1 -- bytes2 ) 'accept @ execute end-word
+
+\ BYE wrapper
+define-word bye ( -- ) 'bye @ execute end-word
+
+\ Space constant
+define-word bl $20 lit end-word
+
+\ Newline (LF) constant
+define-word newline $0a lit end-word
+
+\ Tab constant
+define-word tab $09 lit end-word
+
+\ Output a single character on standard output
+define-word emit ( c -- )
+  here c! here 1 lit allot 1 lit type -1 lit allot end-word
+
+\ Output a single space on standard output
+define-word space ( -- ) bl emit end-word
+
+\ Output a single newline on standard output
+define-word cr ( -- ) newline emit end-word
+
+\ Unimplemented service exception
+define-word x-unimplemented-sys ( -- )
+  space s" unimplemented service" +data type cr
+end-word
+
 \ The built-in user variable count
 not-vm variable build-#user vm
 
@@ -87,6 +161,184 @@ not-vm variable build-#user vm
   define-word
   not-vm build-#user @ dup 1 + build-#user ! vm lit cells up @ +
   end-word ;
+
+\ The handler user variable
+define-word-user handler
+
+\ Global exception handler
+define-word-created 'global-handler
+0 set-cell-data
+
+\ Global bye handler
+define-word-created 'global-bye-handler
+0 set-cell-data
+
+\ Execute an xt, returning either zero if no exception takes place, or an
+\ exception value if an exception has taken place
+define-word try ( xt -- exception | 0 )
+  sp@ >r atomic-count @ >r handler @ >r
+  rp@ handler ! execute r> handler ! r> drop r> drop 0 lit
+end-word
+
+\ If the passed-in value is non-zero, raise an exception; note that this value
+\ should be an xt, since uncaught exception values are normally executed as an
+\ xt
+define-word ?reraise ( xt | 0 -- xt | 0 )
+  ?dup +if
+    handler @ rp! r> handler ! r> atomic-count ! r> swap >r sp! drop r>
+  +then
+end-word
+
+\ If the passed-in value is non-zero, raise an exception; note that this value
+\ should be an xt, since uncaught exception values are normally executed as an
+\ xt
+define-word ?raise ( xt | 0 -- xt | 0 )
+  dup +if 'global-handler @ ?dup +if execute +then +then ?reraise
+end-word
+
+\ New name for the original SYS opcode because VM assembly words have no
+\ "hidden" flag
+define-word old-sys ( sys -- ) sys end-word
+
+\ A wrapper for the SYS opcode to handle unimplemented services, raising an
+\ exception if they occur
+define-word sys ( sys -- )
+  old-sys 0 lit = +if &x-unimplemented-sys ?raise +then
+end-word
+
+\ Look up a service by name and return either the service ID, if the service
+\ exists, or zero, if it does not exist
+define-word sys-lookup ( addr bytes -- service|0 ) 1 lit sys end-word
+
+\ Read service ID
+define-word-created sys-read
+0 set-cell-data
+
+\ Write service ID
+define-word-created sys-write
+0 set-cell-data
+
+\ Get nonblocking service ID
+define-word-created sys-get-nonblocking
+0 set-cell-data
+
+\ Set nonblocking service ID
+define-word-created sys-set-nonblocking
+0 set-cell-data
+
+\ Bye service ID
+define-word-created sys-bye
+0 set-cell-data
+
+\ Get trace service ID
+define-word-created sys-get-trace
+0 set-cell-data
+
+\ Set trace service ID
+define-word-created sys-set-trace
+0 set-cell-data
+
+\ Set name table service ID
+define-word-created sys-set-name-table
+0 set-cell-data
+
+\ Get interrupt handler service ID
+define-word-created sys-get-int-handler
+0 set-cell-data
+
+\ Set interrupt handler service ID
+define-word-created sys-set-int-handler
+0 set-cell-data
+
+\ Get interrupt mask service ID
+define-word-created sys-get-int-mask
+0 set-cell-data
+
+\ Set interrupt mask service ID
+define-word-created sys-set-int-mask
+0 set-cell-data
+
+\ Adjust interrupt mask service ID
+define-word-created sys-adjust-int-mask
+0 set-cell-data
+
+\ Get interrupt handler mask service ID
+define-word-created sys-get-int-handler-mask
+0 set-cell-data
+
+\ Set interrupt handler mask service ID
+define-word-created sys-set-int-handler-mask
+0 set-cell-data
+
+\ Get alarm service ID
+define-word-created sys-get-alarm
+0 set-cell-data
+
+\ Set alarm service ID
+define-word-created sys-set-alarm
+0 set-cell-data
+
+\ Look up a number of services
+define-word lookup-sys ( -- )
+  s" READ" +data sys-lookup sys-read !
+  s" WRITE" +data sys-lookup sys-write !
+  s" GET-NONBLOCKING" +data sys-lookup sys-get-nonblocking !
+  s" SET-NONBLOCKING" +data sys-lookup sys-set-nonblocking !
+  s" BYE" +data sys-lookup sys-bye !
+  s" GET-TRACE" +data sys-lookup sys-get-trace !
+  s" SET-TRACE" +data sys-lookup sys-set-trace !
+  s" SET-NAME-TABLE" +data sys-lookup sys-set-name-table !
+  s" SET-NAME-TABLE" +data sys-lookup sys-set-name-table !
+  s" GET-INT-HANDLER" +data sys-lookup sys-get-int-handler !
+  s" SET-INT-HANDLER" +data sys-lookup sys-set-int-handler !
+  s" GET-INT-MASK" +data sys-lookup sys-get-int-mask !
+  s" SET-INT-MASK" +data sys-lookup sys-set-int-mask !
+  s" ADJUST-INT-MASK" +data sys-lookup sys-adjust-int-mask !
+  s" GET-INT-HANDLER-MASK" +data sys-lookup sys-get-int-handler-mask !
+  s" SET-INT-HANDLER-MASK" +data sys-lookup sys-set-int-handler-mask !
+  s" GET-ALARM" +data sys-lookup sys-get-alarm !
+  s" SET-ALARM" +data sys-lookup sys-set-alarm !
+end-word
+
+\ The PAUSE wrapper
+define-word pause ( -- )
+  atomic-count @ 0 lit = +if
+    'pause @ ?dup +if execute +then
+  +else
+    +true pause-deferred? !
+  +then
+end-word
+
+\ xt for .s
+define-word-created '.s
+0 set-cell-data
+
+\ xt for .
+define-word-created '.
+0 set-cell-data
+
+\ Begin an atomic block
+define-word begin-atomic ( -- )
+  not-vm 1 5 lshift not vm lit sys-set-int-mask @ sys
+  atomic-count @ 1 lit + atomic-count !
+  -1 lit sys-set-int-mask @ sys
+end-word
+
+\ End an atomic block
+define-word end-atomic ( -- )
+  not-vm 1 5 lshift not vm lit sys-set-int-mask @ sys
+  atomic-count @ dup 0 lit > +if
+    1 lit - dup atomic-count ! 0 lit = pause-deferred? @ and +if
+      +false pause-deferred? !
+      -1 lit sys-set-int-mask @ sys
+      'pause @ ?dup +if execute +then
+    +else
+      -1 lit sys-set-int-mask @ sys
+    +then
+  +else
+    -1 lit sys-set-int-mask @ sys drop
+  +then
+end-word
 
 \ Negate a value
 define-word negate ( n -- n ) 1 lit - not end-word
@@ -125,9 +377,6 @@ define-word u>= ( n1 n2 -- flag ) 2dup = rot rot u> or end-word
 \ Fetch a value at an address, add a value to it, and store it to the same
 \ address
 define-word +! ( n addr -- ) dup @ rot + swap ! end-word
-
-\ Duplicate a value on the top of the stack if it is non-zero
-define-word ?dup ( 0 | x -- 0 | x x ) dup 0 lit <> +if dup +then end-word
 
 \ Align an address to a power of two
 define-word aligned-to ( addr1 pow2 -- addr2 )
@@ -350,60 +599,6 @@ define-word-user output-fd
 \ Error file descriptor user variable
 define-word-user error-fd
 
-\ TYPE hook
-define-word-created 'type
-0 set-cell-data
-
-\ KEY? hook
-define-word-created 'key?
-0 set-cell-data
-
-\ KEY hook
-define-word-created 'key
-0 set-cell-data
-
-\ ACCEPT hook
-define-word-created 'accept
-0 set-cell-data
-
-\ BYE hook
-define-word-created 'bye
-0 set-cell-data
-
-\ TYPE wrapper
-define-word type ( c-addr bytes -- ) 'type @ execute end-word
-
-\ KEY? wrapper
-define-word key? ( -- flag ) 'key? @ execute end-word
-
-\ KEY wrapper
-define-word key ( -- c ) 'key @ execute end-word
-
-\ ACCEPT wrapper
-define-word accept ( c-addr bytes1 -- bytes2 ) 'accept @ execute end-word
-
-\ BYE wrapper
-define-word bye ( -- ) 'bye @ execute end-word
-
-\ Space constant
-define-word bl $20 lit end-word
-
-\ Newline (LF) constant
-define-word newline $0a lit end-word
-
-\ Tab constant
-define-word tab $09 lit end-word
-
-\ Output a single character on standard output
-define-word emit ( c -- )
-  here c! here 1 lit allot 1 lit type -1 lit allot end-word
-
-\ Output a single space on standard output
-define-word space ( -- ) bl emit end-word
-
-\ Output a single newline on standard output
-define-word cr ( -- ) newline emit end-word
-
 \ Error writing to standard output
 define-word x-unable-to-write-stdout ( -- ) bye end-word
 
@@ -415,37 +610,6 @@ end-word
 \ Standard input is supposed to be blocking
 define-word x-is-supposed-to-block ( -- )
   space s" standard input is supposed to block" +data type cr
-end-word
-
-\ The handler user variable
-define-word-user handler
-
-\ Global exception handler
-define-word-created 'global-handler
-0 set-cell-data
-
-\ Global bye handler
-define-word-created 'global-bye-handler
-0 set-cell-data
-
-\ Execute an xt, returning either zero if no exception takes place, or an
-\ exception value if an exception has taken place
-define-word try ( xt -- exception | 0 )
-  sp@ >r handler @ >r rp@ handler ! execute r> handler ! r> drop 0 lit
-end-word
-
-\ If the passed-in value is non-zero, raise an exception; note that this value
-\ should be an xt, since uncaught exception values are normally executed as an
-\ xt
-define-word ?reraise ( xt | 0 -- xt | 0 )
-  ?dup +if handler @ rp! r> handler ! r> swap >r sp! drop r> +then
-end-word
-
-\ If the passed-in value is non-zero, raise an exception; note that this value
-\ should be an xt, since uncaught exception values are normally executed as an
-\ xt
-define-word ?raise ( xt | 0 -- xt | 0 )
-  dup +if 'global-handler @ ?dup +if execute +then +then ?reraise
 end-word
 
 \ IF conditional
@@ -490,115 +654,6 @@ end-word
 define-word-immediate-compile-only repeat ( -- )
   ( Compile-time: back-ref fore-ref -- )
   swap &branch compile, align , token-align here swap !
-end-word
-
-\ Unimplemented service exception
-define-word x-unimplemented-sys ( -- )
-  space s" unimplemented service" +data type cr
-end-word
-
-\ New name for the original SYS opcode because VM assembly words have no
-\ "hidden" flag
-define-word old-sys ( sys -- ) sys end-word
-
-\ A wrapper for the SYS opcode to handle unimplemented services, raising an
-\ exception if they occur
-define-word sys ( sys -- )
-  old-sys 0 lit = +if &x-unimplemented-sys ?raise +then
-end-word
-
-\ Look up a service by name and return either the service ID, if the service
-\ exists, or zero, if it does not exist
-define-word sys-lookup ( addr bytes -- service|0 ) 1 lit sys end-word
-
-\ Read service ID
-define-word-created sys-read
-0 set-cell-data
-
-\ Write service ID
-define-word-created sys-write
-0 set-cell-data
-
-\ Get nonblocking service ID
-define-word-created sys-get-nonblocking
-0 set-cell-data
-
-\ Set nonblocking service ID
-define-word-created sys-set-nonblocking
-0 set-cell-data
-
-\ Bye service ID
-define-word-created sys-bye
-0 set-cell-data
-
-\ Get trace service ID
-define-word-created sys-get-trace
-0 set-cell-data
-
-\ Set trace service ID
-define-word-created sys-set-trace
-0 set-cell-data
-
-\ Set name table service ID
-define-word-created sys-set-name-table
-0 set-cell-data
-
-\ Get interrupt handler service ID
-define-word-created sys-get-int-handler
-0 set-cell-data
-
-\ Set interrupt handler service ID
-define-word-created sys-set-int-handler
-0 set-cell-data
-
-\ Get interrupt mask service ID
-define-word-created sys-get-int-mask
-0 set-cell-data
-
-\ Set interrupt mask service ID
-define-word-created sys-set-int-mask
-0 set-cell-data
-
-\ Adjust interrupt mask service ID
-define-word-created sys-adjust-int-mask
-0 set-cell-data
-
-\ Get interrupt handler mask service ID
-define-word-created sys-get-int-handler-mask
-0 set-cell-data
-
-\ Set interrupt handler mask service ID
-define-word-created sys-set-int-handler-mask
-0 set-cell-data
-
-\ Get alarm service ID
-define-word-created sys-get-alarm
-0 set-cell-data
-
-\ Set alarm service ID
-define-word-created sys-set-alarm
-0 set-cell-data
-
-\ Look up a number of services
-define-word lookup-sys ( -- )
-  s" READ" +data sys-lookup sys-read !
-  s" WRITE" +data sys-lookup sys-write !
-  s" GET-NONBLOCKING" +data sys-lookup sys-get-nonblocking !
-  s" SET-NONBLOCKING" +data sys-lookup sys-set-nonblocking !
-  s" BYE" +data sys-lookup sys-bye !
-  s" GET-TRACE" +data sys-lookup sys-get-trace !
-  s" SET-TRACE" +data sys-lookup sys-set-trace !
-  s" SET-NAME-TABLE" +data sys-lookup sys-set-name-table !
-  s" SET-NAME-TABLE" +data sys-lookup sys-set-name-table !
-  s" GET-INT-HANDLER" +data sys-lookup sys-get-int-handler !
-  s" SET-INT-HANDLER" +data sys-lookup sys-set-int-handler !
-  s" GET-INT-MASK" +data sys-lookup sys-get-int-mask !
-  s" SET-INT-MASK" +data sys-lookup sys-set-int-mask !
-  s" ADJUST-INT-MASK" +data sys-lookup sys-adjust-int-mask !
-  s" GET-INT-HANDLER-MASK" +data sys-lookup sys-get-int-handler-mask !
-  s" SET-INT-HANDLER-MASK" +data sys-lookup sys-set-int-handler-mask !
-  s" GET-ALARM" +data sys-lookup sys-get-alarm !
-  s" SET-ALARM" +data sys-lookup sys-set-alarm !
 end-word
 
 \ Read a file descriptor (a return value of -1 means success, a return value of
@@ -951,13 +1006,6 @@ define-word (bye) ( -- )
   'global-bye-handler @ ?dup +if execute +then cr sys-bye @ sys
 end-word
 
-\ The PAUSE hook
-define-word-created 'pause
-0 set-cell-data
-
-\ The PAUSE wrapper
-define-word pause ( -- ) 'pause @ ?dup +if execute +then end-word
-
 \ The default implementation of PAUSE
 define-word (pause) ( -- ) end-word
 
@@ -969,6 +1017,8 @@ define-word set-hooks ( -- )
   &(accept) 'accept !
   &(bye) 'bye !
   &(pause) 'pause !
+  &.s '.s !
+  &. '. !
 end-word
 
 \ The Forth wordlist constant
@@ -1134,15 +1184,17 @@ end-word
 \ Search a wordlist for a word (an xt) by name, returning a non-zero value and
 \ an xt if the word is found in the wordlist, else returning zero and zero
 define-word search-wordlist ( c-addr bytes wid -- xt found )
+  begin-atomic
   wordlist>first +begin dup 0 lit <> +while
     dup word>flags hidden-flag lit and 0 lit = +if
       2 lit pick 2 lit pick 2 lit pick word>name equal-name? +if
-        rot rot 2drop +true exit
+        rot rot 2drop +true end-atomic exit
       +then
     +then
     word>next
   +repeat
   2drop drop 0 lit +false
+  end-atomic
 end-word
 
 \ The maximum wordlist order size
@@ -1165,6 +1217,7 @@ end-word
 \ that number of wordlist IDs popped off the data stack, in order from first
 \ to last
 define-word set-order ( widn ... wid1 count -- )
+  begin-atomic
   dup max-wordlist-order-count lit <= +if
     dup wordlist-order-count !
     0 lit +begin 2dup > +while
@@ -1174,31 +1227,36 @@ define-word set-order ( widn ... wid1 count -- )
   +else
     &x-max-wordlist-order-count ?raise
   +then
+  end-atomic
 end-word
 
 \ Get the wordlist order with the entries of the wordlist order pushed onto
 \ the data stack, in order from last to first, followed by the number of entries
 \ in the wordlist order
 define-word get-order ( -- widn ... wid1 count )
+  begin-atomic
   wordlist-order-count @ +begin dup 0 lit > +while
     1 lit - dup cells wordlist-order-array + @ swap
   +repeat
   drop wordlist-order-count @
+  end-atomic
 end-word
 
 \ Search all the wordlists, in order from first to last, for a word by name,
 \ and if that word is found, it is pushed onto the stack as an xt followed by
 \ a non-zero value, else zero followed by zero is pushed onto the data stack
 define-word search-wordlists ( c-addr bytes -- xt found )
+  begin-atomic
   0 lit +begin dup wordlist-order-count @ < +while
     dup cell * wordlist-order-array + @ 3 lit pick 3 lit pick rot
     search-wordlist +if
-      swap drop swap drop swap drop +true exit
+      swap drop swap drop swap drop +true end-atomic exit
     +else
       drop 1 lit +
     +then
   +repeat
   2drop drop 0 lit +false
+  end-atomic
 end-word
 
 \ A pointer to the interpreter input bufer
@@ -1487,6 +1545,7 @@ end-word
 \ adding the word to the current wordlist
 non-define-word : ( -- )
   parse-name dup 0 lit <> +if
+    begin-atomic
     allocate-string +true state ! token-align here new-colon
     dup 3 lit roll 3 lit roll rot
 \    S" compiling: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
@@ -1494,6 +1553,7 @@ non-define-word : ( -- )
     here latestxt-value @ start>word
     get-current wordlist>first over next>word
     get-current first>wordlist
+    end-atomic
   +else
     2drop &x-no-parse-found ?raise
   +then
@@ -1502,16 +1562,20 @@ end-word
 \ Begin compilation of an anonymous word, setting LATESTXT to the word, and
 \ pushing the xt for the word onto the data stack
 define-word :noname ( -- xt )
+  begin-atomic
   true state ! token-align here new-colon dup max-xt ! dup latestxt-value !
   here latestxt-value @ start>word
   0 lit 0 lit latestxt-value @ name>word
+  end-atomic
 end-word
 
 \ Create a CREATEd anonymous word, setting LATESTXT to the word, and
 \ pushing the xt for the word onto the data stack
 define-word create-noname ( -- xt )
+  begin-atomic
   align here new-create dup max-xt ! dup latestxt-value !
   0 lit 0 lit latestxt-value @ name>word
+  end-atomic
 end-word
 
 \ Create a CREATEd word with the specified name, setting the word to have a data
@@ -1520,11 +1584,12 @@ end-word
 \ word to be hidden, setting LATESTXT to the word, and adding the word to the
 \ current wordlist
 define-word create-with-name ( c-addr bytes -- )
+  begin-atomic
   allocate-string align here new-create dup 3 lit roll 3 lit roll rot
-\  S" creating: " +DATA TYPE 2 LIT PICK 2 LIT PICK TYPE CR
   name>word dup max-xt ! dup latestxt-value !
   get-current wordlist>first over next>word
   get-current first>wordlist
+  end-atomic
 end-word
 
 \ Parse a name and create a CREATEd word with the specified name, setting the
@@ -1557,11 +1622,13 @@ end-word
 \ unsetting the hidden flag
 non-define-word-immediate-compile-only ; ( -- )
   latestxt +if
+    begin-atomic
     &exit compile, &end compile,
     here latestxt end>word
     latestxt word>flags hidden-flag lit not and latestxt flags>word
     latestxt finish
     +false state !
+    end-atomic
   +else
     &x-no-latestxt ?raise
   +then
@@ -1841,6 +1908,7 @@ not-vm build-#user @ set-cell-data vm
 \ everything defined after and including itself, including restoring wordlists
 \ to the state where they were when the marker was defined
 define-word marker ( "name" -- )
+  begin-atomic
   max-xt @ latestxt here create , , , #user @ , wordlist-count @ ,
   wordlist-array wordlist-count @ +begin dup 0 lit > +while
     swap dup @ dup latestxt = +if word>next +then , cell+ swap 1 lit -
@@ -1850,7 +1918,9 @@ define-word marker ( "name" -- )
     swap dup @ , cell+ swap 1 lit -
   +repeat
   2drop get-current ,
+  end-atomic
   does>
+  begin-atomic
   dup @ here!
   cell+ dup @ latestxt-value !
   cell+ dup @ dup max-xt ! 1 lit + set-word-count cell+
@@ -1863,6 +1933,7 @@ define-word marker ( "name" -- )
     swap rot dup @ rot tuck ! cell+ swap cell+ swap rot 1 lit -
   +repeat
   2drop @ set-current
+  end-atomic
 end-word
 
 \ Relocate the name table upon loading

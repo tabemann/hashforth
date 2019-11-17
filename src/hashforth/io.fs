@@ -294,7 +294,7 @@ variable first-included-item
 
 \ Add an included item if it is not already included.
 : check-include-item ( c-addr bytes -- )
-  2dup included? if include-item else 2drop then ;
+  begin-atomic 2dup included? if include-item else 2drop then end-atomic ;
 
 \ Load Forth code from a file.
 : included ( c-addr bytes -- )

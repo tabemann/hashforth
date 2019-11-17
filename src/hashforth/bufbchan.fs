@@ -131,56 +131,63 @@ end-structure
 \ packet from the bounded channel, and waiting for a value to be read from the
 \ bounded channel if it is already full.
 : send-bufbchan ( addr chan -- )
+  begin-atomic
   begin dup bufbchan-queue-count @ over bufbchan-queue-size @ >= while
-    dup bufbchan-send-cond @ wait-cond
+    dup bufbchan-send-cond @ end-atomic wait-cond begin-atomic
   repeat
-  tuck enqueue-bufbchan bufbchan-recv-cond @ signal-cond ;
+  tuck enqueue-bufbchan bufbchan-recv-cond @ end-atomic signal-cond ;
 
 \ Attempt to send a packet on a bounded channel, waking up one task waiting to
 \ receive a packet from the bounded channel, and returning FALSE if the bounded
 \ channel is already full.
 : try-send-bufbchan ( addr chan -- success )
+  begin-atomic
   dup bufbchan-queue-count @ over bufbchan-queue-size @ < if
-    tuck enqueue-bufbchan bufbchan-recv-cond @ signal-cond true
+    tuck enqueue-bufbchan bufbchan-recv-cond @ end-atomic signal-cond true
   else
-    2drop false
+    end-atomic 2drop false
   then ;
 
 \ Receive a packet from a bounded channel, waking up one task waiting to send
 \ a packet on the bounded channel, and waiting for a task to send a packet on
 \ the bounded channel if it is empty.
 : recv-bufbchan ( addr chan -- )
+  begin-atomic
   begin dup bufbchan-queue-count @ 0= while
-    dup bufbchan-recv-cond @ wait-cond
+    dup bufbchan-recv-cond @ end-atomic wait-cond begin-atomic
   repeat
-  tuck dequeue-bufbchan bufbchan-send-cond @ signal-cond ;
+  tuck dequeue-bufbchan bufbchan-send-cond @ end-atomic signal-cond ;
 
 \ Receive a packet from a bounded channel without dequeueing any packets,
 \ waiting for a task to send a packet on the bounded channel if it is empty.
 : peek-bufbchan ( addr chan -- )
+  begin-atomic
   begin dup bufbchan-queue-count @ 0= while
-    dup bufbchan-recv-cond @ wait-cond
+    dup bufbchan-recv-cond @ end-atomic wait-cond begin-atomic
   repeat
-  do-peek-bufbchan ;
+  do-peek-bufbchan end-atomic ;
 
 \ Attempt to receive a packet from a bounded channel, waking up one task waiting
 \ to send a packet on the bounded channel, and returning FALSE if the bounded
 \ channel is empty.
 : try-recv-bufbchan ( addr chan -- found )
+  begin-atomic
   dup bufbchan-queue-count @ 0<> if
-    tuck dequeue-bufbchan bufbchan-send-cond @ signal-cond true
+    tuck dequeue-bufbchan bufbchan-send-cond @ end-atomic signal-cond true
   else
-    2drop false
+    end-atomic 2drop false
   then ;
 
 \ Attempt to receive a packet from a bounded channel without dequeueing any
 \ packets, returning FALSE if the bounded channel is empty.
 : try-peek-bufbchan ( addr chan -- found )
+  begin-atomic
   dup bufbchan-queue-count @ 0<> if
     do-peek-bufbchan true
   else
     2drop false
-  then ;
+  then
+  end-atomic ;
 
 \ Get the number of values queued in a bounded channel.
 : count-bufbchan ( chan -- u ) bufbchan-queue-count @ ;
@@ -190,7 +197,9 @@ end-structure
 
 \ Get whether a bounded channel is full.
 : full-bufbchan? ( chan -- full )
-  dup bufbchan-queue-count @ swap bufbchan-queue-size @ = ;
+  begin-atomic
+  dup bufbchan-queue-count @ swap bufbchan-queue-size @ =
+  end-atomic ;
 
 \ Get bounded channel entry size.
 : get-bufbchan-entry-size ( chan -- u ) bufbchan-entry-size @ ;

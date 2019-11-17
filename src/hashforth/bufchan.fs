@@ -61,50 +61,59 @@ end-structure
 \ Send a packet on a channel, waking up one task waiting to receive a packet
 \ from the channel.
 : send-bufchan ( addr chan -- )
+  begin-atomic
   tuck bufchan-vector @ push-end-vector averts x-bufchan-internal
-  bufchan-recv-cond @ signal-cond ;
+  bufchan-recv-cond @ end-atomic signal-cond ;
 
 \ Receive a packet from a channel, waiting for a task to send a packet on the
 \ channel if it is empty.
 : recv-bufchan ( addr chan -- )
+  begin-atomic
   begin dup bufchan-vector @ count-vector 0 = while
-    dup bufchan-recv-cond @ wait-cond
+    dup bufchan-recv-cond @ end-atomic wait-cond begin-atomic 
   repeat
-  bufchan-vector @ pop-start-vector averts x-bufchan-internal ;
+  bufchan-vector @ pop-start-vector averts x-bufchan-internal end-atomic ;
 
 \ Receive a packet from a channel without dequeueing any packets, waiting for a
 \ task to send a packet on the channel if it is empty.
 : peek-bufchan ( addr chan -- )
+  begin-atomic
   begin dup bufchan-vector @ count-vector 0 = while
-    dup bufchan-recv-cond @ wait-cond
+    dup bufchan-recv-cond @ end-atomic wait-cond begin-atomic
   repeat
-  bufchan-vector @ peek-start-vector averts x-bufchan-internal ;
+  bufchan-vector @ peek-start-vector averts x-bufchan-internal end-atomic ;
 
 \ Attempt to receive a packet from a channel, returning FALSE if the channel is
 \ empty.
 : try-recv-bufchan ( addr chan -- found )
+  begin-atomic
   dup bufchan-vector @ count-vector @ 0 <> if
     bufchan-vector @ pop-start-vector averts x-bufchan-internal true
   else
     2drop false
-  then ;
+  then
+  end-atomic ;
 
 \ Attempt to receive a packet from a channe without dequeueing any packets,
 \ returning FALSE if the bounded channel is empty.
 : try-peek-bufchan ( addr chan -- found )
+  begin-atomic
   dup bufchan-vector @ count-vector @ 0 <> if
     bufchan-vector @ pop-start-vector averts x-bufchan-internal true
   else
     2drop false
-  then ;
+  then
+  end-atomic ;
 
 \ Get the number of values queues in a channel.
-: count-bufchan ( chan -- u ) bufchan-vector @ count-vector ;
+: count-bufchan ( chan -- u )
+  begin-atomic bufchan-vector @ count-vector end-atomic ;
 
 \ Get whether a channel is empty.
 : empty-bufchan? ( chan -- empty ) count-bufchan 0 = ;
 
 \ Get channel entry size.
-: get-bufchan-entry-size ( chan -- ) bufchan-vector @ get-vector-entry-size ;
+: get-bufchan-entry-size ( chan -- )
+  begin-atomic bufchan-vector @ get-vector-entry-size end-atomic ;
 
 base ! set-current set-order
