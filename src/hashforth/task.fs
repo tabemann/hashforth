@@ -161,7 +161,7 @@ end-structure
 
 \ Internal word for actually activating a task.
 : (activate-task) ( task -- )
-  begin-atomic
+  ( begin-atomic )
   first-task @ if
     first-task @ over task-next !
     first-task @ task-prev @ over task-prev !
@@ -178,15 +178,15 @@ end-structure
   dup first-task !
   ['] task-wait swap access-task @ no-wait = if
     awake-task-count @ 1+ awake-task-count !
-    then
-  end-atomic ;
+  then
+  ( end-atomic ) ;
 
 \ Activate a task for execution.
 : activate-task ( task -- )
-  begin-atomic
+  ( begin-atomic )
   ['] task-active over access-task @ 1 + ['] task-active 2 pick access-task !
   ['] task-active over access-task @ 1 = if (activate-task) else drop then
-  end-atomic ;
+  ( end-atomic ) ;
 
 \ Force the activation of a task.
 : force-activate-task ( task -- )
@@ -505,6 +505,7 @@ variable pause-count
     task-rbase @ rbase !
     true set-protect-stacks
     task-entry @ ?dup if
+      -1 set-int-mask
       0 task-entry !
       try ?dup if
         single-task-io @ true single-task-io ! swap try if bye then
@@ -568,9 +569,10 @@ sleep-task activate-task
 ' handle-alarm-real alarm-real-int set-int-handler
 
 \ Enable preemption
-: enable-preempt ( -- ) 0 preempt-interval @ 0 0 alarm-real-int set-alarm drop ;
+: enable-preempt ( -- )
+  0 preempt-interval @ 2dup alarm-real set-alarm drop 2drop 2drop ;
 
 \ Disable preemption
-: disable-preempt ( -- ) 0 0 0 0 alarm-real-int set-alarm drop ;
+: disable-preempt ( -- ) 0 0 0 0 alarm-real set-alarm drop 2drop 2drop ;
 
 base ! set-current set-order
