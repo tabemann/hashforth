@@ -661,6 +661,9 @@ c"-data c"-length 2constant c"-constant
 \ User/system alarm interrupt
 7 constant alarm-prof-int
 
+\ Interrupted (CTRL-C) interrupt
+8 constant interrupted-int
+
 \ Realtime alarm type
 0 constant alarm-real
 
@@ -672,20 +675,22 @@ c"-data c"-length 2constant c"-constant
 
 \ Unmask interrupt
 : unmask-int ( int -- )
-  1 swap lshift 1 alarm-real-int lshift or 0 swap adjust-int-mask ;
+  1 swap lshift 1 alarm-real-int lshift or 1 interrupted-int lshift or
+  0 swap adjust-int-mask ;
 
 \ Set interrupt handler masks
-: mask-alarm-real ( -- )
+: set-default-masks ( -- )
   0 begin
     dup 8 < if
-      dup get-int-handler-mask alarm-real-int not and
+      dup get-int-handler-mask 1 alarm-real-int lshift not and
+      1 interrupted-int lshift not and
       over set-int-handler-mask 1 + false
     else
       drop true
     then
   until ;
 
-mask-alarm-real
+set-default-masks
 
 \ Segfault exception
 : x-segv ( -- ) space ." segmentation fault" cr ;
@@ -747,11 +752,15 @@ mask-alarm-real
     ['] outer try if s" error " output-fd @ write 2drop then bye
   then ;
 
+\ Interrupted (CTRL-C) handler
+: handle-interrupted ( -- ) interrupted-int unmask-int bye ;
+
 \ Set interrupt handlers
 ' handle-segv segv-int set-int-handler
 ' handle-token token-int set-int-handler
 ' handle-divzero divzero-int set-int-handler
 ' handle-illegal illegal-int set-int-handler
 ' handle-bus bus-int set-int-handler
+' handle-interrupted interrupted-int set-int-handler
 
 -1 set-int-mask

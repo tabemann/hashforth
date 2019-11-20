@@ -361,6 +361,7 @@ typedef void (*hf_sys_prim_t)(hf_global_t* global);
 #define HF_INT_ALARM_REAL (5)
 #define HF_INT_ALARM_VIRTUAL (6)
 #define HF_INT_ALARM_PROF (7)
+#define HF_INT_INTERRUPTED (8)
 
 #define HF_ALARM_REAL (0)
 #define HF_ALARM_VIRTUAL (1)

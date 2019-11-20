@@ -88,8 +88,8 @@ void hf_recover_signal(int signum, siginfo_t* info, void* extra) {
   }
 }
 
-/* Handle an alarm signal */
-void hf_handle_alarm_signal(int signum, siginfo_t* info, void* extra) {
+/* Handle an user signal */
+void hf_handle_user_signal(int signum, siginfo_t* info, void* extra) {
   switch(signum) {
   case SIGALRM:
     if(hf_global->int_mask & (1 << HF_INT_ALARM_REAL)) {
@@ -106,6 +106,10 @@ void hf_handle_alarm_signal(int signum, siginfo_t* info, void* extra) {
       hf_global->int_flags |= 1 << HF_INT_ALARM_PROF;
     }
     break;
+  case SIGINT:
+    if(hf_global->int_mask & (1 << HF_INT_INTERRUPTED)) {
+      hf_global->int_flags |= 1 << HF_INT_INTERRUPTED;
+    }
   default:
     break;
   }
@@ -207,9 +211,9 @@ void hf_set_signal_handler(int signum) {
 }
 
 /* Set a signal handler */
-void hf_set_alarm_signal_handler(int signum) {
+void hf_set_user_signal_handler(int signum) {
   struct sigaction act;
-  act.sa_sigaction = hf_handle_alarm_signal;
+  act.sa_sigaction = hf_handle_user_signal;
   sigemptyset(&act.sa_mask);
   act.sa_flags = SA_SIGINFO;
   sigaction(signum, &act, NULL);
@@ -224,9 +228,10 @@ void hf_inner_and_recover(hf_global_t* global) {
       hf_set_signal_handler(SIGFPE);
       hf_set_signal_handler(SIGILL);
       hf_set_signal_handler(SIGBUS);
-      hf_set_alarm_signal_handler(SIGALRM);
-      hf_set_alarm_signal_handler(SIGVTALRM);
-      hf_set_alarm_signal_handler(SIGPROF);
+      hf_set_user_signal_handler(SIGALRM);
+      hf_set_user_signal_handler(SIGVTALRM);
+      hf_set_user_signal_handler(SIGPROF);
+      hf_set_user_signal_handler(SIGINT);
       while(HF_TRUE) {
 	hf_inner(global);
 	if(global->int_flags) {

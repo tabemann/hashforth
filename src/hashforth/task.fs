@@ -73,6 +73,9 @@ user task-flags
 \ Current active value (< 1 inactive, >= 1 active)
 user task-active
 
+\ Saved active value (< 1 inactive, >= 1 active, $7FFFFFFF not saved)
+user task-saved-active
+
 \ Data stack base
 user task-sbase
 
@@ -112,6 +115,9 @@ end-structure
 \ Allocated task flag
 1 constant allocated-task
 
+\ Not saved constant
+$7FFFFFFF constant not-saved
+
 \ Access a task's user variables
 : access-task ( xt task -- ) up @ >r task-up @ up ! execute r> up ! ;
 
@@ -138,6 +144,7 @@ end-structure
   ['] task-return-stack over access-task @ ['] task-rbase 2 pick access-task !
   ['] task-data-stack over access-task @ ['] task-sbase 2 pick access-task !
   0 ['] task-active 2 pick access-task !
+  not-saved ['] task-saved-active 2 pick access-task !
   0 ['] task-flags 2 pick access-task !
   0 ['] handler 2 pick access-task !
   10 ['] base 2 pick access-task !
@@ -183,10 +190,10 @@ end-structure
 
 \ Activate a task for execution.
 : activate-task ( task -- )
-  ( begin-atomic )
+  begin-atomic
   ['] task-active over access-task @ 1 + ['] task-active 2 pick access-task !
   ['] task-active over access-task @ 1 = if (activate-task) else drop then
-  ( end-atomic ) ;
+  end-atomic ;
 
 \ Force the activation of a task.
 : force-activate-task ( task -- )
@@ -252,6 +259,33 @@ end-structure
   else
     drop
   then
+  end-atomic ;
+
+\ Restore the activation of a task
+: restore-task ( task -- )
+  begin-atomic
+  ['] task-saved-active over access-task @ not-saved <> if
+    ['] task-saved-active over access-task @
+    ['] task-active 2 pick access-task @ >r
+    ['] task-active 2 pick access-task !
+    not-saved ['] task-saved-active 2 pick access-task !
+    ['] task-active over access-task @ 1 < r@ 0 > and if
+      r> drop (deactivate-task)
+    else
+      ['] task-active over access-task @ 0 > r> 1 < and if
+	(activate-task)
+      else
+	drop
+      then
+    then
+  then
+  end-atomic ;
+
+\ Suspend a task
+: suspend-task ( task -- )
+  begin-atomic
+  ['] task-active over access-task @ ['] task-saved-active 2 pick access-task !
+  force-deactivate-task
   end-atomic ;
 
 \ Services for multitasking
@@ -480,7 +514,7 @@ variable pause-count
 
 \ Actually handle pausing
 : (pause) ( -- )
-  1 alarm-real-int lshift not set-int-mask
+  1 alarm-real-int lshift 1 interrupted-int lshift or not set-int-mask
   current-task @ if
     sp@ task-data-stack !
     rp@ task-return-stack !
@@ -537,6 +571,7 @@ init-tasks
   sbase @ ['] task-sbase 2 pick access-task !
   rbase @ ['] task-rbase 2 pick access-task !
   0 ['] task-active 2 pick access-task !
+  not-saved ['] task-saved-active 2 pick access-task !
   0 ['] task-entry 2 pick access-task !
   0 ['] task-wait 2 pick access-task !
   0 ['] task-wait-fd 2 pick access-task !
@@ -549,6 +584,33 @@ allot-main-task constant main-task
 \ The task that sleeps the system when no tasks are awake.
 1024 1024 1024 cells 0 ' do-sleep allot-task constant sleep-task
 sleep-task activate-task
+
+\ Suspend most tasks other than the main and sleep tasks
+: suspend-others ( -- )
+  begin-atomic
+  current-task @ 0 = if end-atomic exit then
+  next-task @ 0 = if end-atomic exit then
+  next-task @ begin
+    dup current-task @ <> over 0 <> and if
+      dup main-task <> over sleep-task <> and if
+	dup task-next @ swap suspend-task
+      else
+	task-next @
+      then
+      false
+    else
+      true
+    then
+  until
+  current-task @ dup main-task <> swap sleep-task <> and if
+    current-task @ suspend-task
+  then
+  end-atomic pause ;
+
+\ Control suspending most tasks with CTRL-C
+: handle-interrupted interrupted-int unmask-int suspend-others ;
+
+' handle-interrupted interrupted-int set-int-handler
 
 \ Abstracting getting the current task
 : current-task current-task @ ;
