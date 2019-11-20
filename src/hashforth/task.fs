@@ -602,6 +602,7 @@ sleep-task activate-task
       true
     then
   until
+  drop
   current-task @ dup main-task <> swap sleep-task <> and if
     current-task @ suspend-task
   then
