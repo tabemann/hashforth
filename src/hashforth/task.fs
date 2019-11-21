@@ -76,6 +76,9 @@ user task-active
 \ Saved active value (< 1 inactive, >= 1 active, $7FFFFFFF not saved)
 user task-saved-active
 
+\ Current received exception
+user task-recv-exception
+
 \ Data stack base
 user task-sbase
 
@@ -145,6 +148,7 @@ $7FFFFFFF constant not-saved
   ['] task-data-stack over access-task @ ['] task-sbase 2 pick access-task !
   0 ['] task-active 2 pick access-task !
   not-saved ['] task-saved-active 2 pick access-task !
+  0 ['] task-recv-exception 2 pick access-task !
   0 ['] task-flags 2 pick access-task !
   0 ['] handler 2 pick access-task !
   10 ['] base 2 pick access-task !
@@ -286,6 +290,20 @@ $7FFFFFFF constant not-saved
   begin-atomic
   ['] task-active over access-task @ ['] task-saved-active 2 pick access-task !
   force-deactivate-task
+  end-atomic ;
+
+\ Send an exception to a task
+: send-exception ( exception task -- )
+  begin-atomic
+  dup current-task @ = if
+    end-atomic drop ?raise
+  else
+    ['] task-recv-exception over access-task @ 0 = if
+      ['] task-recv-exception swap access-task !
+    else
+      2drop
+    then
+  then
   end-atomic ;
 
 \ Services for multitasking
@@ -538,6 +556,9 @@ variable pause-count
     task-sbase @ sbase !
     task-rbase @ rbase !
     true set-protect-stacks
+    task-recv-exception @ ?dup if
+      0 task-recv-exception ! ?raise
+    then
     task-entry @ ?dup if
       -1 set-int-mask
       0 task-entry !
@@ -572,6 +593,7 @@ init-tasks
   rbase @ ['] task-rbase 2 pick access-task !
   0 ['] task-active 2 pick access-task !
   not-saved ['] task-saved-active 2 pick access-task !
+  0 ['] task-recv-exception 2 pick access-task !
   0 ['] task-entry 2 pick access-task !
   0 ['] task-wait 2 pick access-task !
   0 ['] task-wait-fd 2 pick access-task !
@@ -606,10 +628,12 @@ sleep-task activate-task
   current-task @ dup main-task <> swap sleep-task <> and if
     current-task @ suspend-task
   then
-  end-atomic pause ;
+  end-atomic ;
 
 \ Control suspending most tasks with CTRL-C
-: handle-interrupted interrupted-int unmask-int suspend-others ;
+: handle-interrupted
+  interrupted-int unmask-int suspend-others
+  ['] abort-exception main-task send-exception ;
 
 ' handle-interrupted interrupted-int set-int-handler
 
@@ -626,7 +650,8 @@ sleep-task activate-task
 : pause-count pause-count @ ;
 
 \ Realtime alarm interrupt handler
-: handle-alarm-real ( -- ) alarm-real-int unmask-int pause ;
+: handle-alarm-real ( -- )
+  alarm-real-int unmask-int pause ;
 
 \ Set realtime alarm interrupt handler
 ' handle-alarm-real alarm-real-int set-int-handler
