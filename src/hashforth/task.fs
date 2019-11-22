@@ -414,7 +414,7 @@ variable sys-set-protect-stacks
 
 \ Get whether a wait is for POLLIN, POLLOUT, or POLLPRI.
 : wait-fd? ( wait -- flag )
-  dup wait-in and over wait-out and or swap wait-pri and or ;
+  dup wait-in and over wait-out and or swap wait-pri and or 0 <> ;
 
 \ Get number of tasks that need to wait on file descriptors.
 : get-fd-wait-count ( -- )
@@ -633,7 +633,9 @@ sleep-task activate-task
 \ Control suspending most tasks with CTRL-C
 : handle-interrupted
   interrupted-int unmask-int suspend-others
-  ['] abort-exception main-task send-exception ;
+  ['] task-wait main-task access-task @ wait-fd? not if
+    ['] abort-exception main-task send-exception
+  then ;
 
 ' handle-interrupted interrupted-int set-int-handler
 
