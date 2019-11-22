@@ -402,10 +402,12 @@ variable sys-set-protect-stacks
 \ Sleep until a set time.
 : sleep-until ( s ns -- )
   2dup get-monotonic-time subtract-time 0 <> swap 0 <> or if
-    2dup set-wait-time begin
-      pause 2dup get-monotonic-time subtract-time 0 = swap 0 = and
-    until
-    unset-wait-time
+    2dup set-wait-time
+    [:
+      begin
+        pause 2dup get-monotonic-time subtract-time 0 = swap 0 = and
+      until
+    ;] try unset-wait-time ?raise
   then
   2drop ;
 
