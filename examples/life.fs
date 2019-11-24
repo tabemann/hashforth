@@ -103,7 +103,7 @@ init-world
 
 \ Get a cell at a coordinate, optimized for compilation
 : ccell@ ( runtime: x y -- state )
-  & (lit) world-width , & * & + & (lit) current-world , & @ & + & c@
+  world-width lit, & * & + current-world lit, & @ & + & c@
 ; immediate compile-only
 
 \ Get a cell at a coordinate in the next world
