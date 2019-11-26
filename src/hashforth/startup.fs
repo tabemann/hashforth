@@ -764,3 +764,14 @@ set-default-masks
 ' handle-interrupted interrupted-int set-int-handler
 
 -1 set-int-mask
+
+\ ok handler
+: (ok) ( -- )
+  depth 0 > if
+    $1B emit ." [1;31mok" $1B emit ." [0m"
+  else
+    ." ok"
+  then
+  cr ;
+
+' (ok) 'ok !

@@ -1837,6 +1837,10 @@ end-word
 define-word-created 'refill
 0 set-cell-data
 
+\ ok prompt hook
+define-word-created 'ok
+0 set-cell-data
+
 \ Refill wrapper
 define-word refill ( -- ) 'refill @ ?dup +if execute +then end-word
 
@@ -1879,7 +1883,7 @@ define-word outer ( -- )
     refill
     &interpret try dup 0 lit = +if
       drop state @ 0 lit = input @ input-buffer = and +if
-	space s" ok" +data type cr
+	space 'ok @ ?dup +if execute +else s" ok" +data type cr +then
       +else
 	cr
       +then
