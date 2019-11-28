@@ -301,7 +301,7 @@ variable first-included-item
   2dup check-include-item
   included-buffer-size allocate-buffer
   rot rot 2 pick read-file-into-buffer averts x-code-loading-failure
-  dup get-buffer evaluate destroy-buffer ;
+  dup >r get-buffer evaluate r> destroy-buffer ;
 
 \ Load Forth code from a file specified in interpretation mode.
 : include ( "file" -- ) parse-name included ; immediate

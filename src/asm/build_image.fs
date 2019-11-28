@@ -51,3 +51,5 @@ build-image-asm-wordlist set-current
 include src/asm/image.fs
 
 s" images/cell_64_token_16_32.image" write-asm-to-file
+
+not-vm

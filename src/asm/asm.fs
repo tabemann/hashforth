@@ -376,7 +376,7 @@ variable current-token 89 current-token !
 
 : add-source-to-storage ( name-addr name-length -- )
   1024 allocate-buffer rot rot 2 pick read-file-into-buffer 0 <> if
-    dup get-buffer storage-buffer @ append-buffer
+    dup get-buffer storage-buffer @ append-buffer destroy-buffer
   else
     destroy-buffer ['] x-unable-to-read ?raise
   then

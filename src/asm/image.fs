@@ -921,6 +921,8 @@ define-word set-key ( c -- )
   +true read-key? ! read-key !
 end-word
 
+not-vm .s vm
+
 \ Clear key read
 define-word clear-key ( -- ) 0 lit read-key ! +false read-key? ! end-word
 
@@ -1779,7 +1781,7 @@ end-word
 
 \ Flag indicating whether PAUSE is called for every word that is interpreted
 define-word-created pause-on-interpret
-true set-cell-data
+-1 set-cell-data
 
 \ Interpret every word in the interpretation buffer, unless an exception is
 \ raised or data stack or return stack underflow occur; if PAUSE-ON-INTERPRET
